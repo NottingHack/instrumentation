@@ -14,8 +14,10 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
   std::stringstream out;
   reader = NULL;
   mosq_connected = false;
-  log = new CLogging("test");
+  log = new CLogging();
+  string logfile;
   
+  debug_mode = false;
     
   /* Read in command line parameters:
    * -c <config file>       specify config file
@@ -34,7 +36,8 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
           break;
           
         case 'd':
-          log->dbg("Uncoded -d flag given");
+          log->dbg("Starting in debug mode");
+          debug_mode = true;
           break;
         
         case 'l':
@@ -71,8 +74,12 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
       mosq_server = reader->Get("mqtt", "host", "localhost");
       mosq_port   = reader->GetInteger("mqtt", "port", 1883);
       mqtt_topic  = reader->Get("mqtt", "topic", "test"); 
+      logfile     = reader->Get("mqtt", "logfile", ""); 
     }    
   }
+  
+  if (!debug_mode)
+    log->open_logfile(logfile);
   
   mqtt_rx = mqtt_topic + "/rx";
   mqtt_tx = mqtt_topic + "/tx";
@@ -102,6 +109,19 @@ CNHmqtt::~CNHmqtt()
   }
 }
   
+int CNHmqtt::daemonize()
+{
+  if (daemonized)
+    return 0;
+  
+  if (debug_mode)
+    return 0;
+  else
+  {
+    daemonized = true;
+    return  daemon(1, 0); // don't change dir, but do redirect stdio to /dev/null
+  }
+}
 
 string CNHmqtt::get_str_option(string section, string option, string def_value)
 {

@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <time.h>
+#include <fstream>
 
 using namespace std;
 
@@ -8,7 +9,12 @@ class CLogging
 {
 
   public:
-    CLogging(string logfile);
+    CLogging();
+    ~CLogging();
     void dbg(string msg);
+    bool open_logfile(string logfile);
+    
+  private:
+    ofstream logfile;
     
 };

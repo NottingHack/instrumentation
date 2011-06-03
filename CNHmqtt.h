@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include <sstream>
 #include "mosquitto.h"
@@ -5,6 +6,7 @@
 #include "inireader/INIReader.h"
 
 using namespace std;
+
 
 class CNHmqtt
 {
@@ -16,12 +18,15 @@ class CNHmqtt
     struct mosquitto *mosq; //needs to be public so can be accessed by static callback
     void dbg(string msg);
     int message_loop(void);
+    static int daemonize();
          
     int  mosq_connect();
     virtual void process_message(string topic, string message);
    
     int subscribe(string topic);
     bool mosq_connected;
+    static bool debug_mode;
+    static bool daemonized;
     
   protected:
     
@@ -54,13 +59,3 @@ class CNHmqtt
 };
 
 
-
-/*
-
-  open config file, with:
-    - topic to subscribe to
-    - mqtt server address / port
-    - options (key/value)
-
-
-*/

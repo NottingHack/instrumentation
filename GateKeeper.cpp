@@ -3,7 +3,8 @@
 
 #include <stdio.h>
 
- 
+bool CNHmqtt::debug_mode = false;
+bool CNHmqtt::daemonized = false; 
 
 class GateKeeper : public CNHmqtt
 {
@@ -133,6 +134,7 @@ int main(int argc, char *argv[])
   
   nh.db_connect();  
   
+  GateKeeper::daemonize(); // will only work on first run
   
   nh.mosq_connect();
   nh.setup();

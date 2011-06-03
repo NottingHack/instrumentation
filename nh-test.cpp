@@ -1,4 +1,5 @@
 #include "CNHmqtt.h"
+#include "nh-test.h"
 
  
 
@@ -25,6 +26,9 @@ int main(int argc, char *argv[])
   nh_test nh = nh_test(argc, argv);
   
   nh.mosq_connect();
+  
+  // run with "-d" flag to avoid daemonizing
+  nh_test::daemonize(); // will only work on first run
   nh.message_loop();
   return 0;
   

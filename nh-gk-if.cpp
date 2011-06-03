@@ -9,6 +9,9 @@
  
   const unsigned char rawVid[2] = {USB_CFG_VENDOR_ID}, rawPid[2] = {USB_CFG_DEVICE_ID};
   char                vendor[] = {USB_CFG_VENDOR_NAME, 0}, product[] = {USB_CFG_DEVICE_NAME, 0}; 
+  
+bool CNHmqtt::debug_mode = false;
+bool CNHmqtt::daemonized = false;
 
 class nh_gk_if : public CNHmqtt
 {
@@ -236,6 +239,8 @@ int main(int argc, char *argv[])
     cout << "ERROR: Failed to connect to device!"; 
     return -1;
   }
+  
+  nh_gk_if::daemonize(); // will only work on first run
   
   nh.usb_send_update(); // put everything into a known state
   nh.usb_loop_start();  // creates a second thread and returns

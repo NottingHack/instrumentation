@@ -2,7 +2,8 @@
 #include "irc.h"
 #include <stdio.h>
 
- 
+bool CNHmqtt::debug_mode = false;
+bool CNHmqtt::daemonized = false; 
 
 class nh_irc : public CNHmqtt
 {
@@ -101,10 +102,14 @@ int main(int argc, char *argv[])
   
   nh = NULL;
   
+  
+  
+  // All this is basicly just to auto-reconnect to IRC, with a small delay between retries
   while (reset)
   {
     reset = false;
     nh = new nh_irc(argc, argv);
+    nh_irc::daemonize(); // will only work on first run
     nh->mosq_connect();
     
     if (nh->irc_connect())
@@ -115,7 +120,10 @@ int main(int argc, char *argv[])
     }
     
     if (nh->message_loop() == 2)
+    {
       reset = true;
+      sleep(2);
+    }
     
     delete nh;
     nh = NULL;
