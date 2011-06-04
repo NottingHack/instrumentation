@@ -155,6 +155,12 @@ class nh_gk_if : public CNHmqtt
           {
             sprintf(buffer,"error in USB interrupt read: %s", usb_strerror());
             nh->log->dbg(buffer);
+            
+            // This is a pretty fatal error, so exit.
+            usb_close(nh->usb_handle);
+            nh->usb_handle = NULL;
+            nh->message_send(nh->mqtt_rx, "TERMINATE");      
+            return NULL;            
           }   
         }
         

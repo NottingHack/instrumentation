@@ -108,6 +108,11 @@ int main(int argc, char *argv[])
   while (reset)
   {
     reset = false;
+    if (nh!=NULL)
+    {
+      delete nh;
+      nh = NULL;
+    }
     nh = new nh_irc(argc, argv);
     nh_irc::daemonize(); // will only work on first run
     nh->mosq_connect();
@@ -115,7 +120,7 @@ int main(int argc, char *argv[])
     if (nh->irc_connect())
     {
       reset = true;
-       sleep(2);
+      sleep(2);
       continue;
     }
     
@@ -124,9 +129,6 @@ int main(int argc, char *argv[])
       reset = true;
       sleep(2);
     }
-    
-    delete nh;
-    nh = NULL;
   }
     
   

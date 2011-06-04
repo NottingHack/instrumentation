@@ -1,20 +1,20 @@
 #include "CNHmqtt.h"
 #include "nh-test.h"
 
- 
-
 class nh_test : public CNHmqtt
 {
-  public :nh_test(int argc, char *argv[]) : CNHmqtt(argc, argv)
-   {
-   }
+  public:
+    nh_test(int argc, char *argv[]) : CNHmqtt(argc, argv)
+    {
+      
+    }
    
-  void process_message(string topic, string message)
-  {
+    void process_message(string topic, string message)
+    {
     
     
-    CNHmqtt::process_message(topic, message);
-  }
+      CNHmqtt::process_message(topic, message);
+    }
   
 };
 

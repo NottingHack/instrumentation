@@ -1,6 +1,7 @@
 #include "CNHmqtt.h"
 
 #include <iostream>
+#include <cstdlib>
 #include <unistd.h>
 
 
@@ -16,12 +17,13 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
   mosq_connected = false;
   log = new CLogging();
   string logfile;
+  uid = 0;
   
   debug_mode = false;
     
   /* Read in command line parameters:
    * -c <config file>       specify config file
-   * -d                     Do not daemonize & ouput debug info to stdout TODO
+   * -d                     Do not daemonize & ouput debug info to stdout  s
    * -l <log file>          Specify location to write logfile to TODO
    */
   
@@ -75,11 +77,21 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
       mosq_port   = reader->GetInteger("mqtt", "port", 1883);
       mqtt_topic  = reader->Get("mqtt", "topic", "test"); 
       logfile     = reader->Get("mqtt", "logfile", ""); 
+      uid         = reader->GetInteger("mqtt", "uid", 0);
     }    
   }
   
+  // Switch to less privileged user if set
+  if (uid)
+    if (setuid(uid))
+    {
+      log->dbg("Failed to switch user!");
+      exit(1);
+    }
+  
   if (!debug_mode)
-    log->open_logfile(logfile);
+    if(!log->open_logfile(logfile))
+      exit(1);
   
   mqtt_rx = mqtt_topic + "/rx";
   mqtt_tx = mqtt_topic + "/tx";

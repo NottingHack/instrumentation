@@ -45,14 +45,13 @@ class CNHmqtt
 
     
   private:
-
     static void connect_callback(void *obj, int result);
     static void message_callback(void *obj, const struct mosquitto_message *message);  
-    
     bool terminate;
     bool reset;
     bool config_file_parsed;
     INIReader *reader;
+    uid_t uid;
     
     
 

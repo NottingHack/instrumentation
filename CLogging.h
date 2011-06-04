@@ -2,6 +2,7 @@
 #include <iostream>
 #include <time.h>
 #include <fstream>
+#include <sys/file.h>
 
 using namespace std;
 
@@ -15,6 +16,6 @@ class CLogging
     bool open_logfile(string logfile);
     
   private:
-    ofstream logfile;
+    int logfile;
     
 };
