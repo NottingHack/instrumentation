@@ -7,6 +7,7 @@
 CLogging::CLogging()
 {
   logfile = -1;
+  pthread_mutex_init (&logfile_mutex, NULL);
 }
 
 CLogging::~CLogging()
@@ -62,7 +63,9 @@ void CLogging::dbg(string msg)
   if (logfile > 0)
   {
     log_msg = buf + msg + "\n";
+    pthread_mutex_lock(&logfile_mutex);
     write(logfile, log_msg.c_str(), log_msg.length() );
+    pthread_mutex_unlock(&logfile_mutex);
   }
   else
     cout << buf << msg << endl;

@@ -3,6 +3,7 @@
 #include <time.h>
 #include <fstream>
 #include <sys/file.h>
+#include <pthread.h>
 
 using namespace std;
 
@@ -17,5 +18,6 @@ class CLogging
     
   private:
     int logfile;
+    pthread_mutex_t logfile_mutex;
     
 };

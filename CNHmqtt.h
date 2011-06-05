@@ -52,6 +52,7 @@ class CNHmqtt
     bool config_file_parsed;
     INIReader *reader;
     uid_t uid;
+    pthread_mutex_t mosq_mutex;
     
     
 

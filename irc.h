@@ -49,6 +49,7 @@ class irc
     vector<callback> callbacks;
     bool pw_sent;
     bool alt_nick; // connected using alternative name as nick in use
+    int write(string msg);
     
     static void *readThread(void *arg);
     int rx_privmsg(string prefix, string params);

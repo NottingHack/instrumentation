@@ -3,12 +3,13 @@
 #include <cstdio>
 #include <string>
 
-CDBAccess::CDBAccess(string server, string username, string password, string database)
+CDBAccess::CDBAccess(string server, string username, string password, string database, CLogging *log)
 {
   CDBAccess::username = username;
   CDBAccess::password = password;
   CDBAccess::database = database;
   CDBAccess::server   = server; 
+  CDBAccess::log      = log; 
 }
 
 int CDBAccess::dbConnect()
@@ -18,7 +19,7 @@ int CDBAccess::dbConnect()
   
   if (!mysql_real_connect(&mysql,server.c_str(),username.c_str(),password.c_str(),database.c_str(),0,0,0))
   {
-    cout << mysql_error(&mysql) << endl;
+    log->dbg("Error connecting to MySQL:" + (string)mysql_error(&mysql));
     return -1;
   }
   
@@ -58,19 +59,19 @@ int CDBAccess::validate_rfid_tag(string rfid_serial, string &handle)
   
   if (mysql_stmt_prepare(stmt, myQuery.c_str(), myQuery.length()))
   {
-    cout << "pre-fail\n";
+    log->dbg("mysql_stmt_prepare failed)");
     return -1;  
   }
  
   if (mysql_stmt_bind_param(stmt, bind))
   {
-    cout << "Bind error\n";
+    log->dbg("mysql_stmt_bind_param failed");
     return -1;
   }
  
   if (mysql_stmt_execute(stmt))
   {
-    printf("mysql_stmt_execute error: %s\n", mysql_error(&mysql));
+    log->dbg("mysql_stmt_execute error: " + (string)mysql_error(&mysql));
     return -1;
   }
   
@@ -84,13 +85,13 @@ int CDBAccess::validate_rfid_tag(string rfid_serial, string &handle)
   
   if (mysql_stmt_bind_result(stmt, bind))
   {
-    cout << "Failed to bind output params\n";
+    log->dbg("mysql_stmt_bind_result failed");
     return -1;
   }
   
   if (mysql_stmt_store_result(stmt))
   {
-    cout << "mysql_stmt_store_result failed\n";
+    log->dbg("mysql_stmt_store_result failed");
     return -1;
   }
   

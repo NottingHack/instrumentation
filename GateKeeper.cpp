@@ -30,7 +30,7 @@ class GateKeeper : public CNHmqtt
       door_button = get_str_option("gatekeeper", "door_button", "nh/gk/button");
       rfid = get_str_option("gatekeeper", "rfid", "nh/gk/RFID");
       rfid = get_str_option("gatekeeper", "unlock", "nh/gk/Unlock");
-      db = new CDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"));   
+      db = new CDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
     }
     
     ~GateKeeper()

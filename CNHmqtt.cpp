@@ -62,6 +62,8 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
   CNHmqtt::status = "Running";
   CNHmqtt::mosq_server = "127.0.0.1";
   CNHmqtt::mosq_port = 1883;      
+  
+  pthread_mutex_init (&mosq_mutex, NULL);
       
   if (config_file != "")
   {
@@ -239,8 +241,12 @@ void CNHmqtt::process_message(string topic, string message)
 
 int CNHmqtt::message_send(string topic, string message)
 {
-    log->dbg("Sending message,  topic=[" + topic + "], message=[" + message + "]");
-    return mosquitto_publish(mosq, NULL, topic.c_str(), message.length(), (uint8_t*)message.c_str(), 0, false);
+  int ret;
+  log->dbg("Sending message,  topic=[" + topic + "], message=[" + message + "]");
+  pthread_mutex_lock(&mosq_mutex);
+  ret = mosquitto_publish(mosq, NULL, topic.c_str(), message.length(), (uint8_t*)message.c_str(), 0, false);
+  pthread_mutex_unlock(&mosq_mutex);
+  return ret;
 }
 
 string CNHmqtt::get_topic()

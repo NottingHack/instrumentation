@@ -21,7 +21,7 @@ irc::~irc()
   if (state == irc::CONNECTED)
   {
     tx = "QUIT :Yeah. Right on.\r\n";
-    if (write(skt,tx.c_str(),tx.length()) < tx.length())
+    if (write(tx))
     usleep(1000);
     state = UNLOADING;
     close(skt);
@@ -68,7 +68,7 @@ int irc::ircConnect()
     }
     
     tx = "nick " + nick + "\r\n";
-    if (write(skt,tx.c_str(),tx.length()) < tx.length())
+    if (write(tx))
     {
       lastError = "Failed to send nick cmd";
       state = ERROR;
@@ -80,7 +80,7 @@ int irc::ircConnect()
  *  Parameters: <username> <hostname> <servername> <realname>
  */
     tx = "user bot bothost " + address + " bot\r\n";
-    if (write(skt,tx.c_str(),tx.length()) < tx.length())
+    if (write(tx))
     {
       lastError = "Failed to send user cmd";
       state = ERROR;
@@ -95,7 +95,7 @@ int irc::ircConnect()
       buffer = buffer + ch;
       if (ch == '\n')
       {
-        log->dbg("m>" + buffer);
+        log->dbg(" < " + buffer.substr(0, buffer.length()-1));  
         processMessage(buffer);
         buffer = "";
       }
@@ -127,7 +127,7 @@ void *irc::readThread(void *arg)
       buffer = buffer + ch;
       if (ch == '\n')
       {
-        Irc->log->dbg("t>" + buffer);  
+        Irc->log->dbg(" < " + buffer.substr(0, buffer.length()-1));  
         Irc->processMessage(buffer);
         buffer = "";
       }
@@ -209,13 +209,13 @@ void irc::processMessage(string message)
     params = params.substr(1, pos);
   }
     
-  log->dbg("[" + prefix + "] [" + cmd + "] [" + params + "]");
+//log->dbg("[" + prefix + "] [" + cmd + "] [" + params + "]");
   
   // Respond to pings
   if (cmd == "PING")
   {
     tx = "PONG " + params + "\r\n";
-    if (write(skt,tx.c_str(),tx.length()) < tx.length())
+    if (write(tx))
     {
       lastError = "Failed to send PONG [" + tx + "]";
       state = ERROR;
@@ -235,7 +235,7 @@ void irc::processMessage(string message)
       tx = "PRIVMSG nickserv :ghost " + nick + " " + nickserv_password + "\r\n";
       log->dbg("> " + tx);
       
-      if (write(skt,tx.c_str(),tx.length()) < tx.length())
+      if (write(tx))
       {
         lastError = "Failed to send: [" + tx + "]";
         return;
@@ -253,7 +253,7 @@ void irc::processMessage(string message)
     alt_nick = true;
     sprintf(buf, "%s-%d\r\n", nick.c_str(), getpid());
     tx = "NICK " + (string)buf;
-    if (write(skt,tx.c_str(),tx.length()) < tx.length())
+    if (write(tx))
     {
       lastError = "Failed to send: [" + tx + "]";
       return;
@@ -274,7 +274,7 @@ void irc::processMessage(string message)
       tx = "PRIVMSG nickserv :identify " + nickserv_password + "\r\n";
       log->dbg("> " + tx);
       
-      if (write(skt,tx.c_str(),tx.length()) < tx.length())
+      if (write(tx))
       {
         lastError = "Failed to send: [" + tx + "]";
         return;
@@ -289,7 +289,7 @@ void irc::processMessage(string message)
     tx = "NICK " + nick + "\r\n";
     log->dbg("> " + tx);
       
-    if (write(skt,tx.c_str(),tx.length()) < tx.length())
+    if (write(tx))
     {
       lastError = "Failed to send: [" + tx + "]";
       return;
@@ -335,12 +335,29 @@ int irc::join(string room)
   string tx;
   
   tx = "join " + room + "\r\n";
-  if (write(skt,tx.c_str(),tx.length()) < tx.length())
+  if (write(tx))
   {
     lastError = "Failed to join " + room;
     return -1;
   }  
   channels.push_back(room);
+  return 0;
+}
+
+int irc::write(string msg)
+{
+  string d;
+  
+  d = msg;
+  d.erase(d.find_last_not_of("\r\n")+1);
+
+  log->dbg(" > " + d);
+  
+  if (::write(skt,msg.c_str(),msg.length()) < msg.length())
+  {
+    log->dbg("write failed!");
+    return -1;
+  }
   return 0;
 }
 
@@ -363,7 +380,7 @@ int irc::send(string room, string message)
     } 
     tx = "NOTICE " + room + " :" + message + "\r\n";
     
-    if (write(skt,tx.c_str(),tx.length()) < tx.length())
+    if (write(tx))
     {
       lastError = "Failed to send: [" + tx + "]";
       return -1;
