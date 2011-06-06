@@ -213,7 +213,18 @@ void CNHmqtt::message_callback(void *obj, const struct mosquitto_message *messag
 int CNHmqtt::subscribe(string topic)
 {
   log->dbg("Subscribing to topic [" + topic + "]");
-  mosquitto_subscribe(mosq, NULL, topic.c_str(), 0);
+  if (topic=="")
+  {
+    log->dbg("Cannot subscribe to empty topic!");
+    return -1;
+  }
+    
+  if(mosquitto_subscribe(mosq, NULL, topic.c_str(), 0))
+  {
+    log->dbg("Subscribe failed!");
+    return -1;
+  }
+  
   return 0;
 }
 
@@ -257,10 +268,23 @@ string CNHmqtt::get_topic()
 
 int CNHmqtt::message_loop(void)
 {
+  string dbgmsg="";
+  
   if (mosq==NULL)
     return -1;
   
   while(!mosquitto_loop(mosq, 50)  && !terminate && !reset);
+  
+  if (terminate)
+    log->dbg("terminate=true");
+  else
+    log->dbg("terminate=false");
+  
+  if (reset)
+    log->dbg("reset=true");
+  else
+    log->dbg("reset=false");  
+  
   log->dbg("Exit.");
   mosquitto_disconnect(mosq);
   mosquitto_destroy(mosq);
@@ -272,6 +296,17 @@ int CNHmqtt::message_loop(void)
     return 2;
   else
     return 0;
+}
+
+
+// Other stuff not mqtt / instrumentation specifc
+// Integer to String
+string CNHmqtt::itos(int n)
+{
+  string s;
+  stringstream out;
+  out << n;
+  return out.str();
 }
 
 

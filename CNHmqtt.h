@@ -28,6 +28,8 @@ class CNHmqtt
     static bool debug_mode;
     static bool daemonized;
     
+    static string itos(int n);
+    
   protected:
     
     string mqtt_topic;

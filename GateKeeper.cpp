@@ -17,6 +17,7 @@ class GateKeeper : public CNHmqtt
     string door_button;
     string rfid;
     string unlock;
+    string keypad;
     int bell_duration;
     CDBAccess *db;
     
@@ -29,7 +30,9 @@ class GateKeeper : public CNHmqtt
       door_contact = get_str_option("gatekeeper", "door_contact", "nh/gk/contact");
       door_button = get_str_option("gatekeeper", "door_button", "nh/gk/button");
       rfid = get_str_option("gatekeeper", "rfid", "nh/gk/RFID");
-      rfid = get_str_option("gatekeeper", "unlock", "nh/gk/Unlock");
+      unlock = get_str_option("gatekeeper", "unlock", "nh/gk/Unlock");
+      keypad = get_str_option("gatekeeper", "keypad", "nh/gk/Keypad");
+       
       db = new CDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
     }
     
@@ -42,7 +45,7 @@ class GateKeeper : public CNHmqtt
     {
       pthread_attr_t tattr;
       pthread_t bell_thread;
-      string handle;
+      string unlock_text;
     //int ret;
 
       if(topic==irc_in)
@@ -73,18 +76,34 @@ class GateKeeper : public CNHmqtt
       
       if (topic==rfid)
       {
-        if(db->validate_rfid_tag(message, handle))
+        if(db->validate_rfid_tag(message, unlock_text))
         {
           // access denied
-        //db->log_access(rfid, "denied") // TODO: write this
+          db->log_rfid_access(message, ACCESS_DENIED);
           message_send(unlock, "Access denied");
         } else
         {
           // Ok - unlock
-        //db->log_access(rfid, "unlock") // TODO: write this          
-          message_send(unlock, "Unlock " + handle);
+          db->log_rfid_access(message, ACCESS_GRANTED);   
+          message_send(unlock, "Unlock " + unlock_text);
         }
       }
+      
+      if (topic==keypad)
+      {
+        if(db->validate_pin(message, unlock_text))
+        {
+          // access denied
+          db->log_pin_access(message, ACCESS_DENIED);
+          message_send(unlock, "Access denied");
+        } else
+        {
+          // Ok - unlock
+          db->log_pin_access(message, ACCESS_GRANTED);   
+          message_send(unlock, "Unlock " + unlock_text);
+        }
+      }
+        
        
         
       CNHmqtt::process_message(topic, message);
@@ -120,6 +139,7 @@ class GateKeeper : public CNHmqtt
       subscribe(door_contact);
       subscribe(door_button);
       subscribe(rfid);
+      subscribe(keypad);
     }
 };
 
