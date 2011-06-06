@@ -30,7 +30,7 @@ class nh_irc : public CNHmqtt
       irccon = NULL;
     }
     
-    ~nh_irc()
+    ~nh_irc() 
     {
       if (irccon != NULL)
       {
@@ -131,6 +131,11 @@ int main(int argc, char *argv[])
     }
   }
     
+  if (nh!=NULL)
+  {
+    delete nh;
+    nh = NULL;
+  }
   
   return 0;
   

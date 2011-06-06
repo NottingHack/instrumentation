@@ -25,6 +25,7 @@ irc::~irc()
     usleep(1000);
     state = UNLOADING;
     close(skt);
+    log->dbg("Connection to IRC server closed");
     if (rThread > 0)
       pthread_join(rThread, NULL);
     rThread = -1;
