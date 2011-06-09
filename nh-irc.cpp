@@ -58,7 +58,8 @@ class nh_irc : public CNHmqtt
       irccon->join(irc_channel); 
       irccon->addCallback("", &irc_callback, this);
       log->dbg("Connected to irc.");
-      subscribe(irc_mqtt_tx);
+      subscribe(irc_mqtt_tx);      
+      subscribe(irc_mqtt_tx + "/#");
       return 0;
     }
     
@@ -66,7 +67,11 @@ class nh_irc : public CNHmqtt
   {
     nh_irc *m;
     
+    // "channel" is either the channel name (e.g. '#nottinghack'), or an irc nick
+    // if the bot was privmsg'd (e.g. 'daniel1111')
+    
     m = (nh_irc*)obj;
+    cout << "user=" << user << endl;
     
     if ((user=="") && (channel=="INTERNAL") && (message=="DISCONNECTED"))
     {
@@ -76,19 +81,36 @@ class nh_irc : public CNHmqtt
       return NULL;
     }
       
+    // If the bot is sent a private message, publish to /<nick>, if 
+    // it's a chat message in the channel, send to /#<channel>.
     if (m->mosq_connected)
-      m->message_send(m->irc_mqtt_rx, message);
-  
+    {
+      if (channel.substr(0,1)=="#")
+        m->message_send(m->irc_mqtt_rx + "/" + channel, message);
+      else
+        m->message_send(m->irc_mqtt_rx + "/" + user, message);
+    }
+        
     return NULL;
   }    
     
     
   void process_message(string topic, string message)
   {
-    
+    // Send to the channel
     if (topic == irc_mqtt_tx)
+    {
       irccon->send(message);
-    
+      return;
+    }
+  
+    // send to a specific user (e.g. topic="nh/irc/tx/daniel1111")
+    if (irc_mqtt_tx == topic.substr(0, irc_mqtt_tx.length()))
+    {
+      irccon->send(topic.substr(irc_mqtt_tx.length()+1),  message);
+      return;
+    }
+ 
     CNHmqtt::process_message(topic, message);
   }
   
