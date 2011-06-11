@@ -82,11 +82,11 @@ class nh_irc : public CNHmqtt
     }
       
     // If the bot is sent a private message, publish to /<nick>, if 
-    // it's a chat message in the channel, send to /#<channel>.
+    // it's a chat message in the channel, send to /#<channel>/<nick>.
     if (m->mosq_connected)
     {
       if (channel.substr(0,1)=="#")
-        m->message_send(m->irc_mqtt_rx + "/" + channel, message);
+        m->message_send(m->irc_mqtt_rx + "/" + channel + "/" + user, message);
       else
         m->message_send(m->irc_mqtt_rx + "/" + user, message);
     }

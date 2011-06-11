@@ -6,7 +6,7 @@ create table members
   member_number int,
   name          varchar(50),
   handle        varchar(100),
-  unlock_text   varchar(200),
+  unlock_text   varchar(95),
   primary key (member_id),
   constraint member_name   unique (name),
   constraint member_number unique (member_number)
