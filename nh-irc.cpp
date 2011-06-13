@@ -86,14 +86,13 @@ class nh_irc : public CNHmqtt
     if (m->mosq_connected)
     {
       if (channel.substr(0,1)=="#")
-        m->message_send(m->irc_mqtt_rx + "/" + channel + "/" + user, message);
+        m->message_send(m->irc_mqtt_rx + "/" + channel.substr(1) + "/" + user, message);
       else
         m->message_send(m->irc_mqtt_rx + "/" + user, message);
     }
         
     return NULL;
   }    
-    
     
   void process_message(string topic, string message)
   {
