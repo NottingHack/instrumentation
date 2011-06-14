@@ -81,14 +81,14 @@ class nh_irc : public CNHmqtt
       return NULL;
     }
       
-    // If the bot is sent a private message, publish to /<nick>, if 
-    // it's a chat message in the channel, send to /#<channel>/<nick>.
+    // If the bot is sent a private message, publish to /pm/<nick>, if 
+    // it's a chat message in the channel, send to /<channel>/<nick>.
     if (m->mosq_connected)
     {
       if (channel.substr(0,1)=="#")
         m->message_send(m->irc_mqtt_rx + "/" + channel.substr(1) + "/" + user, message);
       else
-        m->message_send(m->irc_mqtt_rx + "/" + user, message);
+        m->message_send(m->irc_mqtt_rx + "/pm/" + user, message);
     }
         
     return NULL;
@@ -96,18 +96,43 @@ class nh_irc : public CNHmqtt
     
   void process_message(string topic, string message)
   {
-    // Send to the channel
-    if (topic == irc_mqtt_tx)
+    string nick_chan;
+    
+    if ((irc_mqtt_tx.length() <= topic.length()) && (irc_mqtt_tx == topic.substr(0, irc_mqtt_tx.length())))
     {
-      irccon->send(message);
-      return;
-    }
-  
-    // send to a specific user (e.g. topic="nh/irc/tx/daniel1111")
-    if (irc_mqtt_tx == topic.substr(0, irc_mqtt_tx.length()))
-    {
-      irccon->send(topic.substr(irc_mqtt_tx.length()+1),  message);
-      return;
+      // Send to the channel
+      if (topic == irc_mqtt_tx)
+      {
+        irccon->send(message);
+        return;
+      }
+    
+      // remove leading nh/irc/tx/
+      nick_chan = topic.substr(irc_mqtt_tx.length()+1);
+      if (nick_chan.length() < 2) 
+      {
+        log->dbg("Ignoring <2 char nick/chan");
+        return;
+      }
+      
+      // PM
+      if (nick_chan.substr(0, 2) == "pm")
+      {
+        // must be in the format nh/irc/tx/pm/<nick>
+        
+        if (nick_chan.length() <= 4)
+        {
+          log->dbg("Ignoring nick/chan <= 4 char");
+          return;
+        } else
+        {
+          irccon->send(nick_chan.substr(3), message); // skip over "pm/"
+        } 
+      } else
+      {    
+        // Msg specific channel (for future use if the bot can ever join more than one...)
+        irccon->send("#" + nick_chan,  message);
+      }
     }
  
     CNHmqtt::process_message(topic, message);

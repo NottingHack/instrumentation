@@ -6,6 +6,7 @@
 #define STATE_ACTIVE 10
 #define STATE_EXPIRED 20
 #define STATE_CANCELLED 30
+#define STATE_ENROLL 40
 
 #define ACCESS_DENIED 10
 #define ACCESS_GRANTED 20
@@ -18,6 +19,7 @@ class CDBAccess
     CDBAccess(string server, string username, string password, string database, CLogging *log);
     int validate_rfid_tag(string rfid_serial, string &unlock_text);
     int validate_pin(string pin, string &unlock_text);
+    int sp_check_pin(string pin, string &unlock_text);
     int dbConnect();
     void dbDisconnect();
     int log_rfid_access(string rfid, int access);

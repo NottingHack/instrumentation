@@ -82,10 +82,18 @@ class GateKeeper : public CNHmqtt
           
       if (topic==door_button)
       {
+        // v1 - actaully ring the bell
         if (message=="HIGH")
           message_send(door_buzzer, "HIGH");
-        else
+        else if (message=="LOW")
           message_send(door_buzzer, "LOW");
+        
+       // v2 - output to irc
+       if (message=="BING")
+       {
+         message_send(irc_out, "Open the F*$king Door");
+       }
+       
       }          
       
       if (topic==rfid)
@@ -103,6 +111,7 @@ class GateKeeper : public CNHmqtt
         }
       }
       
+      /*
       if (topic==keypad)
       {
         if(db->validate_pin(message, unlock_text))
@@ -117,40 +126,42 @@ class GateKeeper : public CNHmqtt
           message_send(unlock, "Unlock " + unlock_text);
         }
       }
-        
-       
+      */
+      
+      if (topic==keypad)
+      {
+        db->sp_check_pin(message, unlock_text);
+        message_send(unlock, unlock_text);
+      }
         
       CNHmqtt::process_message(topic, message);
     }
     
     
   // irc_in = base topic, e.g. "nh/irc/rx"
-  // topic  = topic actaully received, e.g. "nh/irc/rx/#nottinghack/daniel1111
+  // topic  = topic actaully received, e.g. "nh/irc/rx/nottinghack/daniel1111
   static int decode_irc_topic(string irc_in, string topic, string &nick, string &channel)
-  {
+  {    
     
     if (irc_in.length() >= topic.length())
     {
       nick="";
       channel="";
       return -1;
-    }
-    
+    }   
+   
     // remove irc_in from front
     topic = topic.substr(irc_in.length()+1);
     
-    if (topic.substr(0,1)=="#")
+    if (topic.find_first_of("/") != string::npos)
     {
       // topic indicates it's a channel chat message
-      channel = topic.substr(1, topic.find_first_of("/")-1);
+      channel = topic.substr(0, topic.find_first_of("/"));
       nick = topic.substr(topic.find_first_of("/")+1);
-      
-    } else
-    {
-      // bot has been PM'd
-      channel = "";
-      nick = topic;
     }
+    
+    if (channel == "pm") // A 'Channel' of pm means it was actaully a private message
+      channel = "";
 
     return 0;    
   }
@@ -165,13 +176,13 @@ class GateKeeper : public CNHmqtt
   
   int irc_send_nick (string message, string nick)
   {
-    return message_send(irc_out + "/" + nick, message);
+    return message_send(irc_out + "/pm/" + nick, message);
   }
   
   
   int irc_send_channel (string message, string channel)
   {
-    return message_send(irc_out + "/#" + channel, message);
+    return message_send(irc_out + "/" + channel, message);
   }
   
   int db_connect()

@@ -8,6 +8,6 @@ create table pins
   date_added   timestamp default CURRENT_TIMESTAMP,   
   expiry       timestamp NULL default NULL,
   state        int,
-  primary key (pin_id),
-  constraint pin_u unique (pin, state)
+  member_id    int default NULL,
+  primary key (pin_id)
 );

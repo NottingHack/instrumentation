@@ -8,6 +8,6 @@ create table members
   handle        varchar(100),
   unlock_text   varchar(95),
   primary key (member_id),
-  constraint member_name   unique (name),
+  constraint member_name   unique (handle),
   constraint member_number unique (member_number)
 );
