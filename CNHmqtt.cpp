@@ -110,6 +110,14 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
 
 CNHmqtt::~CNHmqtt()
 {
+
+  if (mosq_connected)
+  {
+    mosquitto_disconnect(mosq);
+    mosquitto_destroy(mosq);
+    mosquitto_lib_cleanup();      
+  }
+  
   if (reader!=NULL)
   {
     delete reader;
@@ -286,9 +294,11 @@ int CNHmqtt::message_loop(void)
     log->dbg("reset=false");  
   
   log->dbg("Exit.");
+  mosq_connected = false;
   mosquitto_disconnect(mosq);
   mosquitto_destroy(mosq);
-  mosquitto_lib_cleanup();      
+  mosquitto_lib_cleanup();     
+  
   
   if (terminate)
     return 1;
