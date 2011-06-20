@@ -7,6 +7,7 @@
 #include <string.h>
 #include <algorithm>
 #include <vector>
+#include <signal.h>  
 #include "CLogging.h"
 
 using namespace std;
@@ -33,7 +34,8 @@ class irc
     void wait();
     int state;
     int skt;
-    
+    void readThread();
+    void activityThread();
     enum {CLOSED, ERROR, CONNECTED, DISCONNECTED, UNLOADING};
 
   private:
@@ -43,6 +45,7 @@ class irc
     string nick;
     string nickserv_password;
     pthread_t rThread;
+    pthread_t aThread;
     struct sockaddr_in skt_addr;
     struct hostent *server;
     vector<string> channels;
@@ -50,8 +53,13 @@ class irc
     bool pw_sent;
     bool alt_nick; // connected using alternative name as nick in use
     int write(string msg);
+    time_t last_rx;
+    time_t ping_sent;
+    pthread_mutex_t socket_mutex;
     
     static void *readThread(void *arg);
+    static void *activityThread(void *arg);
+    
     int rx_privmsg(string prefix, string params);
     CLogging *log;
     

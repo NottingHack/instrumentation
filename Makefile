@@ -1,12 +1,18 @@
 all: nh-test INIReaderTest nh-irc nh-gk-if GateKeeper
 
 install: nh-irc nh-gk-if GateKeeper
+	stop GateKeeper
+	stop nh-gk-if
+	stop nh-holly
 	cp nh-irc /home/instrumentation/bin/
 	cp nh-gk-if /home/instrumentation/bin/
 	cp GateKeeper /home/instrumentation/bin/
 	chmod 555 /home/instrumentation/bin/nh-irc
 	chmod 555 /home/instrumentation/bin/nh-gk-if
 	chmod 555 /home/instrumentation/bin/GateKeeper
+	start nh-holly
+	start GateKeeper
+	start nh-gk-if
 
 nh-test: nh-test.o CNHmqtt.o INIReader.o ini.o CLogging.o
 	g++ -lmosquitto -o nh-test nh-test.o CNHmqtt.o INIReader.o ini.o CLogging.o

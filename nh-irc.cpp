@@ -71,7 +71,6 @@ class nh_irc : public CNHmqtt
     // if the bot was privmsg'd (e.g. 'daniel1111')
     
     m = (nh_irc*)obj;
-    cout << "user=" << user << endl;
     
     if ((user=="") && (channel=="INTERNAL") && (message=="DISCONNECTED"))
     {

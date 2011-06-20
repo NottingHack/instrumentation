@@ -13,6 +13,10 @@ irc::irc(string address, int port, string nick, string nickserv_password, CLoggi
     alt_nick = false;
     log = l;
     rThread = -1;
+    aThread = -1;
+    last_rx = -1;
+    ping_sent = -1;
+    pthread_mutex_init (&socket_mutex, NULL);
 }
 
 irc::~irc()
@@ -21,7 +25,7 @@ irc::~irc()
   if (state == irc::CONNECTED)
   {
     tx = "QUIT :Yeah. Right on.\r\n";
-    if (write(tx))
+    write(tx);
     usleep(1000);
     state = UNLOADING;
     close(skt);
@@ -29,6 +33,13 @@ irc::~irc()
     if (rThread > 0)
       pthread_join(rThread, NULL);
     rThread = -1;
+    
+    // Interupt the activity monitoring thread
+    kill(getpid(), SIGUSR1);
+    
+    if (aThread > 0)
+      pthread_join(aThread, NULL);
+    aThread = -1;    
   }
 }
     
@@ -105,6 +116,9 @@ int irc::ircConnect()
     {
       // Now conencted. Start thread to process incoming messages, then return
       pthread_create(&rThread, NULL, &irc::readThread, this);
+      
+      // Create thead to monitor connection
+      pthread_create(&aThread, NULL, &irc::activityThread, this);
       return 0;
     } else
     {
@@ -114,33 +128,76 @@ int irc::ircConnect()
     
 }
 
-void *irc::readThread(void *arg)
+void irc::readThread()
 {
     string buffer;
     char ch;
-    irc *Irc;
-    
-    Irc = (irc*) arg;
-    
-    while ((read(Irc->skt, &ch, 1) > 0) && Irc->state == CONNECTED)
+   
+    while ((read(skt, &ch, 1) > 0) && state == CONNECTED)
     {
-
       buffer = buffer + ch;
       if (ch == '\n')
       {
-        Irc->log->dbg(" < " + buffer.substr(0, buffer.length()-1));  
-        Irc->processMessage(buffer);
+        log->dbg(" < " + buffer.substr(0, buffer.length()-1));  
+        processMessage(buffer);
         buffer = "";
+        last_rx = time(NULL);
       }
     }
-    if (Irc->state != UNLOADING) // UNLOADING state is set in the destructor
-      Irc->state = DISCONNECTED;
-    Irc->processMessage("");
+    if (state != UNLOADING) // UNLOADING state is set in the destructor
+      state = DISCONNECTED;
+    processMessage("");  
+}
+
+void *irc::readThread(void *arg)
+{
+    irc *Irc;
+    Irc = (irc*) arg;  
+    Irc->readThread();
+}
+
+// Watch for connection timeouts. If we don't get anyting from the server in the timeout period,
+// try sending a ping. If no reply, assume the connection has been lost.
+void irc::activityThread()
+{
+  while (state == CONNECTED)
+  {
+    // We've received something since the last ping sent, so connection is good
+    if (last_rx >= ping_sent)
+      ping_sent = -1;
+    
+    if (((time(NULL) - last_rx) > (4 * 60)) && (last_rx != -1) && (ping_sent==-1))
+    {
+      // Nothing received within last 4 minutes... send a ping
+      write ("PING NH\r\n"); // In all likleyhood, this will trigger a disconnection
+      ping_sent = time(NULL);
+    }
+    
+    if (((time(NULL) - last_rx) > (5 * 60)) && (last_rx != -1) && (ping_sent!=-1))
+    {
+      // Nothing received within 5 minutes despite sending a ping... give up.
+      shutdown(skt, SHUT_RDWR);
+      close(skt);
+      
+      state = DISCONNECTED;
+      log->dbg("Ping timout...");
+    }    
+    sleep (30);   
+  }
+}
+
+void *irc::activityThread(void *arg)
+{
+    irc *Irc;
+    Irc = (irc*) arg;  
+    Irc->activityThread();
 }
 
 void irc::wait()
 {
+  log->dbg("Waiting.");
   pthread_join(rThread, NULL);
+  pthread_join(aThread, NULL);
 }
 
 void irc::processMessage(string message)
@@ -234,7 +291,6 @@ void irc::processMessage(string message)
     if (alt_nick && (nickserv_password != ""))
     {
       tx = "PRIVMSG nickserv :ghost " + nick + " " + nickserv_password + "\r\n";
-      log->dbg("> " + tx);
       
       if (write(tx))
       {
@@ -273,7 +329,6 @@ void irc::processMessage(string message)
     } else
     {
       tx = "PRIVMSG nickserv :identify " + nickserv_password + "\r\n";
-      log->dbg("> " + tx);
       
       if (write(tx))
       {
@@ -287,8 +342,7 @@ void irc::processMessage(string message)
   // If we've just ghosted someone/thing using our nick, change to our primary nick
   if ( (prefix.compare(0, 8, "NickServ") == 0) && (cmd == "NOTICE") && (params.find("ghosted") != string::npos))
   {
-    tx = "NICK " + nick + "\r\n";
-    log->dbg("> " + tx);
+    tx = "NICK " + nick + "\r\n";;
       
     if (write(tx))
     {
@@ -296,9 +350,6 @@ void irc::processMessage(string message)
       return;
     }       
   }
-
-    
-
 }
 
 int irc::rx_privmsg(string prefix, string params)
@@ -348,18 +399,22 @@ int irc::join(string room)
 int irc::write(string msg)
 {
   string d;
+  int ret;
   
   d = msg;
   d.erase(d.find_last_not_of("\r\n")+1);
 
   log->dbg(" > " + d);
-  
+  ret=0;
+  pthread_mutex_lock(&socket_mutex);
   if (::write(skt,msg.c_str(),msg.length()) < msg.length())
   {
     log->dbg("write failed!");
-    return -1;
+    ret = -1;
   }
-  return 0;
+  pthread_mutex_unlock(&socket_mutex);
+  
+  return ret;
 }
 
 int irc::send(string message)
