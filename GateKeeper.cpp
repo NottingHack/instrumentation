@@ -18,6 +18,7 @@ class GateKeeper : public CNHmqtt
     string rfid;
     string unlock;
     string keypad;
+    string door_bell_msg;
     int bell_duration;
     CDBAccess *db;
     
@@ -32,7 +33,8 @@ class GateKeeper : public CNHmqtt
       rfid = get_str_option("gatekeeper", "rfid", "nh/gk/RFID");
       unlock = get_str_option("gatekeeper", "unlock", "nh/gk/Unlock");
       keypad = get_str_option("gatekeeper", "keypad", "nh/gk/Keypad");
-       
+      door_bell_msg = get_str_option("gatekeeper", "door_bell_msg", "Door Bell");
+
       db = new CDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
     }
     
@@ -78,6 +80,7 @@ class GateKeeper : public CNHmqtt
           message_send(irc_out, "Door opened");
         else if (message=="HIGH")
           message_send(irc_out, "Door closed");
+        else message_send(irc_out, message); // If not HIGH or LOW, just pass the message on verbatim
       }   
           
       if (topic==door_button)
@@ -91,7 +94,12 @@ class GateKeeper : public CNHmqtt
        // v2 - output to irc
        if (message=="BING")
        {
-         message_send(irc_out, "Open the F*$king Door");
+         message_send(irc_out, door_bell_msg);
+         
+         // Now ring the bell
+         pthread_attr_init(&tattr);
+         pthread_attr_setdetachstate(&tattr,PTHREAD_CREATE_DETACHED);
+         pthread_create(&bell_thread, &tattr, &ring_bell, this);         
        }
        
       }          
@@ -107,26 +115,9 @@ class GateKeeper : public CNHmqtt
         {
           // Ok - unlock
           db->log_rfid_access(message, ACCESS_GRANTED);   
-          message_send(unlock, "Unlock " + unlock_text);
+          message_send(unlock, "Unlock:" + unlock_text);
         }
       }
-      
-      /*
-      if (topic==keypad)
-      {
-        if(db->validate_pin(message, unlock_text))
-        {
-          // access denied
-          db->log_pin_access(message, ACCESS_DENIED);
-          message_send(unlock, "Access denied");
-        } else
-        {
-          // Ok - unlock
-          db->log_pin_access(message, ACCESS_GRANTED);   
-          message_send(unlock, "Unlock " + unlock_text);
-        }
-      }
-      */
       
       if (topic==keypad)
       {

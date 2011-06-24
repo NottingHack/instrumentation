@@ -105,7 +105,7 @@ BEGIN
       -- Card not suitable, but PIN was valid, so unlock
       if (ck_exists > 0) then
         set err = "Card already registerd!";
-        set unlock_text = concat('UNLOCK ', coalesce(p_unlock_text, 'Welcome'));
+        set unlock_text = concat('Unlock:', coalesce(p_unlock_text, 'Welcome'));
         set access_granted = 1;
         leave main;
       end if;
@@ -113,7 +113,7 @@ BEGIN
       -- Check time hasn't expired
       if ((unix_timestamp(sysdate()) - unix_timestamp(l_access_time)) > 60) then
         set err = "Time expired!";
-        set unlock_text = concat('UNLOCK ',  coalesce(p_unlock_text, 'Welcome'));
+        set unlock_text = concat('Unlock:',  coalesce(p_unlock_text, 'Welcome'));
         set access_granted = 1;
         leave main;
       end if;
@@ -121,7 +121,7 @@ BEGIN
       -- To get this far, everything should be in order, so register the card
       call sp_add_card(p_member_id, l_rfid_serial, err);
       if (err is null) then
-        set unlock_text = concat('UNLOCK ', 'Card registered, PIN cancelled!');
+        set unlock_text = concat('Unlock:', 'Card registered, PIN cancelled!');
         set access_granted = 1;
         
         -- Now a card has been registered using it, cancel the PIN
@@ -132,14 +132,14 @@ BEGIN
         leave main;
       else
         -- Somethings gone wrong - the card couldn't be registered
-        set unlock_text = concat('UNLOCK ', 'Card registration failed.');
+        set unlock_text = concat('Unlock:', 'Card registration failed.');
         set access_granted = 1;
         set err = "Failed to register card!";
         leave main;
       end if;
     else
       -- regualar, non-expired PIN
-      set unlock_text = concat('UNLOCK ',  coalesce(p_unlock_text, 'Welcome'));
+      set unlock_text = concat('Unlock:',  coalesce(p_unlock_text, 'Welcome'));
       set access_granted = 1;
       set err = null;
       leave main;
