@@ -7,6 +7,7 @@ CREATE PROCEDURE sp_add_member
    IN name            varchar(50),
    IN handle          varchar(100),
    IN unlock_text     varchar(95),
+   IN enroll_pin      varchar(12),
    OUT err            varchar(100),
    OUT member_id      int
 )
@@ -18,6 +19,28 @@ BEGIN
   set member_id = -1;
     
   main: begin
+  
+    if (enroll_pin = 'null') then
+      set enroll_pin = null;
+    end if;
+    
+    if (handle = 'null') then
+      set handle = null;
+    end if;    
+    
+    if (unlock_text = 'null') then
+      set unlock_text = null;
+    end if;      
+    
+    if (member_number is null) then
+      set err = "Member number cannot be blank";
+      leave main;
+    end if;
+
+    if (name is null) then
+      set err = "Name cannot be blank";
+      leave main;
+    end if;
 
     select count(*) into ck_exists
     from members m
@@ -27,24 +50,49 @@ BEGIN
       set err = "Member number already in database";
       leave main;
     end if;
+    
+    select count(*) into ck_exists
+    from members m
+    where m.name = name;
+    
+    if (ck_exists > 0) then
+      set err = "Member name already in database";
+      leave main;
+    end if;    
 
     select count(*) into ck_exists
     from members m
     where m.handle = handle;
     
     if (ck_exists > 0) then
-      set err = "handle already in database";
+      set err = "Handle already in database";
       leave main;
+    end if;
+    
+    if (enroll_pin is not null) then
+      select count(*) into ck_exists
+      from pins
+      where pin = enroll_pin
+        and state in (10, 40); -- STATE_ACTIVE, STATE_ENROLL
+    
+      if (ck_exists > 0) then
+        set err = "PIN already in use";
+        leave main;
+      end if;    
     end if;
       
     insert into members (member_number, name, handle, unlock_text) values (member_number, name, handle, unlock_text);
     set err = null;
     set member_id = last_insert_id();
     
+    if (enroll_pin is not null) then
+      insert into pins (pin, unlock_text, state, member_id)
+      values (enroll_pin, 'N/A', 40, member_id); -- STATE_ENROLL
+    end if;
+    
   end main;
 
 END //
 DELIMITER ;
-
 
 GRANT EXECUTE ON PROCEDURE sp_add_member TO 'gk'@'localhost'

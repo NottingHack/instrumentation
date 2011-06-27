@@ -106,16 +106,22 @@ class GateKeeper : public CNHmqtt
       
       if (topic==rfid)
       {
-        if(db->validate_rfid_tag(message, unlock_text))
+        if (message == "Unknown Card Type")
         {
-          // access denied
-          db->log_rfid_access(message, ACCESS_DENIED);
-          message_send(unlock, "Access denied");
+          message_send(unlock, "Unknown Card Type");
         } else
         {
-          // Ok - unlock
-          db->log_rfid_access(message, ACCESS_GRANTED);   
-          message_send(unlock, "Unlock:" + unlock_text);
+          if(db->validate_rfid_tag(message, unlock_text))
+          {
+            // access denied
+            db->log_rfid_access(message, ACCESS_DENIED);
+            message_send(unlock, "Access denied");
+          } else
+          {
+            // Ok - unlock
+            db->log_rfid_access(message, ACCESS_GRANTED);   
+            message_send(unlock, "Unlock:" + unlock_text);
+          }
         }
       }
       
