@@ -1,5 +1,5 @@
 drop procedure if exists sp_add_member;
-/* err is null on success, and member_id is the newly added members id */
+/* err is 'added' on success, and member_id is the newly added members id */
 DELIMITER //
 CREATE PROCEDURE sp_add_member
 (
@@ -8,6 +8,8 @@ CREATE PROCEDURE sp_add_member
    IN handle          varchar(100),
    IN unlock_text     varchar(95),
    IN enroll_pin      varchar(12),
+   IN email           varchar(100),
+   IN join_date       date,
    OUT err            varchar(100),
    OUT member_id      int
 )
@@ -15,6 +17,7 @@ SQL SECURITY DEFINER
 BEGIN
 
   declare ck_exists int;
+  declare rowc int default 0; 
   set ck_exists = 1;
   set member_id = -1;
     
@@ -81,13 +84,21 @@ BEGIN
       end if;    
     end if;
       
-    insert into members (member_number, name, handle, unlock_text) values (member_number, name, handle, unlock_text);
-    set err = null;
-    set member_id = last_insert_id();
+    insert into members (member_number, name, handle, unlock_text, email, join_date) 
+    values (member_number, name, handle, unlock_text, email, join_date);
     
-    if (enroll_pin is not null) then
-      insert into pins (pin, unlock_text, state, member_id)
-      values (enroll_pin, 'N/A', 40, member_id); -- STATE_ENROLL
+    select row_count() into rowc;
+    
+    if (rowc != 1) then
+      set err = 'Failed to add member (insert into members failed)';
+    else
+      set err = 'added';
+      set member_id = last_insert_id();
+    
+      if (enroll_pin is not null) then
+        insert into pins (pin, unlock_text, state, member_id)
+        values (enroll_pin, 'N/A', 40, member_id); -- STATE_ENROLL
+      end if;      
     end if;
     
   end main;
