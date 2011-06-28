@@ -21,6 +21,10 @@ int CDBAccess::dbConnect()
   
   mysql_init(&mysql);
   
+  my_bool reconnect = 1; 
+  mysql_options(&mysql, MYSQL_OPT_RECONNECT, &reconnect);
+  
+  
   if (!mysql_real_connect(&mysql,server.c_str(),username.c_str(),password.c_str(),database.c_str(),0,0,0))
   {
     log->dbg("Error connecting to MySQL:" + (string)mysql_error(&mysql));
