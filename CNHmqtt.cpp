@@ -319,5 +319,60 @@ string CNHmqtt::itos(int n)
   return out.str();
 }
 
-
+// irc_in = base topic, e.g. "nh/irc/rx"
+// topic  = topic actaully received, e.g. "nh/irc/rx/nottinghack/daniel1111
+bool CNHmqtt::decode_irc_topic(string irc_in, string topic, string &nick, string &channel)
+{    
   
+  if (irc_in.length() >= topic.length())
+  {
+    nick="";
+    channel="";
+    return false;
+  }   
+ 
+  // remove irc_in from front
+  topic = topic.substr(irc_in.length()+1);
+  
+  if (topic.find_first_of("/") != string::npos)
+  {
+    // topic indicates it's a channel chat message
+    channel = topic.substr(0, topic.find_first_of("/"));
+    nick = topic.substr(topic.find_first_of("/")+1);
+  }
+  
+  if (channel == "pm") // A 'Channel' of pm means it was actaully a private message
+    channel = "";
+
+  return true;    
+}
+
+int CNHmqtt::irc_send(string message, irc_dest dst)
+{
+  if (dst.channel=="")
+    return irc_send_nick (message, dst.nick);
+  else
+    return irc_send_channel (message, dst.channel);
+}
+
+int CNHmqtt::irc_send_nick (string message, string nick)
+{
+  return message_send(irc_out + "/pm/" + nick, message);
+}
+
+
+int CNHmqtt::irc_send_channel (string message, string channel)
+{
+  return message_send(irc_out + "/" + channel, message);
+}
+
+bool CNHmqtt::is_irc(string topic, irc_dest *dst)
+{
+  if (topic.length() > irc_in.length())
+    if(topic.substr(0, irc_in.length())==irc_in)
+      return decode_irc_topic(irc_in, topic, dst->nick, dst->channel);
+
+  dst->nick = "";
+  dst->channel = "";
+  return false;
+}

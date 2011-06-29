@@ -9,9 +9,6 @@ bool CNHmqtt::daemonized = false;
 class GateKeeper : public CNHmqtt
 {
   public:
-    
-    string irc_in;
-    string irc_out;
     string door_buzzer;
     string door_contact;
     string door_button;
@@ -21,7 +18,7 @@ class GateKeeper : public CNHmqtt
     string door_bell_msg;
     int bell_duration;
     CDBAccess *db;
-    
+
     GateKeeper(int argc, char *argv[]) : CNHmqtt(argc, argv)
     {
       irc_in = get_str_option("gatekeeper", "irc_in", "irc/rx");
@@ -48,21 +45,15 @@ class GateKeeper : public CNHmqtt
       pthread_attr_t tattr;
       pthread_t bell_thread;
       string unlock_text;
-      
-      string irc_nick;
-      string irc_channel;
+      irc_dest dst;
       
       // Deal with messages from IRC
-      if (topic.length() > irc_in.length())
-        if(topic.substr(0, irc_in.length())==irc_in)
-        {
-          decode_irc_topic(irc_in, topic, irc_nick, irc_channel);
-          
-          if (message == "!help")
+      if (is_irc(topic, &dst))
+      {   
+          if (message=="!help")
           {
-            irc_send("!bell - Ring doorbell in hackspace", irc_channel, irc_nick);
+            irc_send("!bell - Ring doorbell in hackspace", dst);
           }
-          
           
           if (message=="!bell")
           {
@@ -70,9 +61,7 @@ class GateKeeper : public CNHmqtt
             pthread_attr_setdetachstate(&tattr,PTHREAD_CREATE_DETACHED);
             pthread_create(&bell_thread, &tattr, &ring_bell, this);
           } 
-        }
-      // Done messages from IRC
-      
+      }      
       
       if (topic==door_contact)
       {
@@ -133,54 +122,6 @@ class GateKeeper : public CNHmqtt
         
       CNHmqtt::process_message(topic, message);
     }
-    
-    
-  // irc_in = base topic, e.g. "nh/irc/rx"
-  // topic  = topic actaully received, e.g. "nh/irc/rx/nottinghack/daniel1111
-  static int decode_irc_topic(string irc_in, string topic, string &nick, string &channel)
-  {    
-    
-    if (irc_in.length() >= topic.length())
-    {
-      nick="";
-      channel="";
-      return -1;
-    }   
-   
-    // remove irc_in from front
-    topic = topic.substr(irc_in.length()+1);
-    
-    if (topic.find_first_of("/") != string::npos)
-    {
-      // topic indicates it's a channel chat message
-      channel = topic.substr(0, topic.find_first_of("/"));
-      nick = topic.substr(topic.find_first_of("/")+1);
-    }
-    
-    if (channel == "pm") // A 'Channel' of pm means it was actaully a private message
-      channel = "";
-
-    return 0;    
-  }
-  
-  int irc_send(string message, string channel, string nick)
-  {
-    if (channel=="")
-      return irc_send_nick (message, nick);
-    else
-      return irc_send_channel (message, channel);
-  }
-  
-  int irc_send_nick (string message, string nick)
-  {
-    return message_send(irc_out + "/pm/" + nick, message);
-  }
-  
-  
-  int irc_send_channel (string message, string channel)
-  {
-    return message_send(irc_out + "/" + channel, message);
-  }
   
   int db_connect()
   {
