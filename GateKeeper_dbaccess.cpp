@@ -40,14 +40,15 @@ void CDBAccess::dbDisconnect()
   return;
 }
 
-int CDBAccess::validate_rfid_tag(string rfid_serial, string &handle)
+int CDBAccess::validate_rfid_tag(string rfid_serial, string &unlock, string &handle)
 {
-  MYSQL_BIND    bind[1];
+  MYSQL_BIND    bind[2];
   MYSQL_STMT    *stmt;
-  char          str_data[1000];
-  my_bool       is_null[1];
-  my_bool       error[1];
-  unsigned long length[1];
+  char          str_handle[1000];
+  char          str_unlock[1000];
+  my_bool       is_null[2];
+  my_bool       error[2];
+  unsigned long length[2];
   string        myQuery;
   bool          serial_found = false;
   
@@ -63,7 +64,7 @@ int CDBAccess::validate_rfid_tag(string rfid_serial, string &handle)
   if (!stmt)
     return -1;   
   
-  myQuery = "select m.unlock_text from members m inner join rfid_tags r on r.member_id = m.member_id where r.state = " + CNHmqtt::itos(STATE_ACTIVE) + " and r.rfid_serial = ?";
+  myQuery = "select m.unlock_text, m.handle from members m inner join rfid_tags r on r.member_id = m.member_id where r.state = " + CNHmqtt::itos(STATE_ACTIVE) + " and r.rfid_serial = ?";
   
   if (mysql_stmt_prepare(stmt, myQuery.c_str(), myQuery.length()))
   {
@@ -84,13 +85,21 @@ int CDBAccess::validate_rfid_tag(string rfid_serial, string &handle)
     return -1;
   }
   
-  // Handle column
+  // unlock text column
   bind[0].buffer_type= MYSQL_TYPE_STRING;
-  bind[0].buffer= (char *)str_data;
-  bind[0].buffer_length= sizeof(str_data);
+  bind[0].buffer= (char *)str_unlock;
+  bind[0].buffer_length= sizeof(str_unlock);
   bind[0].is_null= &is_null[0];
   bind[0].length= &length[0];
   bind[0].error= &error[0];
+  
+  // unlock text column
+  bind[1].buffer_type= MYSQL_TYPE_STRING;
+  bind[1].buffer= (char *)str_handle;
+  bind[1].buffer_length= sizeof(str_handle);
+  bind[1].is_null= &is_null[1];
+  bind[1].length= &length[1];
+  bind[1].error= &error[1];  
   
   if (mysql_stmt_bind_result(stmt, bind))
   {
@@ -108,7 +117,8 @@ int CDBAccess::validate_rfid_tag(string rfid_serial, string &handle)
   while (!mysql_stmt_fetch(stmt))
   {
     serial_found = true;
-    handle = str_data;
+    handle = str_handle;
+    unlock = str_unlock;
   }
 
   mysql_stmt_close(stmt);

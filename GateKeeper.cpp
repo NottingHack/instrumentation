@@ -45,6 +45,7 @@ class GateKeeper : public CNHmqtt
       pthread_attr_t tattr;
       pthread_t bell_thread;
       string unlock_text;
+      string handle;
       irc_dest dst;
       
       // Deal with messages from IRC
@@ -69,7 +70,11 @@ class GateKeeper : public CNHmqtt
           message_send(irc_out, "Door opened");
         else if (message=="HIGH")
           message_send(irc_out, "Door closed");
-        else message_send(irc_out, message); // If not HIGH or LOW, just pass the message on verbatim
+        else if ((message.substr(0, ((string)("Door Opened by:")).length() ) == "Door Opened by:") && (handle != ""))
+          message_send(irc_out, message + " " + handle);
+        else if (message=="Door Time Out")
+          handle = "";
+        else message_send(irc_out, message); // Else just pass the message on verbatim (probably "door opened" or "door closed")
       }   
           
       if (topic==door_button)
@@ -100,11 +105,12 @@ class GateKeeper : public CNHmqtt
           message_send(unlock, "Unknown Card Type");
         } else
         {
-          if(db->validate_rfid_tag(message, unlock_text))
+          if(db->validate_rfid_tag(message, unlock_text, handle))
           {
             // access denied
             db->log_rfid_access(message, ACCESS_DENIED);
             message_send(unlock, "Access denied");
+            handle = "";
           } else
           {
             // Ok - unlock

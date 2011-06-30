@@ -17,7 +17,7 @@ class CDBAccess
 {
   public:   
     CDBAccess(string server, string username, string password, string database, CLogging *log);
-    int validate_rfid_tag(string rfid_serial, string &unlock_text);
+    int validate_rfid_tag(string rfid_serial, string &unlock, string &handle);
     int validate_pin(string pin, string &unlock_text);
     int sp_check_pin(string pin, string &unlock_text);
     int dbConnect();
