@@ -97,6 +97,14 @@ BEGIN
       order by access_id 
       desc limit 1;
       
+      -- check the card is suitable (not unknown type)
+      if (l_rfid_serial = 'Unknown Card Type') then
+        set err = 'Unknown Card Type';
+        set unlock_text = concat('Unlock:', coalesce(p_unlock_text, 'Welcome'));
+        set access_granted = 1;
+        leave main;
+      end if;        
+      
       -- check the card is suitable (not already registered)
       select count(*) into ck_exists
       from rfid_tags t
