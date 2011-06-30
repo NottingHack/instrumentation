@@ -16,6 +16,7 @@ class GateKeeper : public CNHmqtt
     string unlock;
     string keypad;
     string door_bell_msg;
+    string handle;
     int bell_duration;
     CDBAccess *db;
 
@@ -33,6 +34,7 @@ class GateKeeper : public CNHmqtt
       door_bell_msg = get_str_option("gatekeeper", "door_bell_msg", "Door Bell");
 
       db = new CDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
+      handle = "";
     }
     
     ~GateKeeper()
@@ -45,7 +47,6 @@ class GateKeeper : public CNHmqtt
       pthread_attr_t tattr;
       pthread_t bell_thread;
       string unlock_text;
-      string handle;
       irc_dest dst;
       
       // Deal with messages from IRC
@@ -116,6 +117,7 @@ class GateKeeper : public CNHmqtt
             // Ok - unlock
             db->log_rfid_access(message, ACCESS_GRANTED);   
             message_send(unlock, "Unlock:" + unlock_text);
+            log->dbg("RFID access granted for [" + handle + "]");
           }
         }
       }
