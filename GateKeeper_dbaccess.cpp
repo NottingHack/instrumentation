@@ -287,20 +287,23 @@ int CDBAccess::log_rfid_access(string rfid, int access)
   return 0;
 }
 
-int CDBAccess::sp_check_pin(string pin, string &unlock_string)
+int CDBAccess::sp_check_pin(string pin, string &unlock_string, string &handle_string)
 {
   MYSQL_BIND    bind[3];
   char          unlock_text[200];
   char          err_text[200];
-  my_bool       is_null[2];
-  my_bool       error[2];
-  unsigned long length[2];  
+  char          handle_text[110];
+  my_bool       is_null[3];
+  my_bool       error[3];
+  unsigned long length[3];  
   MYSQL_STMT    *stmt;
   string        myQuery;
   
   memset(bind, 0, sizeof(bind));
   memset(unlock_text, 0, sizeof(unlock_text));
+  memset(handle_text, 0, sizeof(handle_text));
   memset(err_text, 0, sizeof(err_text));
+  handle_string = "";  
   
   // PIN
   bind[0].buffer_type= MYSQL_TYPE_STRING;
@@ -312,7 +315,7 @@ int CDBAccess::sp_check_pin(string pin, string &unlock_string)
   if (!stmt)
     return -1;   
   
-  myQuery = "call sp_check_pin(?, @unlock_text, @err)";
+  myQuery = "call sp_check_pin(?, @unlock_text, @handle, @err)";
 
   if (mysql_stmt_prepare(stmt, myQuery.c_str(), myQuery.length()))
   {
@@ -339,7 +342,7 @@ int CDBAccess::sp_check_pin(string pin, string &unlock_string)
   if (!stmt)
     return -1;   
   
-  myQuery = "select @unlock_text, @err;";
+  myQuery = "select @unlock_text, @handle, @err;";
 
   if (mysql_stmt_prepare(stmt, myQuery.c_str(), myQuery.length()))
   {
@@ -363,14 +366,22 @@ int CDBAccess::sp_check_pin(string pin, string &unlock_string)
   bind[0].is_null= &is_null[0];
   bind[0].length= &length[0];
   bind[0].error= &error[0];
- 
-  // error
+  
+  // Handle
   bind[1].buffer_type= MYSQL_TYPE_STRING;
-  bind[1].buffer= (char *)err_text;
-  bind[1].buffer_length= sizeof(err_text);
+  bind[1].buffer= (char *)handle_text;
+  bind[1].buffer_length= sizeof(handle_text);
   bind[1].is_null= &is_null[1];
   bind[1].length= &length[1];
   bind[1].error= &error[1];  
+ 
+  // error
+  bind[2].buffer_type= MYSQL_TYPE_STRING;
+  bind[2].buffer= (char *)err_text;
+  bind[2].buffer_length= sizeof(err_text);
+  bind[2].is_null= &is_null[2];
+  bind[2].length= &length[2];
+  bind[2].error= &error[2];  
   
   if (mysql_stmt_bind_result(stmt, bind))
   {
@@ -392,6 +403,8 @@ int CDBAccess::sp_check_pin(string pin, string &unlock_string)
   mysql_stmt_close(stmt); 
   
   unlock_string = unlock_text;
+  handle_string = handle_text;
+  log->dbg("Handle = [" + handle_string + "]");
  
   return 0;
   

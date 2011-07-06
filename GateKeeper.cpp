@@ -101,7 +101,10 @@ class GateKeeper : public CNHmqtt
         else if (message=="HIGH")
           message_send(irc_out, "Door closed");
         else if ((message.substr(0, ((string)("Door Opened by:")).length() ) == "Door Opened by:") && (handle != ""))
+        {
           message_send(irc_out, message + " " + handle);
+          handle = "";
+        }
         else if (message=="Door Time Out")
           handle = "";
         else message_send(irc_out, message); // Else just pass the message on verbatim (probably "door opened" or "door closed")
@@ -153,7 +156,7 @@ class GateKeeper : public CNHmqtt
       
       if (topic==keypad)
       {
-        db->sp_check_pin(message, unlock_text);
+        db->sp_check_pin(message, unlock_text, handle);
         message_send(unlock, unlock_text);
       }
         
