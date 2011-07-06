@@ -105,6 +105,10 @@ class GateKeeper : public CNHmqtt
           message_send(irc_out, message + " " + handle);
           handle = "";
         }
+        else if (message=="Door Closed")
+        {
+          log->dbg("Ignoring door closed message");
+        }
         else if (message=="Door Time Out")
           handle = "";
         else message_send(irc_out, message); // Else just pass the message on verbatim (probably "door opened" or "door closed")
