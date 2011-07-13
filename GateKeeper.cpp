@@ -46,6 +46,10 @@ class GateKeeper : public CNHmqtt
     string keypad;
     string door_bell_msg;
     string handle;
+    string lastman;
+    string lastman_open;
+    string lastman_close;
+    string twitter_out;
     int bell_duration;
     CDBAccess *db;
 
@@ -61,6 +65,13 @@ class GateKeeper : public CNHmqtt
       unlock = get_str_option("gatekeeper", "unlock", "nh/gk/Unlock");
       keypad = get_str_option("gatekeeper", "keypad", "nh/gk/Keypad");
       door_bell_msg = get_str_option("gatekeeper", "door_bell_msg", "Door Bell");
+	  
+	  lastman = get_str_option("gatekeeper", "lastman", "nh/gk/LastManState");
+	  lastman_open = get_str_option("gatekeeper", "lastman_open", "Hackspace now Open!");
+	  lastman_close = get_str_option("gatekeeper", "lastman_close", "Hackspace is closed");
+	  twitter_out = get_str_option("gatekeeper", "twitter_out", "nh/twitter/tx");
+
+
 
       db = new CDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
       handle = "";
@@ -135,6 +146,21 @@ class GateKeeper : public CNHmqtt
        
       }          
       
+      
+      if (topic==lastman)
+      {
+        
+        if (message=="Last Out") {
+          message_send(twitter_out, lastman_close);
+          message_send(irc_out, lastman_close);
+        } else if (message=="Frist In") {
+          message_send(twitter_out, lastman_open);
+          message_send(irc_out, lastman_open);
+        }
+               
+      }
+      
+      
       if (topic==rfid)
       {
         if (message == "Unknown Card Type")
@@ -198,6 +224,7 @@ class GateKeeper : public CNHmqtt
       subscribe(door_button);
       subscribe(rfid);
       subscribe(keypad);
+      subscribe(lastman);
     }
 };
 
