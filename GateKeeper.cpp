@@ -65,11 +65,11 @@ class GateKeeper : public CNHmqtt
       unlock = get_str_option("gatekeeper", "unlock", "nh/gk/Unlock");
       keypad = get_str_option("gatekeeper", "keypad", "nh/gk/Keypad");
       door_bell_msg = get_str_option("gatekeeper", "door_bell_msg", "Door Bell");
-	  
-	  lastman = get_str_option("gatekeeper", "lastman", "nh/gk/LastManState");
-	  lastman_open = get_str_option("gatekeeper", "lastman_open", "Hackspace now Open!");
-	  lastman_close = get_str_option("gatekeeper", "lastman_close", "Hackspace is closed");
-	  twitter_out = get_str_option("gatekeeper", "twitter_out", "nh/twitter/tx");
+      
+      lastman = get_str_option("gatekeeper", "lastman", "nh/gk/LastManState");
+      lastman_open = get_str_option("gatekeeper", "lastman_open", "Hackspace now Open!");
+      lastman_close = get_str_option("gatekeeper", "lastman_close", "Hackspace is closed");
+      twitter_out = get_str_option("gatekeeper", "twitter_out", "nh/twitter/tx/status");
 
 
 
@@ -153,7 +153,7 @@ class GateKeeper : public CNHmqtt
         if (message=="Last Out") {
           message_send(twitter_out, lastman_close);
           message_send(irc_out, lastman_close);
-        } else if (message=="Frist In") {
+        } else if (message=="First In") {
           message_send(twitter_out, lastman_open);
           message_send(irc_out, lastman_open);
         }

@@ -209,7 +209,7 @@ int CNHmqtt::mosq_connect()
   mosquitto_message_callback_set(mosq, CNHmqtt::message_callback);  
   
     // int mosquitto_connect(struct mosquitto *mosq, const char *host, int port, int keepalive, bool clean_session);
-  if(mosquitto_connect(mosq, mosq_server.c_str(), mosq_port, 30, false)) 
+  if(mosquitto_connect(mosq, mosq_server.c_str(), mosq_port, 300, true)) 
   {
     log->dbg("mosq_connnect failed!");
     mosq = NULL;
