@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "CNHmqtt.h"
+#include "CNHmqtt_irc.h"
 #include "GateKeeper_dbaccess.h"
 
 #include <stdio.h>
@@ -35,7 +35,7 @@
 bool CNHmqtt::debug_mode = false;
 bool CNHmqtt::daemonized = false; 
 
-class GateKeeper : public CNHmqtt
+class GateKeeper : public CNHmqtt_irc
 {
   public:
     string door_buzzer;
@@ -53,10 +53,8 @@ class GateKeeper : public CNHmqtt
     int bell_duration;
     CDBAccess *db;
 
-    GateKeeper(int argc, char *argv[]) : CNHmqtt(argc, argv)
+    GateKeeper(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
     {
-      irc_in = get_str_option("gatekeeper", "irc_in", "irc/rx");
-      irc_out = get_str_option("gatekeeper", "irc_out", "irc/tx");
       door_buzzer = get_str_option("gatekeeper", "door_buzzer", "nh/gk/buzzer");
       bell_duration = get_int_option("gatekeeper", "bell_duration", 100);
       door_contact = get_str_option("gatekeeper", "door_contact", "nh/gk/contact");
@@ -70,8 +68,6 @@ class GateKeeper : public CNHmqtt
       lastman_open = get_str_option("gatekeeper", "lastman_open", "Hackspace now Open!");
       lastman_close = get_str_option("gatekeeper", "lastman_close", "Hackspace is closed");
       twitter_out = get_str_option("gatekeeper", "twitter_out", "nh/twitter/tx/status");
-
-
 
       db = new CDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
       handle = "";
@@ -87,24 +83,7 @@ class GateKeeper : public CNHmqtt
       pthread_attr_t tattr;
       pthread_t bell_thread;
       string unlock_text;
-      irc_dest dst;
-      
-      // Deal with messages from IRC
-      if (is_irc(topic, &dst))
-      {   
-          if (message=="!help")
-          {
-            irc_send("!bell - Ring doorbell in hackspace", dst);
-          }
-          
-          if (message=="!bell")
-          {
-            pthread_attr_init(&tattr);
-            pthread_attr_setdetachstate(&tattr,PTHREAD_CREATE_DETACHED);
-            pthread_create(&bell_thread, &tattr, &ring_bell, this);
-          } 
-      }      
-      
+
       if (topic==door_contact)
       {
         if (message=="LOW")
@@ -146,20 +125,16 @@ class GateKeeper : public CNHmqtt
        
       }          
       
-      
       if (topic==lastman)
-      {
-        
+      { 
         if (message=="Last Out") {
           message_send(twitter_out, lastman_close);
           message_send(irc_out, lastman_close);
         } else if (message=="First In") {
           message_send(twitter_out, lastman_open);
           message_send(irc_out, lastman_open);
-        }
-               
+        }         
       }
-      
       
       if (topic==rfid)
       {
@@ -190,9 +165,27 @@ class GateKeeper : public CNHmqtt
         message_send(unlock, unlock_text);
       }
         
-      CNHmqtt::process_message(topic, message);
+      CNHmqtt_irc::process_message(topic, message);
+  }
+
+  void process_irc_message(irc_msg msg)
+  {
+    pthread_attr_t tattr;
+    pthread_t bell_thread;
+
+    if (msg=="!help")
+    {
+      msg.reply("!bell - Ring doorbell in hackspace");
     }
-  
+          
+    if (msg=="!bell")
+    {
+      pthread_attr_init(&tattr);
+      pthread_attr_setdetachstate(&tattr,PTHREAD_CREATE_DETACHED);
+      pthread_create(&bell_thread, &tattr, &ring_bell, this);
+    }         
+  }
+
   int db_connect()
   {
     db->dbConnect();
@@ -219,7 +212,6 @@ class GateKeeper : public CNHmqtt
     
     void setup()
     {
-      subscribe(irc_in + "/#");
       subscribe(door_contact);
       subscribe(door_button);
       subscribe(rfid);
@@ -238,13 +230,10 @@ int main(int argc, char *argv[])
 
   string handle="";
   GateKeeper nh = GateKeeper(argc, argv);
-  
-  
+   
   nh.db_connect();  
-  
-  GateKeeper::daemonize(); // will only work on first run
-  
-  nh.mosq_connect();
+
+  nh.init();
   nh.setup();
   nh.message_loop(); 
   return 0;

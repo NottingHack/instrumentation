@@ -1,20 +1,27 @@
-all: nh-test INIReaderTest nh-irc GateKeeper
+all: nh-test INIReaderTest nh-irc GateKeeper nh-test-irc
 
-install: nh-irc GateKeeper
+install: install_nh_holly install_gatekeeper
+
+install_gatekeeper: GateKeeper
 	stop GateKeeper
+	cp GateKeeper /home/instrumentation/bin/
+	chmod 555 /home/instrumentation/bin/GateKeeper
+	start GateKeeper
+
+install_nh_holly: nh-irc
 	stop nh-holly
 	cp nh-irc /home/instrumentation/bin/
-	cp GateKeeper /home/instrumentation/bin/
 	chmod 555 /home/instrumentation/bin/nh-irc
-	chmod 555 /home/instrumentation/bin/GateKeeper
 	start nh-holly
-	start GateKeeper
 
 nh-test: nh-test.o CNHmqtt.o INIReader.o ini.o CLogging.o
 	g++ -lmosquitto -o nh-test nh-test.o CNHmqtt.o INIReader.o ini.o CLogging.o
 
-GateKeeper: GateKeeper.o CNHmqtt.o INIReader.o ini.o GateKeeper_dbaccess.o CLogging.o
-	g++ -lmysqlclient -lmosquitto -lrt -o GateKeeper GateKeeper.o CNHmqtt.o INIReader.o ini.o GateKeeper_dbaccess.o CLogging.o
+nh-test-irc: nh-test-irc.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
+	g++ -lmosquitto -o nh-test-irc nh-test-irc.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
+
+GateKeeper: GateKeeper.o CNHmqtt.o CNHmqtt_irc.o INIReader.o ini.o GateKeeper_dbaccess.o CLogging.o
+	g++ -lmysqlclient -lmosquitto -lrt -o GateKeeper GateKeeper.o CNHmqtt.o CNHmqtt_irc.o INIReader.o ini.o GateKeeper_dbaccess.o CLogging.o
 	cp GateKeeper bin/
 
 nh-irc: nh-irc.o CNHmqtt.o INIReader.o ini.o irc.o CLogging.o
@@ -24,8 +31,14 @@ nh-irc: nh-irc.o CNHmqtt.o INIReader.o ini.o irc.o CLogging.o
 CNHmqtt.o: CNHmqtt.cpp CNHmqtt.h
 	g++ -Wall -c CNHmqtt.cpp
 
+CNHmqtt_irc.o: CNHmqtt_irc.cpp CNHmqtt_irc.h
+	g++ -Wall -c CNHmqtt_irc.cpp
+
 nh-test.o: nh-test.cpp nh-test.h
 	g++ -Wall -c nh-test.cpp
+
+nh-test-irc.o: nh-test-irc.cpp nh-test-irc.h
+	g++ -Wall -c nh-test-irc.cpp
 
 GateKeeper.o: GateKeeper.cpp  
 	g++ -Wall -c GateKeeper.cpp
@@ -55,5 +68,5 @@ CLogging.o: CLogging.cpp CLogging.h
 	g++ -c CLogging.cpp
 
 clean:
-	rm -f GateKeeper_dbaccess.o GateKeeper.o GateKeeper mos_irc irc.o mos_irc.o nh-test.o CNHmqtt.o ini.o INIReader.o INIReaderTest.o nh-irc.o nh-gk-if.o CLogging.o
+	rm -f CNHmqtt_irc.o nh-irc nh-test nh-test-irc INIReaderTest GateKeeper_dbaccess.o GateKeeper.o GateKeeper mos_irc irc.o mos_irc.o nh-test.o CNHmqtt.o ini.o INIReader.o INIReaderTest.o nh-irc.o nh-gk-if.o CLogging.o
 
