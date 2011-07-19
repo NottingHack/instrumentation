@@ -1,4 +1,4 @@
-all: nh-test INIReaderTest nh-irc GateKeeper nh-test-irc
+all: nh-test INIReaderTest nh-irc GateKeeper nh-test-irc nh-irccat
 
 install: install_nh_holly install_gatekeeper
 
@@ -20,6 +20,9 @@ nh-test: nh-test.o CNHmqtt.o INIReader.o ini.o CLogging.o
 nh-test-irc: nh-test-irc.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
 	g++ -lmosquitto -o nh-test-irc nh-test-irc.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
 
+nh-irccat: nh-irccat.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
+	g++ -lpthread -lmosquitto -o nh-irccat nh-irccat.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
+
 GateKeeper: GateKeeper.o CNHmqtt.o CNHmqtt_irc.o INIReader.o ini.o GateKeeper_dbaccess.o CLogging.o
 	g++ -lmysqlclient -lmosquitto -lrt -o GateKeeper GateKeeper.o CNHmqtt.o CNHmqtt_irc.o INIReader.o ini.o GateKeeper_dbaccess.o CLogging.o
 	cp GateKeeper bin/
@@ -39,6 +42,9 @@ nh-test.o: nh-test.cpp nh-test.h
 
 nh-test-irc.o: nh-test-irc.cpp nh-test-irc.h
 	g++ -Wall -c nh-test-irc.cpp
+
+irccat.o: nh-irccat.cpp nh-irccat.h
+	g++ -Wall -c nh-irccat.cpp
 
 GateKeeper.o: GateKeeper.cpp  
 	g++ -Wall -c GateKeeper.cpp
@@ -68,5 +74,5 @@ CLogging.o: CLogging.cpp CLogging.h
 	g++ -c CLogging.cpp
 
 clean:
-	rm -f CNHmqtt_irc.o nh-irc nh-test nh-test-irc INIReaderTest GateKeeper_dbaccess.o GateKeeper.o GateKeeper mos_irc irc.o mos_irc.o nh-test.o CNHmqtt.o ini.o INIReader.o INIReaderTest.o nh-irc.o nh-gk-if.o CLogging.o
+	rm -f CNHmqtt_irc.o nh-irc nh-test nh-irccat nh-test-irc INIReaderTest GateKeeper_dbaccess.o GateKeeper.o GateKeeper mos_irc irc.o mos_irc.o nh-test.o CNHmqtt.o ini.o INIReader.o INIReaderTest.o nh-irc.o nh-gk-if.o CLogging.o
 
