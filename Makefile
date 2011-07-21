@@ -23,8 +23,8 @@ nh-test-irc: nh-test-irc.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
 nh-irccat: nh-irccat.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
 	g++ -lpthread -lmosquitto -o nh-irccat nh-irccat.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
 
-GateKeeper: GateKeeper.o CNHmqtt.o CNHmqtt_irc.o INIReader.o ini.o GateKeeper_dbaccess.o CLogging.o
-	g++ -lmysqlclient -lmosquitto -lrt -o GateKeeper GateKeeper.o CNHmqtt.o CNHmqtt_irc.o INIReader.o ini.o GateKeeper_dbaccess.o CLogging.o
+GateKeeper: GateKeeper.o CNHmqtt.o CNHmqtt_irc.o INIReader.o ini.o db/lib/CNHDBAccess.o CLogging.o
+	g++ -lmysqlclient -lmosquitto -lrt -o GateKeeper GateKeeper.o CNHmqtt.o CNHmqtt_irc.o INIReader.o ini.o db/lib/CNHDBAccess.o CLogging.o
 	cp GateKeeper bin/
 
 nh-irc: nh-irc.o CNHmqtt.o INIReader.o ini.o irc.o CLogging.o
@@ -46,11 +46,8 @@ nh-test-irc.o: nh-test-irc.cpp nh-test-irc.h
 irccat.o: nh-irccat.cpp nh-irccat.h
 	g++ -Wall -c nh-irccat.cpp
 
-GateKeeper.o: GateKeeper.cpp  
+GateKeeper.o: GateKeeper.cpp db/lib/CNHDBAccess.o
 	g++ -Wall -c GateKeeper.cpp
-
-GateKeeper_dbaccess.o: GateKeeper_dbaccess.cpp  
-	g++ -Wall -c GateKeeper_dbaccess.cpp
 
 nh-irc.o: nh-irc.cpp
 	g++ -Wall -c nh-irc.cpp
@@ -73,6 +70,20 @@ INIReaderTest: ini.o INIReaderTest.o INIReader.o
 CLogging.o: CLogging.cpp CLogging.h
 	g++ -c CLogging.cpp
 
+db/lib/gen_dblib: db/lib/gen_dblib.c
+	gcc -Wall -o db/lib/gen_dblib db/lib/gen_dblib.c
+
+db/lib/CNHDBAccess.cpp: db/lib/gen_dblib db/lib/CNHDBAccess_template.cpp $(wildcard db/sp_*.sql)
+	db/lib/gen_dblib db/lib $(wildcard db/sp_*.sql)
+
+db/lib/CNHDBAccess.h: db/lib/gen_dblib db/lib/CNHDBAccess_template.h $(wildcard db/sp_*.sql)
+	db/lib/gen_dblib db/lib $(wildcard db/sp_*.sql)
+
+db/lib/CNHDBAccess.o: db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h 
+	g++ -Wall -c db/lib/CNHDBAccess.cpp -o db/lib/CNHDBAccess.o
+
+
+
 clean:
-	rm -f CNHmqtt_irc.o nh-irc nh-test nh-irccat nh-test-irc INIReaderTest GateKeeper_dbaccess.o GateKeeper.o GateKeeper mos_irc irc.o mos_irc.o nh-test.o CNHmqtt.o ini.o INIReader.o INIReaderTest.o nh-irc.o nh-gk-if.o CLogging.o
+	rm -f db/lib/gen_dblib db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h db/lib/CNHDBAccess.o CNHmqtt_irc.o nh-irc nh-test nh-irccat nh-test-irc INIReaderTest GateKeeper_dbaccess.o GateKeeper.o GateKeeper mos_irc irc.o mos_irc.o nh-test.o CNHmqtt.o ini.o INIReader.o INIReaderTest.o nh-irc.o nh-gk-if.o CLogging.o
 

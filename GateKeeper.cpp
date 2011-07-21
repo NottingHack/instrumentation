@@ -28,7 +28,7 @@
  */
 
 #include "CNHmqtt_irc.h"
-#include "GateKeeper_dbaccess.h"
+#include "db/lib/CNHDBAccess.h"
 
 #include <stdio.h>
 
@@ -51,7 +51,7 @@ class GateKeeper : public CNHmqtt_irc
     string lastman_close;
     string twitter_out;
     int bell_duration;
-    CDBAccess *db;
+    CNHDBAccess *db;
 
     GateKeeper(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
     {
@@ -69,7 +69,7 @@ class GateKeeper : public CNHmqtt_irc
       lastman_close = get_str_option("gatekeeper", "lastman_close", "Hackspace is closed");
       twitter_out = get_str_option("gatekeeper", "twitter_out", "nh/twitter/tx/status");
 
-      db = new CDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
+      db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
       handle = "";
     }
     
@@ -83,6 +83,7 @@ class GateKeeper : public CNHmqtt_irc
       pthread_attr_t tattr;
       pthread_t bell_thread;
       string unlock_text;
+      string err;
 
       if (topic==door_contact)
       {
@@ -137,31 +138,22 @@ class GateKeeper : public CNHmqtt_irc
       }
       
       if (topic==rfid)
-      {
-        if (message == "Unknown Card Type")
+      {//     int sp_check_rfid (string rfid_serial, string &unlock_text, string &handle, string &err);
+        if(db->sp_check_rfid(message, unlock_text, handle, err))
         {
-          message_send(unlock, "Unknown Card Type");
+          log->dbg("Call to sp_check_rfid failed");
+           message_send(unlock, "Access Denied");        
         } else
         {
-          if(db->validate_rfid_tag(message, unlock_text, handle))
-          {
-            // access denied
-            db->log_rfid_access(message, ACCESS_DENIED);
-            message_send(unlock, "Access denied");
-            handle = "";
-          } else
-          {
-            // Ok - unlock
-            db->log_rfid_access(message, ACCESS_GRANTED);   
-            message_send(unlock, "Unlock:" + unlock_text);
-            log->dbg("RFID access granted for [" + handle + "]");
-          }
+          //log->dbg("err = [" + err + "]");
+          message_send(unlock, unlock_text); 
         }
       }
       
       if (topic==keypad)
       {
-        db->sp_check_pin(message, unlock_text, handle);
+        db->sp_check_pin(message, unlock_text, handle, err);
+        log->dbg("err = [" + err + "]");        
         message_send(unlock, unlock_text);
       }
         
