@@ -50,6 +50,7 @@ class GateKeeper : public CNHmqtt_irc
     string lastman_open;
     string lastman_close;
     string twitter_out;
+    string last_seen;
     int bell_duration;
     CNHDBAccess *db;
 
@@ -93,15 +94,25 @@ class GateKeeper : public CNHmqtt_irc
           message_send(irc_out, "Door closed");
         else if ((message.substr(0, ((string)("Door Opened by:")).length() ) == "Door Opened by:") && (handle != ""))
         {
-          message_send(irc_out, message + " " + handle);
+          if (last_seen.length() > 1)
+            message_send(irc_out, message + " " + handle + " (last seen " + last_seen + " ago)");
+          else
+          {
+            log->dbg("No last seen time set");
+            message_send(irc_out, message + " " + handle);
+          }
           handle = "";
+          last_seen = "";
         }
         else if (message=="Door Closed")
         {
           log->dbg("Ignoring door closed message");
         }
         else if (message=="Door Time Out")
+        {
           handle = "";
+          last_seen = "";
+        }
         else message_send(irc_out, message); // Else just pass the message on verbatim (probably "door opened" or "door closed")
       }   
           
@@ -123,7 +134,6 @@ class GateKeeper : public CNHmqtt_irc
          pthread_attr_setdetachstate(&tattr,PTHREAD_CREATE_DETACHED);
          pthread_create(&bell_thread, &tattr, &ring_bell, this);         
        }
-       
       }          
       
       if (topic==lastman)
@@ -138,14 +148,13 @@ class GateKeeper : public CNHmqtt_irc
       }
       
       if (topic==rfid)
-      {//     int sp_check_rfid (string rfid_serial, string &unlock_text, string &handle, string &err);
-        if(db->sp_check_rfid(message, unlock_text, handle, err))
+      {
+        if(db->sp_check_rfid(message, unlock_text, handle, last_seen, err))
         {
           log->dbg("Call to sp_check_rfid failed");
            message_send(unlock, "Access Denied");        
         } else
         {
-          //log->dbg("err = [" + err + "]");
           message_send(unlock, unlock_text); 
         }
       }
