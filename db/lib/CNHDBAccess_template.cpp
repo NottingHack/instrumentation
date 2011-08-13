@@ -45,12 +45,20 @@ CNHDBAccess::CNHDBAccess(string server, string username, string password, string
   CNHDBAccess::database = database;
   CNHDBAccess::server   = server; 
   CNHDBAccess::log      = log; 
+  connected = false;
 }
 
+CNHDBAccess::~CNHDBAccess()
+{
+  if (connected)
+    dbDisconnect();
+}
+    
 int CNHDBAccess::dbConnect()
 {
   
-  mysql_init(&mysql);
+  if (mysql_init(&mysql) != NULL)
+    connected = true;
   
   my_bool reconnect = 1; 
   mysql_options(&mysql, MYSQL_OPT_RECONNECT, &reconnect);
@@ -68,6 +76,7 @@ int CNHDBAccess::dbConnect()
 void CNHDBAccess::dbDisconnect()
 {
   mysql_close(&mysql);
+  connected = false;
   return;
 }
 
@@ -96,7 +105,7 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
   memset(is_null, 0,sizeof(my_bool) * param_count);
   memset(error, 0,sizeof(my_bool) * param_count);
   memset(length, 0,sizeof(unsigned long) * param_count);
-  
+
   count = 0;
   for (int n=0; n < param_count; n++)
   {
@@ -121,7 +130,7 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
   
   stmt = mysql_stmt_init(&mysql);
   if (!stmt)
-    return -1;    
+    goto exec_sp_exit_fail;    
   
   myQuery = "call " + sp_name + "(";
   for (int n=0; n < param_count; n++)
@@ -142,19 +151,22 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
   {
     log->dbg("mysql_stmt_prepare failed: " + (string)mysql_error(&mysql));
     log->dbg("sql = [" + myQuery + "]");
-    return -1;  
+    mysql_stmt_close(stmt);   
+    goto exec_sp_exit_fail;    
   }  
   
   if (mysql_stmt_bind_param(stmt, bind))
   {
     log->dbg("mysql_stmt_bind_param failed: " + (string)mysql_error(&mysql));
-    return -1;
+    mysql_stmt_close(stmt);
+    goto exec_sp_exit_fail;    
   }
  
   if (mysql_stmt_execute(stmt))
   {
     log->dbg("mysql_stmt_execute error: " + (string)mysql_error(&mysql));
-    return -1;
+    mysql_stmt_close(stmt);
+    goto exec_sp_exit_fail;
   }
   
   mysql_stmt_close(stmt);   
@@ -165,13 +177,19 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
     if (param_dir[x] != P_DIR_IN)
       count++; 
   if (!count)
+  {
+    free(bind);  
+    free(is_null);
+    free(error);  
+    free(length);    
     return 0;
+  }
   
   // Now get any outputs from the SP
   memset(bind, 0,sizeof(MYSQL_BIND) * param_count);
   stmt = mysql_stmt_init(&mysql);
   if (!stmt)
-    return -1;   
+    goto exec_sp_exit_fail;   
   
   myQuery = "select ";
   for (int n=0; n < param_count; n++)
@@ -191,13 +209,14 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
   {
     log->dbg("mysql_stmt_prepare failed: " + (string)mysql_error(&mysql));
     log->dbg("sql = [" + myQuery + "]");
-    return -1;  
+    goto exec_sp_exit_fail;
   }
  
   if (mysql_stmt_execute(stmt))
   {
     log->dbg("mysql_stmt_execute error2: " + (string)mysql_error(&mysql));
-    return -1;
+    mysql_stmt_close(stmt);
+    goto exec_sp_exit_fail;
   }  
   
   count = 0;
@@ -236,13 +255,15 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
   if (mysql_stmt_bind_result(stmt, bind))
   {
     log->dbg("mysql_stmt_bind_result failed: " + (string)mysql_error(&mysql));
-    return -1;
+    mysql_stmt_close(stmt);
+    goto exec_sp_exit_fail;
   }
   
   if (mysql_stmt_store_result(stmt))
   {
     log->dbg("mysql_stmt_store_result failed: " + (string)mysql_error(&mysql));
-    return -1;
+    mysql_stmt_close(stmt);
+    goto exec_sp_exit_fail;
   }  
   
   while (!mysql_stmt_fetch(stmt))
@@ -256,6 +277,8 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
         if (param_type[n] == P_TYPE_INT)    
           *((string*)(param_value[n])) = (char*)buf[n];        
       }    
+      
+      mysql_stmt_free_result(stmt); 
   }
  
   mysql_stmt_close(stmt); 
@@ -264,8 +287,25 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
   for (int n=0; n < param_count; n++)
     if (param_dir[n] != P_DIR_IN)
       free(buf[n]);
-
+    
+  free(bind);  
+  free(is_null);
+  free(error);  
+  free(length);
   return 0;
+  
+  exec_sp_exit_fail:
+    // Free mysql output buffers
+    for (int n=0; n < param_count; n++)
+      if (param_dir[n] != P_DIR_IN)
+        free(buf[n]);
+    
+    free(bind);  
+    free(is_null);
+    free(error);  
+    free(length); 
+    return -1;
+  
 }
 /*
 int main(int argc, char *argv[])

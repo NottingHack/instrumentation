@@ -5,6 +5,9 @@
 #include "CLogging.h"
 #include "inireader/INIReader.h"
 
+#define EXIT_TERMINATE 1 
+#define EXIT_RESET 2
+
 using namespace std;
 
 

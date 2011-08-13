@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
       continue;
     }
     
-    if (nh->message_loop() == 2)
+    if (nh->message_loop() == EXIT_RESET)
     {
       reset = true;
       sleep(2);

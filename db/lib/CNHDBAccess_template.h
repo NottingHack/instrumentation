@@ -18,7 +18,7 @@ class CNHDBAccess
 {
   public:   
     CNHDBAccess(string server, string username, string password, string database, CLogging *log);
-
+    ~CNHDBAccess();
     int dbConnect();
     void dbDisconnect();
     int exec_sp (string sp_name, int param_dir[], int param_type[], void **param_value, int param_length[], int param_count);
@@ -33,4 +33,5 @@ class CNHDBAccess
       MYSQL mysql;
       MYSQL_RES *result; 
       CLogging *log;
+      bool connected;
 };

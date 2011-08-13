@@ -33,8 +33,6 @@
 #include <cstdlib>
 #include <unistd.h>
 
-
-
 CNHmqtt::CNHmqtt(int argc, char *argv[]) 
 {
   log = NULL;
@@ -48,6 +46,9 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
   string logfile;
   uid = 0;
   
+  mosquitto_lib_init();
+  mosq = NULL;
+    
   debug_mode = false;
     
   /* Read in command line parameters:
@@ -139,13 +140,13 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
 
 CNHmqtt::~CNHmqtt()
 {
-
-  if (mosq_connected)
-  {
-    mosquitto_disconnect(mosq);
-    mosquitto_destroy(mosq);
-    mosquitto_lib_cleanup();      
-  }
+  if (mosq_connected && (mosq != NULL))
+    mosquitto_disconnect(mosq);         
+  
+  if (mosq != NULL)
+    mosquitto_destroy(mosq); 
+  
+  mosquitto_lib_cleanup();
   
   if (reader!=NULL)
   {
@@ -193,7 +194,6 @@ int CNHmqtt::get_int_option(string section, string option, int def_value)
 int CNHmqtt::mosq_connect()
 {
   std::stringstream out;
-  mosquitto_lib_init();
   out << mqtt_topic << "-" << getpid();
   
   log->dbg("Connecting to Mosquitto as [" + out.str() + "]");;
@@ -212,6 +212,7 @@ int CNHmqtt::mosq_connect()
   if(mosquitto_connect(mosq, mosq_server.c_str(), mosq_port, 300, true)) 
   {
     log->dbg("mosq_connnect failed!");
+    mosquitto_destroy(mosq);
     mosq = NULL;
     return -1;
   }
@@ -330,13 +331,12 @@ int CNHmqtt::message_loop(void)
   mosq_connected = false;
   mosquitto_disconnect(mosq);
   mosquitto_destroy(mosq);
-  mosquitto_lib_cleanup();     
-  
+  mosq = NULL;  
   
   if (terminate)
-    return 1;
+    return EXIT_TERMINATE;
   else if (reset)
-    return 2;
+    return EXIT_RESET;
   else
     return 0;
 }
