@@ -150,8 +150,7 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
   if (mysql_stmt_prepare(stmt, myQuery.c_str(), myQuery.length()))
   {
     log->dbg("mysql_stmt_prepare failed: " + (string)mysql_error(&mysql));
-    log->dbg("sql = [" + myQuery + "]");
-    mysql_stmt_close(stmt);   
+    log->dbg("sql = [" + myQuery + "]"); 
     goto exec_sp_exit_fail;    
   }  
   
@@ -207,7 +206,7 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
 
   if (mysql_stmt_prepare(stmt, myQuery.c_str(), myQuery.length()))
   {
-    log->dbg("mysql_stmt_prepare failed: " + (string)mysql_error(&mysql));
+    log->dbg("mysql_stmt_prepare failed2: " + (string)mysql_error(&mysql));
     log->dbg("sql = [" + myQuery + "]");
     goto exec_sp_exit_fail;
   }
