@@ -482,6 +482,7 @@ int generate_sp_function(char *sp_name, struct param *param_list, FILE *out_imp)
   fprintf(out_imp, "  int param_dir[%d];\n"    , param_count);
   fprintf(out_imp, "  void *param_value[%d];\n", param_count);
   fprintf(out_imp, "  int param_len[%d];\n"    , param_count);
+  fprintf(out_imp, "  int retval;\n");   
   fprintf(out_imp, "\n");
   
   param_count = 0;
@@ -514,7 +515,10 @@ int generate_sp_function(char *sp_name, struct param *param_list, FILE *out_imp)
       param_count++;
     } while (lst != NULL);
     
-    fprintf(out_imp, "  return exec_sp(\"%s\", param_dir, param_type, param_value, param_len, %d);\n", sp_name, param_count);
+    fprintf(out_imp, "  pthread_mutex_lock(&mysql_mutex);\n");
+    fprintf(out_imp, "  retval = exec_sp(\"%s\", param_dir, param_type, param_value, param_len, %d);\n", sp_name, param_count);
+    fprintf(out_imp, "  pthread_mutex_unlock(&mysql_mutex);\n");
+    fprintf(out_imp, "  return retval;\n");
     fprintf(out_imp, "}\n\n");
   }   
   

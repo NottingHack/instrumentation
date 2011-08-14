@@ -34,4 +34,5 @@ class CNHDBAccess
       MYSQL_RES *result; 
       CLogging *log;
       bool connected;
+      pthread_mutex_t mysql_mutex;
 };

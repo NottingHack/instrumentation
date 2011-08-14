@@ -46,6 +46,7 @@ CNHDBAccess::CNHDBAccess(string server, string username, string password, string
   CNHDBAccess::server   = server; 
   CNHDBAccess::log      = log; 
   connected = false;
+  pthread_mutex_init (&mysql_mutex, NULL);
 }
 
 CNHDBAccess::~CNHDBAccess()
