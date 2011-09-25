@@ -141,9 +141,11 @@ class GateKeeper : public CNHmqtt_irc
         if (message=="Last Out") {
           message_send(twitter_out, lastman_close);
           message_send(irc_out, lastman_close);
+          db->sp_log_event("LAST_OUT", "");
         } else if (message=="First In") {
           message_send(twitter_out, lastman_open);
           message_send(irc_out, lastman_open);
+          db->sp_log_event("FIRST_IN", "");
         }         
       }
       
