@@ -41,6 +41,7 @@ class CNHmqtt
     CLogging *log;
 
     int message_send(string topic, string message);
+    int message_send(string topic, string message, bool no_debug);
     int get_int_option(string section, string option, int def_value);
     string get_str_option(string section, string option, string def_value);
         
@@ -50,6 +51,7 @@ class CNHmqtt
     bool terminate;
     bool reset;
     bool config_file_parsed;
+    bool no_staus_debug;
     INIReader *reader;
     uid_t uid;
     pthread_mutex_t mosq_mutex;

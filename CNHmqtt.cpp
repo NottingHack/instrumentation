@@ -45,6 +45,7 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
   log = new CLogging();
   string logfile;
   uid = 0;
+  no_staus_debug = false;
   
   mosquitto_lib_init();
   mosq = NULL;
@@ -110,6 +111,10 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
       mqtt_topic  = reader->Get("mqtt", "topic", "test"); 
       logfile     = reader->Get("mqtt", "logfile", ""); 
       uid         = reader->GetInteger("mqtt", "uid", 0);
+      
+      if (reader->Get("mqtt", "no_status_debug", "false") == "true")
+        no_staus_debug = true;
+      else no_staus_debug = false; 
     }    
   }
   
@@ -238,11 +243,23 @@ void CNHmqtt::connect_callback(void *obj, int result)
 void CNHmqtt::message_callback(void *obj, const struct mosquitto_message *message)
 {
   CNHmqtt *m = (CNHmqtt*)obj;
+  string payload;
+  string topic;
+  
+  payload = ((char *)message->payload);
+  topic = ((char *)message->topic);
   
   if(message->payloadlen)
   { 
-    m->log->dbg("Got mqtt message, topic=[" + (string)((char *)message->topic) + "], message=[" + (string)((char *)message->payload) + "]");
-    m->process_message((char *)message->topic, (char *)message->payload);
+    if (!m->no_staus_debug)
+      m->log->dbg("Got mqtt message, topic=[" + topic + "], message=[" + payload + "]");
+    else // no_staus_debug is set - so only print out message to log if it's /not/ a status request
+    {
+      if (!((topic == m->mqtt_rx) && (payload == "STATUS")))
+        m->log->dbg("Got mqtt message, topic=[" + topic + "], message=[" + payload + "]");
+    }
+      
+    m->process_message(topic, payload);
   }
 }
 
@@ -282,7 +299,7 @@ void CNHmqtt::process_message(string topic, string message)
     }
     
     if (message == "STATUS")
-      message_send(mqtt_tx, status);
+      message_send(mqtt_tx, status, no_staus_debug);
     
     if (message == "RESET")
     {
@@ -292,20 +309,26 @@ void CNHmqtt::process_message(string topic, string message)
   }
 }
 
-int CNHmqtt::message_send(string topic, string message)
+int CNHmqtt::message_send(string topic, string message, bool no_debug)
 {
   int ret;
-  log->dbg("Sending message,  topic=[" + topic + "], message=[" + message + "]");
+  
+  if (!no_debug)
+    log->dbg("Sending message,  topic=[" + topic + "], message=[" + message + "]");
   pthread_mutex_lock(&mosq_mutex);
   ret = mosquitto_publish(mosq, NULL, topic.c_str(), message.length(), (uint8_t*)message.c_str(), 0, false);
   pthread_mutex_unlock(&mosq_mutex);
   return ret;
 }
 
+int CNHmqtt::message_send(string topic, string message)
+{
+  return message_send(topic, message, false);
+}
+
 string CNHmqtt::get_topic()
 {
   return mqtt_rx;
- 
 }
 
 int CNHmqtt::message_loop(void)

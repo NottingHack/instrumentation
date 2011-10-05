@@ -94,6 +94,8 @@ class GateKeeper : public CNHmqtt_irc
           message_send(irc_out, "Door closed");
         else if ((message.substr(0, ((string)("Door Opened by:")).length() ) == "Door Opened by:") && (handle != ""))
         {
+          db->sp_log_event("DOOR_OPENED", "");
+          
           if (last_seen.length() > 1)
             message_send(irc_out, message + " " + handle + " (last seen " + last_seen + " ago)");
           else
@@ -107,12 +109,16 @@ class GateKeeper : public CNHmqtt_irc
         else if (message=="Door Closed")
         {
           log->dbg("Ignoring door closed message");
+          db->sp_log_event("DOOR_CLOSED", "");
         }
         else if (message=="Door Time Out")
         {
           handle = "";
           last_seen = "";
+          db->sp_log_event("DOOR_TIMEOUT", "");
         }
+        else if (message=="Door Opened")
+          db->sp_log_event("DOOR_OPENED", "");
         else message_send(irc_out, message); // Else just pass the message on verbatim (probably "door opened" or "door closed")
       }   
           
@@ -128,6 +134,7 @@ class GateKeeper : public CNHmqtt_irc
        if (message=="BING")
        {
          message_send(irc_out, door_bell_msg);
+         db->sp_log_event("DOORBELL", "");
          
          // Now ring the bell
          pthread_attr_init(&tattr);
