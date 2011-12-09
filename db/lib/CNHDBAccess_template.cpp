@@ -275,7 +275,7 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
           *((string*)(param_value[n])) = (char*)buf[n];
         
         if (param_type[n] == P_TYPE_INT)    
-          *((string*)(param_value[n])) = (char*)buf[n];        
+          *((int*)(param_value[n])) = (int)buf[n];         
       }    
       
       mysql_stmt_free_result(stmt); 
