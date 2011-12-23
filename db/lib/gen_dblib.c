@@ -37,6 +37,7 @@
 
 #define P_TYPE_INT 1
 #define P_TYPE_VARCHAR 2
+#define P_TYPE_FLOAT 3
 
 struct param 
 {
@@ -371,6 +372,11 @@ int add_param(struct param **param_list, char *param_line)
     p_type = P_TYPE_VARCHAR;
     ptr += 7;
   }
+  else if (!strncasecmp(ptr, "float", 5))
+  {
+	p_type = P_TYPE_FLOAT;
+	ptr += 5;
+  }
   else
   {
     printf ("Unknown variable type! (line=[%s])\n", param_line);
@@ -437,6 +443,8 @@ int output_func_def(char *sp_name, struct param *param_list, FILE *out, int head
         fprintf(out, "int ");
       else if ((lst->p_type == P_TYPE_VARCHAR))
         fprintf(out, "string ");
+	  else if ((lst->p_type == P_TYPE_FLOAT))
+		fprintf(out, "float ");
       else 
         return -1;
 
@@ -495,6 +503,8 @@ int generate_sp_function(char *sp_name, struct param *param_list, FILE *out_imp)
         fprintf(out_imp, "  param_type[%d] =  P_TYPE_INT;\n", param_count);
       else if ((lst->p_type == P_TYPE_VARCHAR))
         fprintf(out_imp, "  param_type[%d] =  P_TYPE_VARCHAR;\n", param_count);
+	  else if ((lst->p_type == P_TYPE_FLOAT))
+		  fprintf(out_imp, "  param_type[%d] =  P_TYPE_FLOAT;\n", param_count);
       else 
         return -1;
 

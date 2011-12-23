@@ -10,6 +10,7 @@
 
 #define P_TYPE_INT 1
 #define P_TYPE_VARCHAR 2
+#define P_TYPE_FLOAT 3
 
 
 using namespace std; 
