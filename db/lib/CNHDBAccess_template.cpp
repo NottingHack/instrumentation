@@ -125,7 +125,13 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
         bind[count].buffer= (char *) param_value[n];
         bind[count].buffer_length= 0; //param_length[n];
         bind[count].is_null= 0;      
-      }
+      } else if (param_type[n] == P_TYPE_FLOAT)
+	{
+        bind[count].buffer_type= MYSQL_TYPE_FLOAT;
+        bind[count].buffer= (char *) param_value[n];
+        bind[count].buffer_length= 0; //param_length[n];
+        bind[count].is_null= 0;      
+	}
       count++;      
     }
   }
@@ -249,6 +255,18 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
         bind[count].length= &length[n]; // 0
         bind[count].error= &error[n];        
       }
+      else if (param_type[n] == P_TYPE_FLOAT)
+      {
+		  buf[n] = malloc(sizeof(float));
+		  memset(buf[n], 0, sizeof(float));
+		  
+		  bind[count].buffer_type= MYSQL_TYPE_FLOAT;
+		  bind[count].buffer= buf[n];
+		  bind[count].buffer_length= sizeof(float);
+		  bind[count].is_null= &is_null[n];
+		  bind[count].length= &length[n]; // 0
+		  bind[count].error= &error[n];        
+      }
       count++;
     }
   }
@@ -276,7 +294,10 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
           *((string*)(param_value[n])) = (char*)buf[n];
         
         if (param_type[n] == P_TYPE_INT)    
-           *((int*)(param_value[n])) = (*((long*)buf[n]));               
+           *((int*)(param_value[n])) = (*((long*)buf[n]));       
+		  
+		if (param_type[n] == P_TYPE_FLOAT)    
+			*((float*)(param_value[n])) = (*((float*)buf[n]));  
       }    
       
       mysql_stmt_free_result(stmt); 
