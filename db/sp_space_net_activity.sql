@@ -67,9 +67,9 @@ BEGIN
   -- Adddress count text
   if (addr_last_time_s is not null) then
     if (addr_last_time_s < 60) then
-      set mesg = concat(mesg, addr_count, ' addresses seen in the last 10 minutes (most recent less than a minute ago). ');
+      set mesg = concat(mesg, addr_count, ' network devices seen in the last 10 minutes (most recent less than a minute ago). ');
     else
-      set mesg = concat(mesg, addr_count, ' addresses seen in the last 10 minutes (most recent ', addr_last_time_m, 'm ago). ');
+      set mesg = concat(mesg, addr_count, ' network devices seen in the last 10 minutes (most recent ', addr_last_time_m, 'm ago). ');
     end if;
   end if;
   
