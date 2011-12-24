@@ -106,6 +106,7 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
   memset(is_null, 0,sizeof(my_bool) * param_count);
   memset(error, 0,sizeof(my_bool) * param_count);
   memset(length, 0,sizeof(unsigned long) * param_count);
+  memset(buf, 0, sizeof(buf));
 
   count = 0;
   for (int n=0; n < param_count; n++)
@@ -275,7 +276,7 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
           *((string*)(param_value[n])) = (char*)buf[n];
         
         if (param_type[n] == P_TYPE_INT)    
-          *((int*)(param_value[n])) = (int)buf[n];         
+           *((int*)(param_value[n])) = (*((long*)buf[n]));               
       }    
       
       mysql_stmt_free_result(stmt); 
@@ -286,7 +287,7 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
   // Free mysql output buffers
   for (int n=0; n < param_count; n++)
     if (param_dir[n] != P_DIR_IN)
-      free(buf[n]);
+      if (buf[n]!=NULL) free(buf[n]);
     
   free(bind);  
   free(is_null);
@@ -298,7 +299,7 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
     // Free mysql output buffers
     for (int n=0; n < param_count; n++)
       if (param_dir[n] != P_DIR_IN)
-        free(buf[n]);
+        if (buf[n]!=NULL) free(buf[n]);
     
     free(bind);  
     free(is_null);
