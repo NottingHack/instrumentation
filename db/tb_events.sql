@@ -7,4 +7,4 @@ create table events
   event_type    varchar(25),
   event_value   varchar(256) null,
   primary key (event_id)
-);
+) ENGINE = InnoDB; 

@@ -6,4 +6,4 @@ create table rfid_tags
   rfid_serial   varchar(50),
   state         int,
   primary key (rfid_serial, state)
-);
+) ENGINE = InnoDB; 

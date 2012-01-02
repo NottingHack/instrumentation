@@ -10,4 +10,4 @@ create table pins
   state        int,
   member_id    int default NULL,
   primary key (pin_id)
-);
+) ENGINE = InnoDB; 
