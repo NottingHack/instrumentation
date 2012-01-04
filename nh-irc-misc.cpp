@@ -65,6 +65,8 @@ class nh_irc_misc : public CNHmqtt_irc
        // .reply will reply either in the channel, or via PM, depending
        // on how the message was received.
        msg.reply("!status - Best guess if the space is open");   
+       msg.reply("!temp - Latest Temperature readings"); 
+
      }
      
      if (msg=="!status")
