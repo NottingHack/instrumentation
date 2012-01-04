@@ -58,6 +58,7 @@ class nh_irc_misc : public CNHmqtt_irc
    void process_irc_message(irc_msg msg)
    {
      string activity;
+     string temperature;
      
      if (msg=="!help")
      {
@@ -71,6 +72,12 @@ class nh_irc_misc : public CNHmqtt_irc
         db->sp_space_net_activity(activity);
         msg.reply(activity);      
      }
+    
+     if (msg=="!temp")
+     {
+        db->sp_temperature_check(temperature);
+        msg.reply(temperature);      
+     }    
     
    }
    
