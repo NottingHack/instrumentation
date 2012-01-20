@@ -103,9 +103,12 @@ int main(int argc, char *argv[])
  // run with "-d" flag to avoid daemonizing
  
   nh_irc_misc nh = nh_irc_misc(argc, argv);
-  nh.setup();
   
-  nh.message_loop();
-  return 0;
+  if (nh.setup())
+  {
+    nh.message_loop();
+    return 0;
+  } else
+    return 1;
   
 }

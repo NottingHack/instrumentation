@@ -245,12 +245,13 @@ void CNHmqtt::message_callback(void *obj, const struct mosquitto_message *messag
   CNHmqtt *m = (CNHmqtt*)obj;
   string payload;
   string topic;
-  
-  payload = ((char *)message->payload);
-  topic = ((char *)message->topic);
+ 
   
   if(message->payloadlen)
   { 
+    payload = ((char *)message->payload);
+    topic = ((char *)message->topic);    
+    
     if (!m->no_staus_debug)
       m->log->dbg("Got mqtt message, topic=[" + topic + "], message=[" + payload + "]");
     else // no_staus_debug is set - so only print out message to log if it's /not/ a status request
