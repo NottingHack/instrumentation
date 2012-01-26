@@ -38,6 +38,11 @@ BEGIN
       set err = "Invalid member_id";  
       leave main;
     end if;
+    
+    if (tran_status not in ('COMPLETE', 'PENDING')) then
+      set err = 'Error - invalid status';
+      leave main;
+    end if;
 
     start transaction;
     
@@ -46,7 +51,7 @@ BEGIN
     
     set tran_id = last_insert_id();
 
-    if (tran_type = 'COMPLETE') then
+    if (tran_status = 'COMPLETE') then
       update members m
       set m.balance = m.balance + amount
       where m.member_id = member_id;  
@@ -59,4 +64,5 @@ END //
 DELIMITER ;
 
 
-GRANT EXECUTE ON PROCEDURE sp_transaction_log TO 'gk'@'localhost'
+GRANT EXECUTE ON PROCEDURE sp_transaction_log TO 'gk'@'localhost';
+GRANT EXECUTE ON PROCEDURE sp_transaction_log TO 'nh-web'@'localhost';
