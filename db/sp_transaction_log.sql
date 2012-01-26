@@ -17,15 +17,27 @@ CREATE PROCEDURE sp_transaction_log
 )
 SQL SECURITY DEFINER
 BEGIN
+  declare member_exists int;
+  set member_exists = 0;
   set err = '';
 
   main: begin  
-  
+ 
     declare EXIT HANDLER for SQLEXCEPTION, SQLWARNING
     begin
       set err = 'Error - transaction rollback!';
       rollback;
     end;  
+
+    -- check member_id is valid
+    select count(*) into member_exists
+    from members m
+    where m.member_id = member_id;
+  
+    if (member_exists != 1) then
+      set err = "Invalid member_id";  
+      leave main;
+    end if;
 
     start transaction;
     

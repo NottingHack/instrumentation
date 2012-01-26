@@ -44,12 +44,14 @@ class nh_vend : public CNHmqtt
   public:
     CNHDBAccess *db;
     string temperature_topic;
+    int debug_level;
     
     nh_vend(int argc, char *argv[]) : CNHmqtt(argc, argv)
     {
       sck = -1;
       port = get_int_option("vend", "port", 11023);
       temperature_topic = get_str_option("temperature", "temperature_topic", "nh/temp");
+      debug_level = get_int_option("vend", "debug", 2);
       db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
     }
    
@@ -320,7 +322,13 @@ class nh_vend : public CNHmqtt
     
       sprintf(dbgbuf, "%s:%.2f", addr, temp);
       message_send(temperature_topic, dbgbuf); 
-    }     
+    }   
+    
+    // DeBUG -request from vending machine for debug level
+    if (!strncmp(msgbuf, "DBUG", 4))
+    {   
+      sprintf(response, "DBUG:%d", debug_level); 
+    }
     
   }
   
