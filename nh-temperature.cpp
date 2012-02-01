@@ -95,7 +95,8 @@ int main(int argc, char *argv[])
 	
 	nh.mosq_connect();
 	
-	nh.setup();	
+	if (!nh.setup())
+    return 1;
 	
 	// run with "-d" flag to avoid daemonizing
 	nh_temperature::daemonize(); // will only work on first run

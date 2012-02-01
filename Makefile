@@ -47,8 +47,14 @@ nh-irc: nh-irc.o CNHmqtt.o INIReader.o ini.o irc.o CLogging.o
 	g++ -lmosquitto -lrt -o nh-irc nh-irc.o CNHmqtt.o INIReader.o ini.o irc.o CLogging.o
 	cp nh-irc bin/
 
+nh-mail: nh-mail.o INIReader.o ini.o CLogging.o
+	g++ -lmosquitto -o nh-mail nh-mail.o INIReader.o ini.o CLogging.o
+
 CNHmqtt.o: CNHmqtt.cpp CNHmqtt.h
 	g++ -Wall -c CNHmqtt.cpp
+
+nh-mail.o: nh-mail.cpp nh-mail.h
+	g++ -Wall -c nh-mail.cpp
 
 CNHmqtt_irc.o: CNHmqtt_irc.cpp CNHmqtt_irc.h
 	g++ -Wall -c CNHmqtt_irc.cpp

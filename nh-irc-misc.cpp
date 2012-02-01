@@ -66,6 +66,7 @@ class nh_irc_misc : public CNHmqtt_irc
        // on how the message was received.
        msg.reply("!status - Best guess if the space is open");   
        msg.reply("!temp - Latest Temperature readings"); 
+       msg.reply("Temperature graphs: http://cacti.nottinghack.org.uk/graph_view.php"); 
 
      }
      
