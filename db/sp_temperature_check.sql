@@ -13,7 +13,9 @@ BEGIN
 
   declare temperature_cur cursor for
     select  concat(t.name, ' : ',  cast(t.temperature as char(5)))
-    FROM temperature t;
+    FROM temperature t
+    WHERE (NOW() - time) < 5*60;
+
     
   declare continue HANDLER for not found set done = true;
 
