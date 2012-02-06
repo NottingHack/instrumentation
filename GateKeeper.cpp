@@ -118,8 +118,11 @@ class GateKeeper : public CNHmqtt_irc
           db->sp_log_event("DOOR_TIMEOUT", "");
         }
         else if (message=="Door Opened")
+        {
+          message_send(irc_out, "Door opened");
           db->sp_log_event("DOOR_OPENED", "");
-        else message_send(irc_out, message); // Else just pass the message on verbatim (probably "door opened" or "door closed")
+        }
+        else message_send(irc_out, message); // Else just pass the message on verbatim
       }   
           
       if (topic==door_button)

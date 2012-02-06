@@ -36,10 +36,14 @@ class nh_irc_misc : public CNHmqtt_irc
 {
   public:
     CNHDBAccess *db;
+    string flasher;
+    int flash_duration;    
     
     nh_irc_misc(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
     {
       db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   ;
+      flasher = get_str_option("alert", "flasher", "nh/gk/relay2");
+      flash_duration = get_int_option("alert", "flash_duration", 4000);      
     }
    
     /* Optional function which, if present, can be used to process any 
@@ -59,11 +63,14 @@ class nh_irc_misc : public CNHmqtt_irc
    {
      string activity;
      string temperature;
+     pthread_attr_t tattr;
+     pthread_t light_thread;        
      
      if (msg=="!help")
      {
        // .reply will reply either in the channel, or via PM, depending
        // on how the message was received.
+       msg.reply("!alert - Flash light next to matrix display");       
        msg.reply("!status - Best guess if the space is open");   
        msg.reply("!temp - Latest Temperature readings"); 
        msg.reply("Temperature graphs: http://cacti.nottinghack.org.uk/graph_view.php"); 
@@ -81,8 +88,34 @@ class nh_irc_misc : public CNHmqtt_irc
         db->sp_temperature_check(temperature);
         msg.reply(temperature);      
      }    
-    
+
+     if (msg=="!alert")
+     {
+         // Now flash the light
+         pthread_attr_init(&tattr);
+         pthread_attr_setdetachstate(&tattr,PTHREAD_CREATE_DETACHED);
+         pthread_create(&light_thread, &tattr, &flash_light, this);          
+     }       
    }
+   
+
+ static void *flash_light(void *arg)
+  {
+    nh_irc_misc *ir;
+    int n;
+      
+    ir = (nh_irc_misc*) arg;
+    
+    // Ring door bell
+    ir->message_send(ir->flasher, "HIGH");
+          
+    for (n=0; n < (ir->flash_duration); n++)
+      usleep(1000); // 1ms
+          
+    ir->message_send(ir->flasher, "LOW");
+    
+    return NULL;
+  }      
    
    bool setup()
    {
