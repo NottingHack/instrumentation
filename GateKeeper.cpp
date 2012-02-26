@@ -31,6 +31,7 @@
 #include "db/lib/CNHDBAccess.h"
 
 #include <stdio.h>
+#include <time.h>
 
 bool CNHmqtt::debug_mode = false;
 bool CNHmqtt::daemonized = false; 
@@ -148,12 +149,26 @@ class GateKeeper : public CNHmqtt_irc
       
       if (topic==lastman)
       { 
-        if (message=="Last Out") {
-          message_send(twitter_out, lastman_close);
+        // LWK adding time stamp to tweets
+        time_t rawtime;
+        struct tm * timeinfo;
+        time ( &rawtime );
+        timeinfo = localtime ( &rawtime );
+        
+        string tweet;
+        char tweet_time [32];
+        strftime(tweet_time, 80, " %d/%m %H:%M", timeinfo);
+                
+        if (message=="Last Out") 
+        {
+          tweet = lastman_close + tweet_time;
+          message_send(twitter_out, tweet);
           message_send(irc_out, lastman_close);
           db->sp_log_event("LAST_OUT", "");
-        } else if (message=="First In") {
-          message_send(twitter_out, lastman_open);
+        } else if (message=="First In") 
+        {
+          tweet = lastman_open + tweet_time;
+          message_send(twitter_out, tweet);
           message_send(irc_out, lastman_open);
           db->sp_log_event("FIRST_IN", "");
         }         
