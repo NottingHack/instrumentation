@@ -14,6 +14,19 @@ install_nh_holly: nh-irc
 	chmod 555 /home/instrumentation/bin/nh-irc
 	start nh-holly
 
+install_irccat
+    cp command_runner.py /home/instrumentation/bin
+    chmod 555 /home/instrumentaion/bin/command_runner.py
+    cp -r irccat /home/instrumentation/bin/
+    chmod 755 /home/instrumentaion/bin/irccat
+    chmod 555 /home/instrumentaion/bin/irccat/*
+    
+install_upstart
+    cp upstart/* /etc/init/
+    
+install_conf
+    cp -r conf /home/instrumentaion/
+
 nh-test: nh-test.o CNHmqtt.o INIReader.o ini.o CLogging.o
 	g++ -lmosquitto -o nh-test nh-test.o CNHmqtt.o INIReader.o ini.o CLogging.o
 
