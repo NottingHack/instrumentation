@@ -65,7 +65,7 @@ BEGIN
       set err = 'RFID serial not active';
       update vend_log
       set req_datetime = sysdate(), denied_reason = err, amount_scaled = amount 
-      where vend_tran_id = vend_tran_id;      
+      where vend_log.vend_tran_id = vend_tran_id;      
       leave main;
     end if;
     
@@ -80,7 +80,7 @@ BEGIN
       set err = 'Member ID / rfid / tran_id mismatch (BUG?)';
       update vend_log
       set req_datetime = sysdate(), denied_reason = err, amount_scaled = amount 
-      where vend_tran_id = vend_tran_id;      
+      where vend_log.vend_tran_id = vend_tran_id;      
       leave main;
     end if;    
     
@@ -90,7 +90,7 @@ BEGIN
       set err = 'Insufficient credit';
       update vend_log
       set req_datetime = sysdate(), denied_reason = err, amount_scaled = amount 
-      where vend_tran_id = vend_tran_id;
+      where vend_log.vend_tran_id = vend_tran_id;
       leave main;      
     end if;
 
