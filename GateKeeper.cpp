@@ -52,6 +52,7 @@ class GateKeeper : public CNHmqtt_irc
     string lastman_close;
     string twitter_out;
     string last_seen;
+    string entry_announce;
     int bell_duration;
     CNHDBAccess *db;
 
@@ -70,6 +71,7 @@ class GateKeeper : public CNHmqtt_irc
       lastman_open = get_str_option("gatekeeper", "lastman_open", "Hackspace now Open!");
       lastman_close = get_str_option("gatekeeper", "lastman_close", "Hackspace is closed");
       twitter_out = get_str_option("gatekeeper", "twitter_out", "nh/twitter/tx/status");
+      entry_announce = get_str_option("gatekeeper", "entry_announce", "nh/gk/entry_announce");
 
       db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
       handle = "";
@@ -89,20 +91,18 @@ class GateKeeper : public CNHmqtt_irc
 
       if (topic==door_contact)
       {
-        if (message=="LOW")
-          message_send(irc_out, "Door opened");
-        else if (message=="HIGH")
-          message_send(irc_out, "Door closed");
-        else if ((message.substr(0, ((string)("Door Opened by:")).length() ) == "Door Opened by:") && (handle != ""))
+        if ((message.substr(0, ((string)("Door Opened by:")).length() ) == "Door Opened by:") && (handle != ""))
         {
           db->sp_log_event("DOOR_OPENED", "");
           
           if (last_seen.length() > 1)
-            message_send(irc_out, message + " " + handle + " (last seen " + last_seen + " ago)");
+          {
+            message_send(entry_announce + "/known", message + " " + handle + " (last seen " + last_seen + " ago)");
+          }
           else
           {
             log->dbg("No last seen time set");
-            message_send(irc_out, message + " " + handle);
+            message_send(entry_announce, message + " " + handle);
           }
           handle = "";
           last_seen = "";
@@ -120,10 +120,10 @@ class GateKeeper : public CNHmqtt_irc
         }
         else if (message=="Door Opened")
         {
-          message_send(irc_out, "Door opened");
+          message_send(entry_announce + "/unknown", "Door opened");
           db->sp_log_event("DOOR_OPENED", "");
         }
-        else message_send(irc_out, message); // Else just pass the message on verbatim
+        else message_send(entry_announce, message); // Else just pass the message on verbatim
       }   
           
       if (topic==door_button)

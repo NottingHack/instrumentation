@@ -37,6 +37,7 @@ class nh_irc_misc : public CNHmqtt_irc
   public:
     CNHDBAccess *db;
     string flasher;
+    string entry_announce;
     int flash_duration;    
     
     nh_irc_misc(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
@@ -44,19 +45,20 @@ class nh_irc_misc : public CNHmqtt_irc
       db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   ;
       flasher = get_str_option("alert", "flasher", "nh/gk/relay2");
       flash_duration = get_int_option("alert", "flash_duration", 4000);      
+      entry_announce = get_str_option("gatekeeper", "entry_announce", "nh/gk/entry_announce");
     }
-   
-    /* Optional function which, if present, can be used to process any 
-    * MQTT message receiced.
-    * nb. must call CNHmqtt_irc::process_message so process_irc_message will 
-    * be called or IRC messages. 
 
     void process_message(string topic, string message)
     {
+      // Entry annouce is Door opened / Door opened by: etc
+      if ((topic.substr(0, entry_announce.length() ) == entry_announce))
+      {
+        message_send(irc_out, message);        
+      }
     
       CNHmqtt_irc::process_message(topic, message);
     }
-    */
+   
     
     
    void process_irc_message(irc_msg msg)
@@ -124,6 +126,8 @@ class nh_irc_misc : public CNHmqtt_irc
      
      if (db->dbConnect())
        return false;
+     
+     subscribe(entry_announce + "/#");
      
      return true;
    }
