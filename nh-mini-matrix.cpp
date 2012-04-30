@@ -87,6 +87,7 @@ class nh_mini_matrix : public CNHmqtt_irc
     void process_message(string topic, string message)
     {   
       char envlope[4];
+      unsigned int pos;
       
       // Door opened - cancel any doorbell alert
       if (topic.substr(0, topic_gatekeeper.length()) == topic_gatekeeper)
@@ -95,8 +96,14 @@ class nh_mini_matrix : public CNHmqtt_irc
       // Door opened - show on display (but only interested if a name was reported)
       if (topic == (topic_gatekeeper + "/known"))
       { 
-        if (message.length() > strlen("Door Opened by: "))
-          display_alert("Door Opened by: ", message.substr(strlen("Door Opened by: "), string::npos), false);
+        pos = message.find_first_of('(');
+        if (pos != string::npos)
+        {
+          display_alert(message.substr(0, pos-1), message.substr(pos, string::npos), false); 
+        } else
+          display_alert(message, "", false); 
+        
+        
       }
 
       // Doorbell rang
@@ -116,7 +123,7 @@ class nh_mini_matrix : public CNHmqtt_irc
       
       // tweet received
       if (topic.substr(0, topic_twitter.length()) == topic_twitter)
-        set_message_buffer(MSG_TWITTER, topic.substr(0,topic.find_last_of("/")), message);
+        set_message_buffer(MSG_TWITTER, "@" + message.substr(0,message.find_first_of(":")-1), message.substr(message.find_first_of(":")+1, string::npos));
 
       CNHmqtt_irc::process_message(topic, message);
     }
