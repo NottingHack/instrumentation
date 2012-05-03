@@ -16,9 +16,14 @@ CREATE PROCEDURE sp_vend_success
 )
 SQL SECURITY DEFINER
 BEGIN
-  declare ck_exists int;
-  declare tran_id   int;
-  declare vdesc     varchar(100);
+  declare ck_exists  int;
+  declare tran_id    int;
+  declare vdesc      varchar(100);
+  
+  declare location   varchar(10);
+  declare price      int;
+  declare prddesc    varchar(25);
+  declare prdid      int;
 
   set err = '';
 
@@ -45,12 +50,36 @@ BEGIN
     from vend_log v 
     where v.vend_tran_id = vend_tran_id;
 
-    set vdesc = concat('Vend complete, position: ', pos);
+    select count(*) into ck_exists 
+    from vmc_ref vr
+    where vr.loc_encoded = pos;
+    
+    if (ck_exists = 0) then
+      -- We don't recognise the locaation the vmc just vended from!
+      -- Continue to record the vend, but log a warning in the events table
+      call sp_log_event('WARN', 'VEND: Unknown VMC location reported');
+      set location = 'Unknown';
+      set prddesc = 'Unknown item';
+    else
+      -- Get product details - if known; but still record vend if not filled in.
+      select vr.loc_name, p.product_id, p.price, coalesce(p.shortdesc, 'Unknown item') 
+      into location, prdid, price, prddesc
+      from vmc_ref vr
+      left outer join vmc_state vs on vs.vmc_ref_id = vr.vmc_ref_id
+      left outer join products p on vs.product_id = p.product_id
+      where vr.loc_encoded = pos;    
+    end if; 
+
+    set vdesc = concat('[', prddesc, '] vended from location [', location, '].');
     
     call sp_transaction_update(tran_id, 'COMPLETE', vdesc, err);
     if (length(err) > 0) then
       leave main;
     end if;
+    
+    update transactions
+    set product_id = prdid
+    where transaction_id = tran_id;
     
     update vend_log
     set success_datetime = sysdate(), position = pos
