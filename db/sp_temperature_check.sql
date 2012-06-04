@@ -13,7 +13,8 @@ BEGIN
 
   declare temperature_cur cursor for
     select  concat(t.name, ' : ',  cast(t.temperature as char(5)))
-    FROM temperature t;
+    FROM temperature t
+    where t.name is not null;
 
     
   declare continue HANDLER for not found set done = true;

@@ -44,6 +44,7 @@ class nh_vend : public CNHmqtt
   public:
     CNHDBAccess *db;
     string temperature_topic;
+    string twitter;
     int debug_level;
     
     nh_vend(int argc, char *argv[]) : CNHmqtt(argc, argv)
@@ -52,6 +53,7 @@ class nh_vend : public CNHmqtt
       port = get_int_option("vend", "port", 11023);
       temperature_topic = get_str_option("temperature", "temperature_topic", "nh/temp");
       debug_level = get_int_option("vend", "debug", 2);
+      twitter = get_str_option("vend", "twitter_out", "nh/twitter/tx/status");
       db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
     }
    
@@ -158,6 +160,7 @@ class nh_vend : public CNHmqtt
     int amount_scaled;
     int vend_ok;
     char position[20];
+    string tweet;
     
     // expected message format:
     // XXXX:YYYY...
@@ -265,6 +268,15 @@ class nh_vend : public CNHmqtt
       db->sp_vend_success(rfid_serial, tran_id, position, err);
       if (err != "")
         log->dbg((string)"err = [" + err + (string)"]");   
+            
+      // Now tweet the vend if the product is in the database
+      db->sp_vend_twitter_txt(tran_id, tweet);
+      log->dbg((string)"Tweet=[" + tweet + (string)"]");   
+      if (tweet != "")
+      {
+        message_send(twitter, tweet);
+      } 
+      
     }
     
     // Vend FAiL
@@ -321,7 +333,10 @@ class nh_vend : public CNHmqtt
       log->dbg(dbgbuf);           
     
       sprintf(dbgbuf, "%s:%.2f", addr, temp);
-      message_send(temperature_topic, dbgbuf); 
+      if ((temp < -30) || (temp > 80))
+        log->dbg("Out of range temperature - not transmitting"); 
+      else  
+        message_send(temperature_topic, dbgbuf); 
     }   
     
     // DeBUG -request from vending machine for debug level
@@ -329,6 +344,12 @@ class nh_vend : public CNHmqtt
     {   
       sprintf(response, "DBUG:%d", debug_level); 
     }
+    
+    // CASH - Cash sale
+    if (!strncmp(msgbuf, "CASH", 4))
+    {   
+      log->dbg("TODO: Record cash sale");
+    }    
     
   }
   

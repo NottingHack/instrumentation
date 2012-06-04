@@ -440,7 +440,14 @@ class nh_mini_matrix : public CNHmqtt_irc
         log->dbg(txt);
         
         sprintf(txt, "%02X%02X%02X%02X%02X%02X%02X%02X:%4.2f", addr[0],addr[1], addr[2], addr[3], addr[4], addr[5], addr[6], addr[7], celsius);
-        message_send(topic_temperature, txt);
+        
+        if ((celsius < -30) || (celsius > 80))
+        {
+          log->dbg(txt);
+          log->dbg("Out of range temperature - not logging"); 
+        }
+        else          
+          message_send(topic_temperature, txt);
       }
     }
     
