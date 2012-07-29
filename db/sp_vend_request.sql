@@ -96,7 +96,7 @@ BEGIN
 
     -- create in-progress transaction
     set tran_id = 0;
-    call sp_transaction_log (member_id, (-1*amount), 'VEND', 'PENDING', 'Vend in progress', tran_id, err);
+    call sp_transaction_log (member_id, (-1*amount), 'VEND', 'PENDING', 'Vend in progress', null, tran_id, err);
     
     if (err != '') then
       leave main;

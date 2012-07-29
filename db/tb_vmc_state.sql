@@ -4,5 +4,5 @@ create table vmc_state
 (
   vmc_ref_id    int not null,
   product_id    int not null,
-  constraint vmc_state_map unique (vmc_ref_id, product_id)
+  primary key (vmc_ref_id)
 ) ENGINE = InnoDB; 

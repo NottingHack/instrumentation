@@ -12,7 +12,8 @@ CREATE PROCEDURE sp_transaction_log
    IN  tran_type    varchar(6),
    IN  tran_status  varchar(8),
    IN  tran_desc    varchar(50),
-   OUT tran_id      int,   
+   IN  recorded_by  int, 
+   OUT tran_id      int,  
    OUT err          varchar(100)   
 )
 SQL SECURITY DEFINER
@@ -46,8 +47,8 @@ BEGIN
 
     start transaction;
     
-    insert into transactions (member_id, amount, transaction_type, transaction_status, transaction_desc)
-    values (member_id, amount, tran_type, tran_status, tran_desc);
+    insert into transactions (member_id, amount, transaction_type, transaction_status, transaction_desc, recorded_by)
+    values (member_id, amount, tran_type, tran_status, tran_desc, recorded_by);
     
     set tran_id = last_insert_id();
 
