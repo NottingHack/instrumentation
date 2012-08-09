@@ -34,28 +34,4 @@ insert into permissions (permission_code, permission_desc) values ('VIEW_GRP_PER
 insert into permissions (permission_code, permission_desc) values ('ADD_UPD_PRODUCT ', 'Add / update product');
 insert into permissions (permission_code, permission_desc) values ('VIEW_ACCESS_MEM ', 'View Access > Members');
 insert into permissions (permission_code, permission_desc) values ('SET_PASSWORD    ', 'Set any members password');
-
- 
-
- 
-
-/*
-
-select *
-from members m
-inner join member_group mg on mg.member_id = m.member_id
-inner join grp g on g.grp_id = mg.grp_id
-inner join group_permissions gp on gp.grp_id = g.grp_id
-inner join permissions p on p.permission_code = gp.permission_code;
-
-
-        if (!check_permission($_SESSION['member_id'], "REC_TRAN"))
-        { 
-          $error->SetError(JsonRpcError_PermissionDenied, "Permission Denied (REC_TRAN)");
-          return $error;          
-        }
-
-*/
-
-
- 
+insert into permissions (permission_code, permission_desc) values ('VIEW_SALES      ', 'View sales list of a product (inc. handle of purchaser)');

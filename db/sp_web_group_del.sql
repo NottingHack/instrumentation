@@ -21,6 +21,9 @@ BEGIN
   if (group_empty = 0) then
     delete from grp
     where grp.grp_id = grp_id;
+    
+    delete from group_permissions
+    where group_permissions.grp_id = grp_id;
   else
     set err = 'Group is not empty';
   end if;  
