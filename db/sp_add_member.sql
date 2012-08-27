@@ -84,8 +84,8 @@ BEGIN
       end if;    
     end if;
       
-    insert into members (member_number, name, handle, unlock_text, email, join_date) 
-    values (member_number, name, handle, unlock_text, email, join_date);
+    insert into members (member_number, name, handle, unlock_text, email, join_date, credit_limit) 
+    values (member_number, name, handle, unlock_text, email, join_date, 5000); -- BAD / TODO: Find somewhere to store the default credit limit
     
     select row_count() into rowc;
     

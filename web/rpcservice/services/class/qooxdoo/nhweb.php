@@ -5,7 +5,9 @@ require_once "server/lib/JSON.phps";
 
 function db_link()
 {
-  return mysqli_connect("localhost","nh-web", "nh-web", "instrumentation");
+  $link = mysqli_connect("localhost","nh-web", "nh-web", "instrumentation");
+  mysqli_set_charset($link, "utf8");
+  return $link;
 }
     
 function check_permission ($member_id, $permission_code)
@@ -514,6 +516,28 @@ class class_nhweb extends ServiceIntrospection
         mysqli_close($link);
         return $ret;
     }        
+
+
+
+  //function sp_add_member($connection, $member_number, $name, $handle, $unlock_text, $enroll_pin, $email, $join_date)
+    function method_addmember($params, $error)
+    {
+        if (!isset($_SESSION['handle']))
+          die("Not logged in");
+        
+        if (!check_permission($_SESSION['member_id'], "ADD_MEMBER"))
+        { 
+          $error->SetError(JsonRpcError_PermissionDenied, "Permission Denied (ADD_MEMBER)");
+          return $error;          
+        }        
+
+        $link = db_link();
+        $ret = $this->sp_add_member($link, $params[0], $params[1], $params[2], $params[3], $params[4], $params[5], $params[6]);
+   
+        mysqli_close($link);
+        return $ret;
+    }    
+
         
 
     /*
@@ -864,7 +888,99 @@ class class_nhweb extends ServiceIntrospection
       
       mysqli_close($link);
       return json_encode($rows); 
-    }         
+    }        
+
+
+    function method_memberlist($params, $error)
+    {
+      if (!isset($_SESSION['handle']))
+        die("Not logged in");
+        
+      if (!check_permission($_SESSION['member_id'], "VIEW_MEMBER_LIST"))
+      { 
+        $error->SetError(JsonRpcError_PermissionDenied, "Permission Denied (VIEW_MEMBER_LIST)");
+        return $error;          
+      }  
+
+        $link = db_link();
+        $result = mysqli_query($link, "
+          select
+            m.member_id,
+            m.member_number,
+            m.name,
+            m.email,
+            m.join_date,
+            m.handle,
+            m.unlock_text,
+            (select count(*) from rfid_tags r where r.member_id = m.member_id and r.state in (10, 40)) as RFID,
+            (select count(*) from pins      p where p.member_id = m.member_id and p.state in (10, 40)) as pins
+          from members m;");
+        $rows = array();
+        while($row = mysqli_fetch_assoc($result)) 
+        {
+          $rows[] = array($row["member_id"], $row["member_number"], $row["name"], $row["email"], $row["join_date"], $row["handle"], $row["unlock_text"], $row["RFID"], $row["pins"]);
+        }
+        mysqli_close($link);
+        return json_encode($rows);
+    }
+ 
+
+    function method_viewpins($params, $error)
+    {
+      if (!isset($_SESSION['handle']))
+        die("Not logged in");
+        
+      if (!check_permission($_SESSION['member_id'], "VIEW_MEMBER_PINS"))
+      { 
+        $error->SetError(JsonRpcError_PermissionDenied, "Permission Denied (VIEW_MEMBER_PINS)");
+        return $error;          
+      }
+        
+      $link = db_link();
+      if ($stmt = mysqli_prepare($link, "
+        select 
+          p.pin_id,
+          p.state,
+          p.pin,
+          case p.state
+            when 10 then 'Active'
+            when 20 then 'Expired'
+            when 30 then 'Cancelled'
+            when 40 then 'Enroll'
+            else 'ERROR'
+          end as State_txt,  
+          p.date_added,
+          p.expiry
+        from pins p
+        where p.member_id = ?
+        order by p.date_added desc;")) 
+      {
+        mysqli_stmt_bind_param($stmt, "i", $params[0]);
+        if (mysqli_stmt_execute($stmt))
+        {
+          mysqli_stmt_bind_result($stmt, $pin_id, $state, $pin, $state_sts, $date_added, $expiry);
+          $rows = array();
+          while (mysqli_stmt_fetch($stmt))
+          {
+            $rows[] = array($pin_id, $state, $pin, $state_sts, $date_added, $expiry);
+          }
+          mysqli_stmt_close($stmt); 
+        } else
+        {
+          mysqli_stmt_close($stmt);    
+          mysqli_close($link);
+          return "ERR1";          
+        }
+      } else
+      {
+        mysqli_close($link);
+        return "ERR2";
+      }
+      
+      mysqli_close($link);
+      return json_encode($rows); 
+    }      
+
            
     function method_gettransactionstatus($params, $error)
     {
@@ -947,7 +1063,37 @@ class class_nhweb extends ServiceIntrospection
    
 
     // *********************************************************************************************************
-    
+
+
+    function sp_add_member($connection, $member_number, $name, $handle, $unlock_text, $enroll_pin, $email, $join_date)
+    {
+      
+      if ($stmt = mysqli_prepare($connection, "call sp_add_member(?, ?, ?, ?, ?, ?, ?, @err, @member_id)")) 
+      {
+        mysqli_stmt_bind_param($stmt, "issssss", $member_number, $name, $handle, $unlock_text, $enroll_pin, $email, $join_date);
+        if (!mysqli_stmt_execute($stmt))
+        {
+          mysqli_stmt_close($stmt);   
+          return "ERR";
+        }
+        mysqli_stmt_close($stmt);    
+      } else
+      {
+        return "ERR";
+      }
+
+      // Get result
+      if ($stmt = mysqli_prepare($connection, "select @err as err, @member_id as member_id")) 
+      {
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_bind_result($stmt, $err, $trnid);
+        mysqli_stmt_fetch($stmt);
+        mysqli_stmt_close($stmt);    
+      }
+      
+      return $err;
+    }  
+
     function sp_set_credit_limit($connection, $member_id, $credit_limit)
     {
       

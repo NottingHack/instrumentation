@@ -31,10 +31,10 @@ qx.Class.define("custom.Application",
 
   members :
   {
-    gURL : "http://192.168.1.148/web/rpcservice/services/",
+   // gURL : "http://192.168.1.148/web/rpcservice/services/",
     gSalt : "",
     gPermissions : qx.data.Array,           
-  //gURL : "http://hollyvm/nh-web/rpc/services/",
+  gURL : "http://hollyvm/nh-web/rpc/services/",
     /**
      * This method contains the initial application code and gets called 
      * during startup of the application
@@ -104,6 +104,8 @@ qx.Class.define("custom.Application",
                 
     gotPermission : function (permission)
     {
+      var n;
+      
       for (n = 0; n < gPermissions.length; n++)
       {
         if (gPermissions.getItem(n).toString() == permission)
@@ -117,6 +119,7 @@ qx.Class.define("custom.Application",
       var snackSpaceMenu;
       var accountMenu;
       var accessMenu;
+      var gateKeeperMenu;
       
       var menubar = new qx.ui.menubar.MenuBar;
       menubar.setWidth(600);
@@ -128,6 +131,13 @@ qx.Class.define("custom.Application",
         var snackMenuB = new qx.ui.menubar.Button("Snackspace", null, snackSpaceMenu);    
         menubar.add(snackMenuB);
       }
+      
+      gateKeeperMenu = this.getGateMenu();
+      if (gateKeeperMenu.getChildren().length > 0)
+      {
+        var gateMenuB = new qx.ui.menubar.Button("GateKeeper", null, gateKeeperMenu);    
+        menubar.add(gateMenuB);
+      }      
       
       accountMenu = this.getAccountMenu();
       if (accountMenu.getChildren().length > 0)
@@ -144,6 +154,40 @@ qx.Class.define("custom.Application",
       }
 
       return menubar;
+    },
+                
+    getGateMenu : function()
+    {
+      var menu = new qx.ui.menu.Menu;
+      
+      // Add member
+      if (this.gotPermission("ADD_MEMBER"))
+      {
+        var addMember = new qx.ui.menu.Button("Add member", null);
+        addMember.addListener("execute", function(e) 
+        {
+          var main = new custom.wAddMember();
+          main.moveTo(50, 30);
+          main.open();
+        });
+        menu.add(addMember);
+      }      
+      
+      // Member list
+      if (this.gotPermission("VIEW_MEMBER_LIST"))
+      {
+        var viewMembers = new qx.ui.menu.Button("Member list", null);
+        viewMembers.addListener("execute", function(e) 
+        {
+          var main = new custom.wMembers();
+          main.moveTo(50, 30);
+          main.open();
+        });
+        menu.add(viewMembers);
+      }            
+      
+      
+      return menu;
     },
   
     getSnackMenu : function()
