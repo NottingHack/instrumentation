@@ -44,8 +44,8 @@
 
 EtherShield es=EtherShield();
 static uint8_t mymac[6]; // Read from chip on nanode.
-static uint8_t myip[4] = {10,0,0,63};
-static uint8_t dstip[4] = {10,0,0,2};
+static uint8_t myip[4] = {192,168,0,13};
+static uint8_t dstip[4] = {192,168,0,1};
 static uint8_t dstmac[6]; 
  
 const char iphdr[] PROGMEM ={0x45,0,0,0x82,0,0,0x40,0,0x20}; // 0x82 is the total
