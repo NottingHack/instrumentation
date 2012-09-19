@@ -1,4 +1,4 @@
-all: nh-test INIReaderTest nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mini-matrix
+all: nh-test INIReaderTest nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mini-matrix db/lib/CNHDBAccess.php
 
 install: install_nh_holly install_gatekeeper
 
@@ -110,7 +110,7 @@ nh-monitor.o: nh-monitor.cpp db/lib/CNHDBAccess.o
 	g++ -Wall -c nh-monitor.cpp
 
 nh-irc.o: nh-irc.cpp
-	g++ -Wall -c nh-irc.cpp
+	g++ -Wall -Wextra -c nh-irc.cpp
 
 irc.o: irc.cpp irc.h
 	g++ -c irc.cpp 
@@ -130,6 +130,8 @@ INIReaderTest: ini.o INIReaderTest.o INIReader.o
 CLogging.o: CLogging.cpp CLogging.h
 	g++ -c CLogging.cpp
 
+dblib: db/lib/gen_dblib
+
 db/lib/gen_dblib: db/lib/gen_dblib.c
 	gcc -Wall -o db/lib/gen_dblib db/lib/gen_dblib.c
 
@@ -137,6 +139,9 @@ db/lib/CNHDBAccess.cpp: db/lib/gen_dblib db/lib/CNHDBAccess_template.cpp $(wildc
 	db/lib/gen_dblib db/lib $(wildcard db/sp_*.sql)
 
 db/lib/CNHDBAccess.h: db/lib/gen_dblib db/lib/CNHDBAccess_template.h $(wildcard db/sp_*.sql)
+	db/lib/gen_dblib db/lib $(wildcard db/sp_*.sql)
+
+db/lib/CNHDBAccess.php: db/lib/gen_dblib db/lib/CNHDBAccess_template.php $(wildcard db/sp_*.sql)
 	db/lib/gen_dblib db/lib $(wildcard db/sp_*.sql)
 
 db/lib/CNHDBAccess.o: db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h 
