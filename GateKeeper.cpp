@@ -45,7 +45,6 @@ class GateKeeper : public CNHmqtt_irc
     string rfid;
     string unlock;
     string keypad;
-    string door_bell_msg;
     string handle;
     string lastman;
     string lastman_open;
@@ -53,19 +52,16 @@ class GateKeeper : public CNHmqtt_irc
     string twitter_out;
     string last_seen;
     string entry_announce;
-    int bell_duration;
     CNHDBAccess *db;
 
     GateKeeper(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
     {
       door_buzzer = get_str_option("gatekeeper", "door_buzzer", "nh/gk/buzzer");
-      bell_duration = get_int_option("gatekeeper", "bell_duration", 100);
       door_contact = get_str_option("gatekeeper", "door_contact", "nh/gk/contact");
       door_button = get_str_option("gatekeeper", "door_button", "nh/gk/button");
       rfid = get_str_option("gatekeeper", "rfid", "nh/gk/RFID");
       unlock = get_str_option("gatekeeper", "unlock", "nh/gk/Unlock");
       keypad = get_str_option("gatekeeper", "keypad", "nh/gk/Keypad");
-      door_bell_msg = get_str_option("gatekeeper", "door_bell_msg", "Door Bell");
       
       lastman = get_str_option("gatekeeper", "lastman", "nh/gk/LastManState");
       lastman_open = get_str_option("gatekeeper", "lastman_open", "Hackspace now Open!");
@@ -84,8 +80,6 @@ class GateKeeper : public CNHmqtt_irc
     
     void process_message(string topic, string message)
     {
-      pthread_attr_t tattr;
-      pthread_t bell_thread;
       string unlock_text;
       string err;
 
@@ -127,25 +121,8 @@ class GateKeeper : public CNHmqtt_irc
       }   
           
       if (topic==door_button)
-      {
-        // v1 - actaully ring the bell
-        if (message=="HIGH")
-          message_send(door_buzzer, "HIGH");
-        else if (message=="LOW")
-          message_send(door_buzzer, "LOW");
-        
-       // v2 - output to irc
-       if (message=="BING")
-       {
-         message_send(irc_out, door_bell_msg);
-         db->sp_log_event("DOORBELL", "");
+        db->sp_log_event("DOORBELL", message);
          
-         // Now ring the bell
-         pthread_attr_init(&tattr);
-         pthread_attr_setdetachstate(&tattr,PTHREAD_CREATE_DETACHED);
-         pthread_create(&bell_thread, &tattr, &ring_bell, this);         
-       }
-      }          
       
       if (topic==lastman)
       { 
@@ -198,20 +175,7 @@ class GateKeeper : public CNHmqtt_irc
 
   void process_irc_message(irc_msg msg)
   {
-    pthread_attr_t tattr;
-    pthread_t bell_thread;
-
-    if (msg=="!help")
-    {
-      msg.reply("!bell - Ring doorbell in hackspace");
-    }
-          
-    if (msg=="!bell")
-    {
-      pthread_attr_init(&tattr);
-      pthread_attr_setdetachstate(&tattr,PTHREAD_CREATE_DETACHED);
-      pthread_create(&bell_thread, &tattr, &ring_bell, this);
-    }         
+         
   }
 
   int db_connect()
@@ -220,32 +184,15 @@ class GateKeeper : public CNHmqtt_irc
     return 0;
   }
 
-  static void *ring_bell(void *arg)
+  
+  void setup()
   {
-    GateKeeper *gk;
-    int n;
-      
-    gk = (GateKeeper*) arg;
-    
-    // Ring door bell
-    gk->message_send(gk->door_buzzer, "HIGH");
-          
-    for (n=0; n < (gk->bell_duration); n++)
-      usleep(1000); // 1ms
-          
-    gk->message_send(gk->door_buzzer, "LOW");
-    
-    return NULL;
+    subscribe(door_contact);
+    subscribe(door_button);
+    subscribe(rfid);
+    subscribe(keypad);
+    subscribe(lastman);
   }
-    
-    void setup()
-    {
-      subscribe(door_contact);
-      subscribe(door_button);
-      subscribe(rfid);
-      subscribe(keypad);
-      subscribe(lastman);
-    }
 };
 
 

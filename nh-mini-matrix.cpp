@@ -107,8 +107,8 @@ class nh_mini_matrix : public CNHmqtt_irc
       }
 
       // Doorbell rang
-      if ((message=="BING") && (topic==topic_doorbell))
-        display_alert("[          >>> D O O R <<<           ]", "[          >>> B E L L <<<           ]", true);
+      if (topic==topic_doorbell)
+        display_alert("[     >>> D O O R    B E L L <<<     ]", message, true);
 
       // Email received
       if (topic.substr(0, topic_mail.length()+1) == topic_mail + "/")

@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2011, Daniel Swann <hs@dswann.co.uk>
+ * Copyright (c) 2012, Daniel Swann <hs@dswann.co.uk>
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of nh-irc nor the names of its
+ * 3. Neither the name of the owner nor the names of its
  *    contributors may be used to endorse or promote products derived from
  *    this software without specific prior written permission.
  * 
@@ -31,21 +31,18 @@
 #include "db/lib/CNHDBAccess.h"
 #include "nh-irc-misc.h"
 
-
 class nh_irc_misc : public CNHmqtt_irc
 {
   public:
-    CNHDBAccess *db;
-    string flasher;
+    CNHDBAccess *db;   
     string entry_announce;
-    int flash_duration;    
+    string door_button;
     
     nh_irc_misc(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
     {
-      db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   ;
-      flasher = get_str_option("alert", "flasher", "nh/gk/relay2");
-      flash_duration = get_int_option("alert", "flash_duration", 4000);      
+      db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   ;   
       entry_announce = get_str_option("gatekeeper", "entry_announce", "nh/gk/entry_announce");
+      door_button = get_str_option("gatekeeper", "door_button", "nh/gk/DoorButton");
     }
 
     void process_message(string topic, string message)
@@ -55,7 +52,16 @@ class nh_irc_misc : public CNHmqtt_irc
       {
         message_send(irc_out, message);        
       }
-    
+      
+      if (topic == door_button)
+      {
+        string tmp;
+        tmp = message;
+        for (int c = 0; message[c]; c++)
+          tmp[c] = tolower(message[c]);
+        message_send(irc_out, "Door Bell (" + tmp +")");     
+      }
+      
       CNHmqtt_irc::process_message(topic, message);
     }
    
@@ -65,14 +71,12 @@ class nh_irc_misc : public CNHmqtt_irc
    {
      string activity;
      string temperature;
-     pthread_attr_t tattr;
-     pthread_t light_thread;        
      
      if (msg=="!help")
      {
        // .reply will reply either in the channel, or via PM, depending
        // on how the message was received.
-       msg.reply("!alert - Flash light next to matrix display");       
+//     msg.reply("!alert - Flash light next to matrix display");  Comming soon....
        msg.reply("!status - Best guess if the space is open");   
        msg.reply("!temp - Latest Temperature readings"); 
        msg.reply("Temperature graphs: http://cacti.nottinghack.org.uk/graph_view.php"); 
@@ -89,35 +93,9 @@ class nh_irc_misc : public CNHmqtt_irc
      {
         db->sp_temperature_check(temperature);
         msg.reply(temperature);      
-     }    
-
-     if (msg=="!alert")
-     {
-         // Now flash the light
-         pthread_attr_init(&tattr);
-         pthread_attr_setdetachstate(&tattr,PTHREAD_CREATE_DETACHED);
-         pthread_create(&light_thread, &tattr, &flash_light, this);          
-     }       
+     }          
    }
-   
-
- static void *flash_light(void *arg)
-  {
-    nh_irc_misc *ir;
-    int n;
       
-    ir = (nh_irc_misc*) arg;
-    
-    // Ring door bell
-    ir->message_send(ir->flasher, "HIGH");
-          
-    for (n=0; n < (ir->flash_duration); n++)
-      usleep(1000); // 1ms
-          
-    ir->message_send(ir->flasher, "LOW");
-    
-    return NULL;
-  }      
    
    bool setup()
    {
@@ -128,6 +106,7 @@ class nh_irc_misc : public CNHmqtt_irc
        return false;
      
      subscribe(entry_announce + "/#");
+     subscribe(door_button);
      
      return true;
    }
