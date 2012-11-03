@@ -2,12 +2,19 @@
 
 
 require_once "server/lib/JSON.phps";
+require_once "krb5_auth.php";
 
 function db_link()
 {
   $link = mysqli_connect("localhost","nh-web", "nh-web", "instrumentation");
   mysqli_set_charset($link, "utf8");
   return $link;
+}
+
+function krb_auth()
+{
+  $krb5 = new krb5_auth("hms/web", "/tmp/hms.keytab", "NOTTINGHACK.ORG.UK");
+  return $krb5;
 }
     
 function check_permission ($member_id, $permission_code)
@@ -40,54 +47,37 @@ function check_permission ($member_id, $permission_code)
 
 class class_nhweb extends ServiceIntrospection
 {
-  
-    function method_prelogin($params, $error)
-    {
-        if (count($params) != 1)
-        {
-            $error->SetError(JsonRpcError_ParameterMismatch,
-                             "Expected 1 parameter; got " . count($params));
-            return $error;
-        }
 
-
-        $link = db_link();
-        $ret = $this->sp_web_prelogin($link, $params[0]);
-        mysqli_close($link);
-        return $ret;
-    }
-
-    /**
-     * Sink all data and never return.
-     *
-     * @param params
-     *   An array containing the parameters to this method (none expected)
-     *
-     * @param error
-     *   An object of class JsonRpcError.
-     *
-     * @return
-     *   "Never"
-     */
     function method_login($params, $error)
     {
-        if (count($params) != 2)
-        {
-            $error->SetError(JsonRpcError_ParameterMismatch, "Expected 2 parameters; got " . count($params));
-            return $error;
-        }
+      if (count($params) != 2)
+      {
+        $error->SetError(JsonRpcError_ParameterMismatch, "Expected 2 parameters; got " . count($params));
+        return $error;
+      }
 
-        $link = db_link();
-        $ret = $this->sp_web_login($link, $params[0], $params[1], $member_id);
-        if ($ret)
+      $link = db_link();
+
+      $ret = $this->sp_web_login($link, $params[0], $member_id);
+                
+      if ($ret == 1)
+      {
+        /* Username is valid & user has permission to logon... check password */
+        $krb5 = krb_auth();
+        if ($krb5->check_password($params[0], $params[1]))
         {
+          $ret = 1;
           session_regenerate_id(true);  
           session_start();
           $_SESSION['handle']    = $params[0];
           $_SESSION['member_id'] = $member_id;        
-        }        
-        mysqli_close($link);
-        return $ret;
+        } else
+          $ret = 0;
+      } else
+        $ret = 0;
+      
+      mysqli_close($link);
+      return $ret;      
     }
 
     function method_getvendconfig($params, $error)
@@ -322,6 +312,7 @@ class class_nhweb extends ServiceIntrospection
         select 
           m.member_id,
           m.handle, 
+          m.name,
           concat('£', cast((m.balance/100) as decimal(20,2))) as balance,
           concat('£', cast((m.credit_limit/100) as decimal(20,2))) as credit_limit,
           m.credit_limit as climit_int
@@ -330,7 +321,7 @@ class class_nhweb extends ServiceIntrospection
         $rows = array();
         while($row = mysqli_fetch_assoc($result)) 
         {
-          $rows[] = array($row["member_id"], $row["handle"], $row["balance"], $row["credit_limit"], $row["climit_int"]);
+          $rows[] = array($row["member_id"], $row["handle"], $row["name"], $row["balance"], $row["credit_limit"], $row["climit_int"]);
         }
         mysqli_close($link);
         return json_encode($rows);
@@ -427,69 +418,113 @@ class class_nhweb extends ServiceIntrospection
           $error->SetError(JsonRpcError_PermissionDenied, "Permission Denied (VIEW_ACCESS_MEM)");
           return $error;          
         }
+        
+        $krb5 = krb_auth();
+        $krb_member_list = $krb5->get_users();
 
         $link = db_link();
         $result = mysqli_query($link, "
           select 
             m.member_id,
             m.handle,
-            case coalesce(ma.member_id,'-1')
-              when '-1' then 'No'
-              else 'Yes'
-            end as pw_set,
             case (fn_check_permission(m.member_id, 'WEB_LOGON'))
               when 1 then 'Yes'
               else 'No'
             end as logon_en
           from members m
-          left outer join members_auth ma on ma.member_id = m.member_id
           order by m.handle;");
         $rows = array();
         while($row = mysqli_fetch_assoc($result)) 
         {
-          $rows[] = array($row["member_id"], $row["handle"], $row["pw_set"], $row["logon_en"]);
+          if (in_array(strtolower($row["handle"]), $krb_member_list))
+            $pwset = "Yes";
+          else
+            $pwset = "No";
+          
+          $rows[] = array($row["member_id"], $row["handle"], $pwset, $row["logon_en"]);
         }
         mysqli_close($link);
         return json_encode($rows);
     }    
     
 
-    
+    /* 
+     * $params[0] = current password
+     * $params[1] = new password
+     */
     function method_changepassword($params, $error)
     {
-        if (count($params) != 3)
-        {
-            $error->SetError(JsonRpcError_ParameterMismatch, "Expected 3 parameters; got " . count($params));
-            return $error;
-        }
-
-        $link = db_link();
-        $ret = $this->sp_web_change_password($link, $_SESSION['member_id'], $params[0], $params[1], $params[2]);
-   
-        mysqli_close($link);
-        return $ret;
+      if (count($params) != 2)
+      {
+        $error->SetError(JsonRpcError_ParameterMismatch, "Expected 2 parameters; got " . count($params));
+        return $error;
+      }
+        
+      $krb5 = krb_auth();
+      $ret = "";
+      
+      /* Check current password is correct */ 
+      if ($krb5->check_password($_SESSION['handle'], $params[0]))
+      {
+        if (!$krb5->change_password($_SESSION['handle'],$params[1]))
+          $ret = "Failed to change password";
+      } else
+        $ret = "Current password entered incorrect";
+      
+      return $ret;
     }     
     
+    /* $params[0] = member_id
+     * $params[1] = new password
+     */
     function method_setpassword($params, $error)
     {
-        if (count($params) != 3)
-        {
-            $error->SetError(JsonRpcError_ParameterMismatch, "Expected 3 parameters; got " . count($params));
-            return $error;
-        }
+      if (count($params) != 2)
+      {
+        $error->SetError(JsonRpcError_ParameterMismatch, "Expected 2 parameters; got " . count($params));
+        return $error;
+      }
 
-        if (!check_permission($_SESSION['member_id'], "SET_PASSWORD"))
-        { 
-          $error->SetError(JsonRpcError_PermissionDenied, "Permission Denied (SET_PASSWORD)");
-          return $error;          
-        }        
+      if (!check_permission($_SESSION['member_id'], "SET_PASSWORD"))
+      { 
+        $error->SetError(JsonRpcError_PermissionDenied, "Permission Denied (SET_PASSWORD)");
+        return $error;          
+      }        
         
-        
-        $link = db_link();
-        $ret = $this->sp_web_set_password($link, $params[0], $params[1], $params[2]);
-   
-        mysqli_close($link);
-        return $ret;
+      $ret = "";
+      /* Get handle from member_id */
+      $link = db_link();
+      if ($stmt = mysqli_prepare($link, "select m.handle from members m where m.member_id = ?")) 
+      {
+        mysqli_stmt_bind_param($stmt, "i", $params[0]);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_bind_result($stmt, $handle);
+        mysqli_stmt_fetch($stmt);
+        mysqli_stmt_close($stmt);    
+      } else
+      {
+        return "Failed to get handle.";
+      }
+      
+      /* Check user actaully exists in krb database, and create if not */
+      $krb5 = krb_auth();
+      switch ($krb5->user_exists($username))
+      {
+        case TRUE:
+          if (!$krb5->change_password($handle,$params[1]))
+            $ret = "Failed to set password";  
+          break;
+          
+        case FALSE:
+           if(!$krb5->add_user($handle,$params[1]))
+             $ret = "User didn't exist in krb5 database - and failed to add";
+           break;
+           
+        default: /* Probably a connection failure to kerberos */
+          $ret = "Failed on checking krb5 database for user";
+      }
+      mysqli_close($link);
+      return $ret;
     } 
        
     
@@ -1152,61 +1187,18 @@ class class_nhweb extends ServiceIntrospection
       return $err;
     }        
     
-    
-    function sp_web_prelogin($connection, $handle)
+ 
+    function sp_web_login($connection, $handle, &$member_id)
     {
 
       if (strlen($handle) > 100)
       {
-        return "";
-      }
-      
-      if ($stmt = mysqli_prepare($connection, "call sp_web_prelogin(?, @salt)")) 
-      {
-        mysqli_stmt_bind_param($stmt, "s", $handle);
-        if (!mysqli_stmt_execute($stmt))
-        {
-          mysqli_stmt_close($stmt);   
-          return "";
-        }
-        mysqli_stmt_close($stmt);    
-      } else
-      {
-        return "";
-      }
-
-      // Get result
-      if ($stmt = mysqli_prepare($connection, "select @salt as salt")) 
-      {
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $salt);
-        mysqli_stmt_fetch($stmt);
-        mysqli_stmt_close($stmt);    
-          
-        if (is_null($salt))
-        {
-          return "";
-        }
-      } else
-      {
-        return "";
-      }
-      
-      return $salt;
-    }
-
-    // Nb: $password is already hashed with salt (done in javascript)
-    function sp_web_login($connection, $handle, $password, &$member_id)
-    {
-
-      if ((strlen($handle) > 100) || (strlen($password) != 40))
-      {
         return false;
       }
       
-      if ($stmt = mysqli_prepare($connection, "call sp_web_login(?, ?, @ret, @member_id)")) 
+      if ($stmt = mysqli_prepare($connection, "call sp_web_login(?, @ret, @member_id)")) 
       {
-        mysqli_stmt_bind_param($stmt, "ss", $handle, $password);
+        mysqli_stmt_bind_param($stmt, "s", $handle);
         if (!mysqli_stmt_execute($stmt))
         {
           mysqli_stmt_close($stmt);   
@@ -1299,38 +1291,6 @@ class class_nhweb extends ServiceIntrospection
       return $err;
     }    
     
-    
-    
-    
-    function sp_web_change_password($connection, $member_id, $curPass, $new_salt, $new_password)
-    {
-      
-      if ($stmt = mysqli_prepare($connection, "call sp_web_change_password(?, ?, ?, ?, @err);")) 
-      {
-        mysqli_stmt_bind_param($stmt, "isss", $member_id, $curPass, $new_salt, $new_password);
-        if (!mysqli_stmt_execute($stmt))
-        {
-          mysqli_stmt_close($stmt);   
-          return "ERR1";;
-        }
-        mysqli_stmt_close($stmt);    
-      } else
-      {
-        return "ERR2";
-      }
-
-      // Get result
-      if ($stmt = mysqli_prepare($connection, "select @err as err")) 
-      {
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $err);
-        mysqli_stmt_fetch($stmt);
-        mysqli_stmt_close($stmt);    
-      }
-      
-      return $err;
-    }   
-        
     function sp_web_set_password($connection, $member_id, $new_salt, $new_password)
     {
       

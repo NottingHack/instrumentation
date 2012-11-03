@@ -96,30 +96,14 @@ qx.Class.define("custom.wChangePassword",
           return;
       }
 
-      var sh = new custom.Sha1();
-      var curSalt = qx.core.Init.getApplication().gSalt;
-
-      // generate new 16char salt
-      var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz'.split('');
-    
-      var newSalt = '';
-      for (var i = 0; i < 16; i++) 
-      {
-        newSalt += chars[Math.floor(Math.random() * chars.length)];
-      }
-
-
-      var newEncPass = sh.hash(newSalt + newPass1);
-      var curEncPass = sh.hash(curSalt + curPass );
-
       var rpc = new qx.io.remote.Rpc(qx.core.Init.getApplication().gURL, "qooxdoo.nhweb");
 
       try 
       {
         if (chgPass)
-          var res = rpc.callSync("changepassword", curEncPass, newSalt, newEncPass);
+          var res = rpc.callSync("changepassword", curPass, newPass1);
         else
-          var res = rpc.callSync("setpassword", member_id, newSalt, newEncPass);
+          var res = rpc.callSync("setpassword", member_id, newPass1);
         
         if (res != "")
           alert("Failed: " + res);

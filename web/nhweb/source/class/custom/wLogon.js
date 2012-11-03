@@ -81,32 +81,16 @@ qx.Class.define("custom.wLogon",
 
     doLogon : function(username, password)
     {
-      var sh = new custom.Sha1();
-
-
       var rpc = new qx.io.remote.Rpc(
           qx.core.Init.getApplication().gURL,
           "qooxdoo.nhweb"
       );
-
-
-      // get salt
-      try 
-      {
-        var salt = rpc.callSync("prelogin", username);
-      } catch (exc) 
-      {
-          alert("Exception during sync call: " + exc);
-          return false;
-      }
-
-      var pwHash = sh.hash(salt + password);
-      
+ 
       // do login
       result = false;
       try 
       {
-        var result = rpc.callSync("login", username, pwHash);
+        var result = rpc.callSync("login", username, password);
       } catch (exc) 
       {
           alert("Exception during sync call: " + exc);
@@ -115,7 +99,6 @@ qx.Class.define("custom.wLogon",
 
       if (result == true)
       {
-        qx.core.Init.getApplication().gSalt = salt // Needed for Change Password
         return true;
       }
       else

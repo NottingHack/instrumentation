@@ -21,10 +21,10 @@ qx.Class.define("custom.wBalances",
     // add grid
     var rowData = this.getRowData();
     var tableModel = new qx.ui.table.model.Simple();
-    tableModel.setColumns(["member_id", "Handle", "Balance", "Credit Limit", "clim_int"]);
+    tableModel.setColumns(["member_id", "Handle", "Name", "Balance", "Credit Limit", "clim_int"]);
     tableModel.setData(rowData);
 
-    var balGrid = new qx.ui.table.Table(tableModel, {initiallyHiddenColumns: [0, 4]});
+    var balGrid = new qx.ui.table.Table(tableModel, {initiallyHiddenColumns: [0, 5]});
 
     balGrid.set({
       width: 600,
