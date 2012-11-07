@@ -36,6 +36,7 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <errno.h>
+#include <stdint.h>
 
 #define BUFLEN 512
 
@@ -414,7 +415,7 @@ class nh_mini_matrix : public CNHmqtt_irc
     {
       unsigned char data[9];
       unsigned char addr[8];
-      unsigned int raw;
+      int16_t raw;
       char cfg;
       float celsius;
       char txt[100];
@@ -426,8 +427,8 @@ class nh_mini_matrix : public CNHmqtt_irc
         
         memcpy(addr, msgbuf+1, 8); // read address
         memcpy(data, msgbuf+10, 9); // read data
-        
-        raw = (data[1] << 8) | data[0];
+        raw = (data[1] << 8) + data[0];
+
         cfg = (data[4] & 0x60);
         if (cfg == 0x00) raw = raw << 3;  // 9 bit resolution, 93.75 ms
         else if (cfg == 0x20) raw = raw << 2; // 10 bit res, 187.5 ms
