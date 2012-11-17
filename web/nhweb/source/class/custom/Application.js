@@ -31,10 +31,9 @@ qx.Class.define("custom.Application",
 
   members :
   {
-   // gURL : "http://192.168.1.148/web/rpcservice/services/",
+    gURL : "",
     gSalt : "",
-    gPermissions : qx.data.Array,           
-  gURL : "http://hollyvm/nh-web/rpc/services/",
+    gPermissions : qx.data.Array,  
     /**
      * This method contains the initial application code and gets called 
      * during startup of the application
@@ -61,28 +60,64 @@ qx.Class.define("custom.Application",
       -------------------------------------------------------------------------
       */
 
-      // Create a button
-    //  var button1 = new qx.ui.form.Button("First Button", "custom/test.png");
-
       // Document is the application root
       var doc = this.getRoot();
-/*
-      // Add button to document at fixed coordinates
-     // doc.add(button1, {left: 100, top: 50});
-
-
-  */
-
-    var wlog = new custom.wLogon();
-    wlog.open();
-    wlog.addListener("resize", function()
+      
+      // Set address of rpcservice   
+      this.gURL = window.location.pathname.replace("nhweb","rpcservice/services/");
+      
+      if (this.logged_in() == false)
+      {
+        var wlog = new custom.wLogon();
+        wlog.open();
+        wlog.addListener("resize", function()
+        {
+          this.center();
+        }, wlog);
+    
+        wlog.addListener("login", function(e) 
+        {
+          this.get_permissions();
+        
+          // Create menu bar  
+          var bar = this.getMenuBar();
+          doc.add(bar, {left: 0, top: 0});      
+        }, this);
+      
+      } else
+      {
+        this.get_permissions();
+        
+        // Create menu bar  
+        var bar = this.getMenuBar();
+        doc.add(bar, {left: 0, top: 0});
+      }
+      
+      // Try to keep the php session alive
+      var timer = new qx.event.Timer(1000 * 60 * 5); // 5 minutes
+      timer.addListener("interval", function()
+      {
+        if (this.logged_in()==false)
+          window.top.location.reload(); // reload to reshow login, etc.
+      }, this);
+      timer.start();      
+    },
+    
+    logged_in : function()
     {
-      this.center();
-    }, wlog);
-
-    wlog.addListener("login", function(e) 
+      var rpc = new qx.io.remote.Rpc(qx.core.Init.getApplication().gURL, "qooxdoo.nhweb");
+      try 
+      {
+        var ret = rpc.callSync("logged_in");
+      } catch (exc) 
+      {
+        return false;
+      }     
+      return ret;
+    },      
+    
+    get_permissions : function()
     {
-      // get permissions
       var rpc = new qx.io.remote.Rpc(qx.core.Init.getApplication().gURL, "qooxdoo.nhweb");
       try 
       {
@@ -93,13 +128,6 @@ qx.Class.define("custom.Application",
           return false;
       }      
       gPermissions = new qx.data.Array(qx.lang.Json.parse(ret));
-        
-      // Create menu bar  
-      var bar = this.getMenuBar();
-      doc.add(bar, {left: 0, top: 0});      
-      }, this);
-    
-
     },
                 
     gotPermission : function (permission)

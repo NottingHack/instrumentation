@@ -23,17 +23,35 @@ qx.Class.define("custom.wLogon",
     this.setContentPadding(0);
  
     // add labels
-    this.add(new qx.ui.basic.Label("Handle: "), {row: 0, column: 0});
+    this.add(new qx.ui.basic.Label("Username: "), {row: 0, column: 0});
     this.add(new qx.ui.basic.Label("Password: "), {row: 1, column: 0}); 
 
-    // Handle entry
+    // Username entry
     var txtHandle = new qx.ui.form.TextField();
     this.add(txtHandle, {row: 0, column: 1});
 
     // Password entry
     var txtPass = new qx.ui.form.PasswordField();
-    this.add(txtPass, {row: 1, column: 1});    
-      
+    this.add(txtPass, {row: 1, column: 1});  
+    txtPass.addListener("keydown", function(event)
+    {
+      var keyident = event.getKeyIdentifier();
+      if (keyident == "Enter")
+      {
+        if (manager.validate())
+        {
+          if (this.doLogon(txtHandle.getValue(), txtPass.getValue()))
+          {
+            this.fireEvent("login");
+            this.close();
+          } else
+          {
+            alert ("Invalid login...");
+          }
+        }            
+      }
+    }, this);
+              
     var modelSkeleton = {username: null, password: null};
     var model = qx.data.marshal.Json.createModel(modelSkeleton);
 
@@ -70,7 +88,7 @@ qx.Class.define("custom.wLogon",
         {
           alert ("Invalid login...");
         }
-      }
+      }    
     }, this); 
     postButton.setWidth(60);
     postButton.setEnabled(true);
@@ -78,7 +96,6 @@ qx.Class.define("custom.wLogon",
 
   members:
   {
-
     doLogon : function(username, password)
     {
       var rpc = new qx.io.remote.Rpc(

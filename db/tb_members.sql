@@ -11,6 +11,7 @@ create table members
   unlock_text   varchar(95),
   balance       int not null,
   credit_limit  int not null,
+  username      varchar(50),
   primary key (member_id),
   constraint member_handle unique (handle),
   constraint member_number unique (member_number)

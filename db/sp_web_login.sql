@@ -21,14 +21,14 @@ BEGIN
     select count(*) 
     into ck_exists
     from members m
-    where upper(m.handle) = upper(username)
+    where upper(m.username) = upper(username)
       and (fn_check_permission(m.member_id, 'WEB_LOGON')=1);
 
     if (ck_exists = 1) then
       select m.member_id
       into m_member_id
       from members m 
-      where upper(m.handle) = upper(username);
+      where upper(m.username) = upper(username);
 
       set ret = 1;
       set member_id = m_member_id;

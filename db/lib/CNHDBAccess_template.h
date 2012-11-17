@@ -11,6 +11,7 @@
 #define P_TYPE_INT 1
 #define P_TYPE_VARCHAR 2
 #define P_TYPE_FLOAT 3
+#define P_TYPE_TEXT 4
 
 
 using namespace std; 

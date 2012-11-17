@@ -11,6 +11,7 @@ class P_TYPE
   const INT = 1;
   const VARCHAR = 2;
   const FLOAT = 3;
+  const TEXT = 4;
 }
 
 class CNHDBAccess extends mysqli
@@ -73,6 +74,10 @@ class CNHDBAccess extends mysqli
           case P_TYPE::FLOAT:
             $type_str .= 'd';
             break;
+          
+          case P_TYPE::TEXT:
+            $type_str .= 's';
+            break;            
             
           default:
             $this->dbglog('exec_sp> Unknown type: [' . $param['type'] . ']');
@@ -113,7 +118,7 @@ class CNHDBAccess extends mysqli
     if ($this->more_results())
     {
       $this->dbglog("SP returned a result set");   
-      $rs = $this->get_rs(&$stmt);
+      $rs = $this->get_rs($stmt);
     }
     $stmt->close();
     

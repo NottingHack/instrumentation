@@ -70,6 +70,25 @@ nh-irc: nh-irc.o CNHmqtt.o INIReader.o ini.o irc.o CLogging.o
 nh-mail: nh-mail.o INIReader.o ini.o CLogging.o
 	g++ -lmosquitto -o nh-mail nh-mail.o INIReader.o ini.o CLogging.o
 
+web/nhweb/build/script/custom.js: $(wildcard web/nhweb/source/class/custom/*)
+	sh nhweb.sh
+
+nh-web: web/nhweb/build/script/custom.js
+
+web2: nh-web db/lib/CNHDBAccess.php web/pwreset.php web/vend.php web/db.php
+	mkdir -p website/public/nhweb/
+	cp db/lib/CNHDBAccess.php website/
+	rsync -r --exclude=. web/nhweb/build/script website/public/nhweb/
+	rsync -r --exclude=. web/nhweb/build/resource website/public/nhweb/
+	cp web/nhweb/build/index.html website/public/nhweb/index.html
+	rsync -r --exclude=. -r web/rpcservice website/public/
+	rsync -r --exclude=. -r web/status website/public/
+	cp web/pwreset.php website/public/
+	cp web/vend.php website/public/
+	cp web/db.php website/
+	cp web/krb5_auth.php website/
+
+
 CNHmqtt.o: CNHmqtt.cpp CNHmqtt.h
 	g++ -Wall -c CNHmqtt.cpp
 
@@ -148,4 +167,5 @@ db/lib/CNHDBAccess.o: db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h
 	g++ -Wall -c db/lib/CNHDBAccess.cpp -o db/lib/CNHDBAccess.o
 
 clean:
-	rm -f db/lib/gen_dblib db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h db/lib/CNHDBAccess.o nh-monitor.o nh-monitor CNHDBAccess.o nh-irc-misc.o nh-irccat.o nh-test-irc.o CNHmqtt_irc.o nh-irc nh-test nh-irccat nh-test-irc nh-irc-misc INIReaderTest GateKeeper_dbaccess.o GateKeeper.o GateKeeper mos_irc irc.o mos_irc.o nh-test.o CNHmqtt.o ini.o INIReader.o INIReaderTest.o nh-irc.o nh-gk-if.o CLogging.o nh-matrix.o nh-matrix nh-temperature.o nh-temperature nh-vend.o nh-vend nh-mini-matrix.o nh-mini-matrix nh-mail nh-mail.o
+	rm -f db/lib/gen_dblib db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h db/lib/CNHDBAccess.o nh-monitor.o nh-monitor CNHDBAccess.o nh-irc-misc.o nh-irccat.o nh-test-irc.o CNHmqtt_irc.o nh-irc nh-test nh-irccat nh-test-irc nh-irc-misc INIReaderTest GateKeeper_dbaccess.o GateKeeper.o GateKeeper mos_irc irc.o mos_irc.o nh-test.o CNHmqtt.o ini.o INIReader.o INIReaderTest.o nh-irc.o nh-gk-if.o CLogging.o nh-matrix.o nh-matrix nh-temperature.o nh-temperature nh-vend.o nh-vend nh-mini-matrix.o nh-mini-matrix nh-mail nh-mail.o web/nhweb/build/script/custom.js
+	rm -rf website/

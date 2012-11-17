@@ -7,7 +7,7 @@ qx.Class.define("custom.wMemberAccess",
     this.base(arguments, "Members - web access");
 
     // adjust size
-    this.setWidth(400);
+    this.setWidth(550);
     this.setHeight(300);
 
     // add the layout
@@ -21,20 +21,21 @@ qx.Class.define("custom.wMemberAccess",
     // add grid
     var rowData = this.getRowData();
     var tableModel = new qx.ui.table.model.Simple();
-    tableModel.setColumns(["member_id", "Handle", "Password set", "Logon enabled"]);
+    tableModel.setColumns(["member_id", "Name", "Handle", "Username", "Password set", "Logon enabled"]);
     tableModel.setData(rowData);
 
     var memGrid = new qx.ui.table.Table(tableModel, {initiallyHiddenColumns: [0]});
 
     memGrid.set({
       width: 600,
-      height: 400,
+      height: 550,
       decorator: null
     });
     
     memGrid.setColumnWidth(1, 120);
     memGrid.setColumnWidth(2, 95);
     memGrid.setColumnWidth(3, 95);
+    memGrid.setColumnWidth(4, 95);
             
     this.add(memGrid, {row: 0, column: 0, colSpan: 1});
  

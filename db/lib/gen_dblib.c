@@ -38,6 +38,7 @@
 #define P_TYPE_INT 1
 #define P_TYPE_VARCHAR 2
 #define P_TYPE_FLOAT 3
+#define P_TYPE_TEXT 4
 
 enum lang 
 {
@@ -478,6 +479,11 @@ int add_param(struct param **param_list, char *param_line)
     p_type = P_TYPE_VARCHAR;
     ptr += 7;
   }
+  else if (!strncasecmp(ptr, "text", 4))
+  {
+    p_type = P_TYPE_TEXT;
+    ptr += 4;
+  }  
   else if (!strncasecmp(ptr, "float", 5))
   {
     p_type = P_TYPE_FLOAT;
@@ -556,6 +562,8 @@ int output_func_def(struct sp_def *sps, FILE *out, int header)
         fprintf(out, "string ");
       else if ((lst->p_type == P_TYPE_FLOAT))
         fprintf(out, "float ");
+      else if ((lst->p_type == P_TYPE_TEXT))
+        fprintf(out, "string ");      
       else 
         return -1;
 
@@ -622,6 +630,8 @@ int generate_sp_function(struct sp_def *sp, FILE *out_imp)
         fprintf(out_imp, "  param_type[%d] =  P_TYPE_VARCHAR;\n", param_count);
       else if ((lst->p_type == P_TYPE_FLOAT))
         fprintf(out_imp, "  param_type[%d] =  P_TYPE_FLOAT;\n", param_count);
+      else if ((lst->p_type == P_TYPE_TEXT))
+        fprintf(out_imp, "  param_type[%d] =  P_TYPE_TEXT;\n", param_count);      
       else 
         return -1;
 
@@ -706,6 +716,8 @@ int generate_sp_function_php(struct sp_def *sp, FILE *fh_out)
         fprintf(fh_out, "    $params[%d]['type'] =  P_TYPE::VARCHAR;\n", param_count);
       else if ((lst->p_type == P_TYPE_FLOAT))
         fprintf(fh_out, "    $params[%d]['type'] =  P_TYPE::FLOAT;\n", param_count);
+      else if ((lst->p_type == P_TYPE_TEXT))
+        fprintf(fh_out, "    $params[%d]['type'] =  P_TYPE::TEXT;\n", param_count);      
       else 
         return -1;
 

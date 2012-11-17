@@ -2,24 +2,14 @@
 
 
 require_once "server/lib/JSON.phps";
-require_once "krb5_auth.php";
+require_once "../../../krb5_auth.php";
+require_once "../../../db.php";
 
-function db_link()
-{
-  $link = mysqli_connect("localhost","nh-web", "nh-web", "instrumentation");
-  mysqli_set_charset($link, "utf8");
-  return $link;
-}
 
-function krb_auth()
-{
-  $krb5 = new krb5_auth("hms/web", "/tmp/hms.keytab", "NOTTINGHACK.ORG.UK");
-  return $krb5;
-}
     
 function check_permission ($member_id, $permission_code)
 {
-  $link = db_link();
+  $link = db_link2();
   $c = 0;
   if ($stmt = mysqli_prepare($link, "select fn_check_permission(?, ?) as p;")) 
   {
@@ -56,7 +46,7 @@ class class_nhweb extends ServiceIntrospection
         return $error;
       }
 
-      $link = db_link();
+      $link = db_link2();
 
       $ret = $this->sp_web_login($link, $params[0], $member_id);
                 
@@ -79,6 +69,14 @@ class class_nhweb extends ServiceIntrospection
       mysqli_close($link);
       return $ret;      
     }
+    
+    function method_logged_in($params, $error)
+    {
+      if (!isset($_SESSION['handle']))
+        return false;
+      else
+        return true;
+    }
 
     function method_getvendconfig($params, $error)
     {
@@ -91,7 +89,7 @@ class class_nhweb extends ServiceIntrospection
           return $error;          
         }
         
-        $link = db_link();
+        $link = db_link2();
         $result = mysqli_query($link, "select coalesce(vr.loc_name, '') as Position, coalesce(p.shortdesc, '') as Product from vmc_ref vr left outer join vmc_state vs on vr.vmc_ref_id = vs.vmc_ref_id left outer join products p on vs.product_id = p.product_id order by vr.loc_name");
         $rows = array();
         while($row = mysqli_fetch_assoc($result)) 
@@ -113,7 +111,7 @@ class class_nhweb extends ServiceIntrospection
           return $error;          
         }        
         
-        $link = db_link();
+        $link = db_link2();
         $result = mysqli_query($link, "select product_id, shortdesc from products order by shortdesc");
         $rows = array();
         while($row = mysqli_fetch_assoc($result)) 
@@ -135,7 +133,7 @@ class class_nhweb extends ServiceIntrospection
           return $error;          
         }        
 
-        $link = db_link();
+        $link = db_link2();
         $result = mysqli_query($link, "
           select 
             p.product_id, 
@@ -164,7 +162,7 @@ class class_nhweb extends ServiceIntrospection
           return $error;          
         }        
 
-        $link = db_link();
+        $link = db_link2();
 
         $product_id = $params[0];
 
@@ -196,7 +194,7 @@ class class_nhweb extends ServiceIntrospection
           return $error;          
         }        
 
-        $link = db_link();
+        $link = db_link2();
         $ret = $this->sp_web_set_vendprd($link, $_SESSION['member_id'], $params[0], $params[1]);
         mysqli_close($link);
         return $ret;
@@ -213,7 +211,7 @@ class class_nhweb extends ServiceIntrospection
           return $error;          
         }        
 
-        $link = db_link();
+        $link = db_link2();
         $ret = $this->sp_web_updateproduct($link, $_SESSION['member_id'], $params[0], $params[1], $params[2], $params[3], $params[4], $params[5]);
         mysqli_close($link);
         return $ret;
@@ -232,7 +230,7 @@ class class_nhweb extends ServiceIntrospection
         return $error;          
       }
 
-      $link = db_link();
+      $link = db_link2();
       if ($stmt = mysqli_prepare($link, "select count(*) as c from vend_log")) 
       {
         mysqli_stmt_execute($stmt);
@@ -266,7 +264,7 @@ class class_nhweb extends ServiceIntrospection
         return $error;          
       } 
 
-      $link = db_link();
+      $link = db_link2();
       $result = mysqli_query($link, "
         select
           vl.vend_tran_id,
@@ -307,7 +305,7 @@ class class_nhweb extends ServiceIntrospection
           return $error;          
         }
 
-        $link = db_link();
+        $link = db_link2();
         $result = mysqli_query($link, "
         select 
           m.member_id,
@@ -358,7 +356,7 @@ class class_nhweb extends ServiceIntrospection
           }
         }
           
-        $link = db_link();
+        $link = db_link2();
         $result = mysqli_query($link, "
           select 
             t.transaction_datetime,
@@ -391,7 +389,7 @@ class class_nhweb extends ServiceIntrospection
           return $error;          
         }
 
-        $link = db_link();
+        $link = db_link2();
         $result = mysqli_query($link, "
           select 
             g.grp_id,
@@ -422,11 +420,13 @@ class class_nhweb extends ServiceIntrospection
         $krb5 = krb_auth();
         $krb_member_list = $krb5->get_users();
 
-        $link = db_link();
+        $link = db_link2();
         $result = mysqli_query($link, "
           select 
             m.member_id,
+            m.name,
             m.handle,
+            m.username,
             case (fn_check_permission(m.member_id, 'WEB_LOGON'))
               when 1 then 'Yes'
               else 'No'
@@ -436,12 +436,12 @@ class class_nhweb extends ServiceIntrospection
         $rows = array();
         while($row = mysqli_fetch_assoc($result)) 
         {
-          if (in_array(strtolower($row["handle"]), $krb_member_list))
+          if (in_array(strtolower($row["username"]), $krb_member_list))
             $pwset = "Yes";
           else
             $pwset = "No";
           
-          $rows[] = array($row["member_id"], $row["handle"], $pwset, $row["logon_en"]);
+          $rows[] = array($row["member_id"],  $row["name"], $row["handle"], $row["username"], $pwset, $row["logon_en"]);
         }
         mysqli_close($link);
         return json_encode($rows);
@@ -493,7 +493,7 @@ class class_nhweb extends ServiceIntrospection
         
       $ret = "";
       /* Get handle from member_id */
-      $link = db_link();
+      $link = db_link2();
       if ($stmt = mysqli_prepare($link, "select m.handle from members m where m.member_id = ?")) 
       {
         mysqli_stmt_bind_param($stmt, "i", $params[0]);
@@ -545,7 +545,7 @@ class class_nhweb extends ServiceIntrospection
           return $error;
         }   
 
-        $link = db_link();
+        $link = db_link2();
         $ret = $this->sp_set_credit_limit($link, $params[0], $params[1]);
    
         mysqli_close($link);
@@ -554,23 +554,44 @@ class class_nhweb extends ServiceIntrospection
 
 
 
-  //function sp_add_member($connection, $member_number, $name, $handle, $unlock_text, $enroll_pin, $email, $join_date)
+  //function sp_add_member($connection, $member_number, $name, $handle, $unlock_text, $enroll_pin, $email, $join_date, $username)
     function method_addmember($params, $error)
     {
-        if (!isset($_SESSION['handle']))
-          die("Not logged in");
+      if (!isset($_SESSION['handle']))
+        die("Not logged in");
         
-        if (!check_permission($_SESSION['member_id'], "ADD_MEMBER"))
-        { 
-          $error->SetError(JsonRpcError_PermissionDenied, "Permission Denied (ADD_MEMBER)");
-          return $error;          
-        }        
+      if (!check_permission($_SESSION['member_id'], "ADD_MEMBER"))
+      { 
+        $error->SetError(JsonRpcError_PermissionDenied, "Permission Denied (ADD_MEMBER)");
+        return $error;          
+      }        
+      
+      /* Generate username from handle. Swap everthing that isn't A-z 0-9 for an underscore */
+      $username = preg_replace('/[^a-zA-Z0-9]/','_', $params[2]);      
+      
+      /* Check username isn't already in use */
+      $link = db_link2();
 
-        $link = db_link();
-        $ret = $this->sp_add_member($link, $params[0], $params[1], $params[2], $params[3], $params[4], $params[5], $params[6]);
-   
-        mysqli_close($link);
-        return $ret;
+      if ($stmt = mysqli_prepare($link, "select m.handle from members m where m.username = ? limit 1"))
+      {
+        mysqli_stmt_bind_param($stmt, "s", $username);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_bind_result($stmt, $handle);
+        if (mysqli_stmt_fetch($stmt))
+        {
+         /* Username already in use! */
+         if ($handle == $params[2])
+           return "Handle already taken";
+         else
+           return "Handle too similar to \"" . $handle . "\"";
+        }
+        mysqli_stmt_close($stmt);    
+      }
+               
+      $ret = $this->sp_add_member($link, $params[0], $params[1], $params[2], $params[3], $params[4], $params[5], $params[6], $username);
+      
+      mysqli_close($link);
+      return $ret;
     }    
 
         
@@ -604,7 +625,7 @@ class class_nhweb extends ServiceIntrospection
           }
         }
 
-        $link = db_link();
+        $link = db_link2();
         $ret = $this->sp_transaction_log($link, $params[2], $params[0], "MANUAL", "COMPLETE", $params[1], $_SESSION['member_id']);
    
         mysqli_close($link);
@@ -622,7 +643,7 @@ class class_nhweb extends ServiceIntrospection
           return $error;          
         }
 
-        $link = db_link();
+        $link = db_link2();
         $ret = $this->sp_web_group_delete_member($link, $params[0], $params[1]);
    
         mysqli_close($link);
@@ -640,7 +661,7 @@ class class_nhweb extends ServiceIntrospection
           return $error;          
         }
 
-        $link = db_link();
+        $link = db_link2();
         $ret = $this->sp_web_group_add_member($link, $params[0], $params[1]);
    
         mysqli_close($link);
@@ -658,7 +679,7 @@ class class_nhweb extends ServiceIntrospection
           return $error;          
         }
 
-        $link = db_link();
+        $link = db_link2();
         $ret = $this->sp_web_group_toggle_permission($link, $params[0], $params[1]);
    
         mysqli_close($link);
@@ -676,7 +697,7 @@ class class_nhweb extends ServiceIntrospection
           return $error;          
         }
 
-        $link = db_link();
+        $link = db_link2();
         $ret = $this->sp_web_group_add($link, $params[0]);
    
         mysqli_close($link);
@@ -694,7 +715,7 @@ class class_nhweb extends ServiceIntrospection
           return $error;          
         }
 
-        $link = db_link();
+        $link = db_link2();
         $ret = $this->sp_web_group_del($link, $params[0]);
    
         mysqli_close($link);
@@ -716,7 +737,7 @@ class class_nhweb extends ServiceIntrospection
         return $error;          
       }        
         
-      $link = db_link();
+      $link = db_link2();
       if ($stmt = mysqli_prepare($link, "
         select 
           m.member_id,
@@ -764,7 +785,7 @@ class class_nhweb extends ServiceIntrospection
         return $error;          
       }        
         
-      $link = db_link();
+      $link = db_link2();
       if ($stmt = mysqli_prepare($link, "
         select
           p.permission_code,
@@ -810,7 +831,7 @@ class class_nhweb extends ServiceIntrospection
       if (!isset($_SESSION['handle']))
         die("Not logged in");       
         
-      $link = db_link();
+      $link = db_link2();
       if ($stmt = mysqli_prepare($link, "
         select distinct rtrim(gp.permission_code) as permission_code
         from member_group mg
@@ -856,7 +877,7 @@ class class_nhweb extends ServiceIntrospection
         return $error;          
       }  
 
-        $link = db_link();
+        $link = db_link2();
         $result = mysqli_query($link, "
           select 
             m.member_id,
@@ -885,7 +906,7 @@ class class_nhweb extends ServiceIntrospection
         return $error;          
       }        
         
-      $link = db_link();
+      $link = db_link2();
       if ($stmt = mysqli_prepare($link, "
         select 
           t.transaction_id,
@@ -937,7 +958,7 @@ class class_nhweb extends ServiceIntrospection
         return $error;          
       }  
 
-        $link = db_link();
+        $link = db_link2();
         $result = mysqli_query($link, "
           select
             m.member_id,
@@ -971,7 +992,7 @@ class class_nhweb extends ServiceIntrospection
         return $error;          
       }
         
-      $link = db_link();
+      $link = db_link2();
       if ($stmt = mysqli_prepare($link, "
         select 
           p.pin_id,
@@ -1044,7 +1065,7 @@ class class_nhweb extends ServiceIntrospection
           }
         }     
         
-      $link = db_link();
+      $link = db_link2();
       if ($stmt = mysqli_prepare($link, "
         select 
           concat('£', cast((m.credit_limit/100) as decimal(20,2))) as credit_limit,
@@ -1100,12 +1121,12 @@ class class_nhweb extends ServiceIntrospection
     // *********************************************************************************************************
 
 
-    function sp_add_member($connection, $member_number, $name, $handle, $unlock_text, $enroll_pin, $email, $join_date)
+    function sp_add_member($connection, $member_number, $name, $handle, $unlock_text, $enroll_pin, $email, $join_date, $username)
     {
       
-      if ($stmt = mysqli_prepare($connection, "call sp_add_member(?, ?, ?, ?, ?, ?, ?, @err, @member_id)")) 
+      if ($stmt = mysqli_prepare($connection, "call sp_add_member(?, ?, ?, ?, ?, ?, ?, ?, @err, @member_id)")) 
       {
-        mysqli_stmt_bind_param($stmt, "issssss", $member_number, $name, $handle, $unlock_text, $enroll_pin, $email, $join_date);
+        mysqli_stmt_bind_param($stmt, "isssssss", $member_number, $name, $handle, $unlock_text, $enroll_pin, $email, $join_date, $username);
         if (!mysqli_stmt_execute($stmt))
         {
           mysqli_stmt_close($stmt);   

@@ -10,6 +10,7 @@ CREATE PROCEDURE sp_add_member
    IN enroll_pin      varchar(12),
    IN email           varchar(100),
    IN join_date       date,
+   IN username        varchar(50),
    OUT err            varchar(100),
    OUT member_id      int
 )
@@ -71,6 +72,17 @@ BEGIN
       set err = "Handle already in database";
       leave main;
     end if;
+
+    if (username is not null) then
+      select count(*) into ck_exists
+      from members m
+      where m.username = username;
+      
+      if (ck_exists > 0) then
+        set err = "Username already in database";
+        leave main;
+      end if;
+    end if;
     
     if (enroll_pin is not null) then
       select count(*) into ck_exists
@@ -84,8 +96,8 @@ BEGIN
       end if;    
     end if;
       
-    insert into members (member_number, name, handle, unlock_text, email, join_date, credit_limit) 
-    values (member_number, name, handle, unlock_text, email, join_date, 5000); -- BAD / TODO: Find somewhere to store the default credit limit
+    insert into members (member_number, name, handle, unlock_text, email, join_date, credit_limit, username) 
+    values (member_number, name, handle, unlock_text, email, join_date, 5000, username); -- BAD / TODO: Find somewhere to store the default credit limit
     
     select row_count() into rowc;
     
