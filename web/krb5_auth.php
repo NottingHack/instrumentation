@@ -22,7 +22,7 @@ class krb5_auth
     { 
       try
       {
-        $princ = new KADM5Principal($username);
+        $princ = new KADM5Principal(strtolower($username));
         $this->krb_conn->createPrincipal($princ, $password);    
       } catch (Exception $e)
       {
@@ -41,7 +41,7 @@ class krb5_auth
   {
     try 
     {  
-      $princ = $this->krb_conn->getPrincipal($username);
+      $princ = $this->krb_conn->getPrincipal(strtolower($username));
       $princ->delete();    
     } catch (Exception $e)
     {
@@ -56,7 +56,7 @@ class krb5_auth
     $ticket = new KRB5CCache();
     try
     {
-      $ticket->initPassword($username . "@" . $this->realm, $password);
+      $ticket->initPassword(strtolower($username) . "@" . $this->realm, $password);
     } catch (Exception $e)
     {
       if ($this->debug) echo "$e\n";
@@ -69,7 +69,7 @@ class krb5_auth
   {
     try
     {
-      $princ = $this->krb_conn->getPrincipal($username);
+      $princ = $this->krb_conn->getPrincipal(strtolower($username));
       $princ->changePassword($newpassword);
     } catch (Exception $e)
     {
@@ -88,7 +88,7 @@ class krb5_auth
   {
     try
     {
-      $this->krb_conn->getPrincipal($username);
+      $this->krb_conn->getPrincipal(strtolower($username));
     } catch (Exception $e)
     {
       if ($e->getMessage() == "Principal does not exist")
