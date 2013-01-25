@@ -59,7 +59,7 @@ class class_nhweb extends ServiceIntrospection
           $ret = 1;
           session_regenerate_id(true);  
           session_start();
-          $_SESSION['handle']    = $params[0];
+          $_SESSION['username']  = $params[0];
           $_SESSION['member_id'] = $member_id;        
         } else
           $ret = 0;
@@ -72,7 +72,7 @@ class class_nhweb extends ServiceIntrospection
     
     function method_logged_in($params, $error)
     {
-      if (!isset($_SESSION['handle']))
+      if (!isset($_SESSION['username']))
         return false;
       else
         return true;
@@ -80,7 +80,7 @@ class class_nhweb extends ServiceIntrospection
 
     function method_getvendconfig($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");
 
         if (!check_permission($_SESSION['member_id'], "VIEW_VEND_CONFIG"))
@@ -102,7 +102,7 @@ class class_nhweb extends ServiceIntrospection
     
     function method_productlistbox($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");
 
         if (!check_permission($_SESSION['member_id'], "VIEW_PRODUCTS"))
@@ -124,7 +124,7 @@ class class_nhweb extends ServiceIntrospection
 
     function method_productlist($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");
         
         if (!check_permission($_SESSION['member_id'], "VIEW_PRODUCTS"))
@@ -153,7 +153,7 @@ class class_nhweb extends ServiceIntrospection
 
     function method_productdetails($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");
         
         if (!check_permission($_SESSION['member_id'], "VIEW_PRD_DETAIL"))
@@ -185,7 +185,7 @@ class class_nhweb extends ServiceIntrospection
 
     function method_setvendprd($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");
         
         if (!check_permission($_SESSION['member_id'], "UPD_VEND_CONFIG"))
@@ -202,7 +202,7 @@ class class_nhweb extends ServiceIntrospection
 
     function method_updateproduct($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");
         
         if (!check_permission($_SESSION['member_id'], "ADD_UPD_PRODUCT"))
@@ -221,7 +221,7 @@ class class_nhweb extends ServiceIntrospection
     function method_vendlog_rowcount($params, $error)
     {
       
-      if (!isset($_SESSION['handle']))
+      if (!isset($_SESSION['username']))
         die("Not logged in");
   
       if (!check_permission($_SESSION['member_id'], "VIEW_VEND_LOG"))
@@ -249,7 +249,7 @@ class class_nhweb extends ServiceIntrospection
 
     function method_vendlog($params, $error)
     {
-      if (!isset($_SESSION['handle']))
+      if (!isset($_SESSION['username']))
         die("Not logged in");
 
       if (!is_numeric($params[0]) || (!is_numeric($params[1])))
@@ -296,7 +296,7 @@ class class_nhweb extends ServiceIntrospection
 
     function method_getbalances($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");
         
         if (!check_permission($_SESSION['member_id'], "VIEW_BALANCES"))
@@ -327,7 +327,7 @@ class class_nhweb extends ServiceIntrospection
       
     function method_gettransactions($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");
         
         if (!is_numeric($params[0]))
@@ -380,7 +380,7 @@ class class_nhweb extends ServiceIntrospection
     
     function method_getgroups($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");    
         
         if (!check_permission($_SESSION['member_id'], "VIEW_GROUPS"))
@@ -408,7 +408,7 @@ class class_nhweb extends ServiceIntrospection
     
     function method_getaccessmemberlist($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");    
         
         if (!check_permission($_SESSION['member_id'], "VIEW_ACCESS_MEM"))
@@ -464,9 +464,9 @@ class class_nhweb extends ServiceIntrospection
       $ret = "";
       
       /* Check current password is correct */ 
-      if ($krb5->check_password($_SESSION['handle'], $params[0]))
+      if ($krb5->check_password($_SESSION['username'], $params[0]))
       {
-        if (!$krb5->change_password($_SESSION['handle'],$params[1]))
+        if (!$krb5->change_password($_SESSION['username'],$params[1]))
           $ret = "Failed to change password";
       } else
         $ret = "Current password entered incorrect";
@@ -492,18 +492,18 @@ class class_nhweb extends ServiceIntrospection
       }        
         
       $ret = "";
-      /* Get handle from member_id */
+      /* Get username from member_id */
       $link = db_link2();
-      if ($stmt = mysqli_prepare($link, "select m.handle from members m where m.member_id = ?")) 
+      if ($stmt = mysqli_prepare($link, "select m.username from members m where m.member_id = ?")) 
       {
         mysqli_stmt_bind_param($stmt, "i", $params[0]);
         mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $handle);
+        mysqli_stmt_bind_result($stmt, $username);
         mysqli_stmt_fetch($stmt);
         mysqli_stmt_close($stmt);    
       } else
       {
-        return "Failed to get handle.";
+        return "Failed to get username.";
       }
       
       /* Check user actaully exists in krb database, and create if not */
@@ -511,12 +511,12 @@ class class_nhweb extends ServiceIntrospection
       switch ($krb5->user_exists($username))
       {
         case TRUE:
-          if (!$krb5->change_password($handle,$params[1]))
+          if (!$krb5->change_password($username,$params[1]))
             $ret = "Failed to set password";  
           break;
           
         case FALSE:
-           if(!$krb5->add_user($handle,$params[1]))
+           if(!$krb5->add_user($username,$params[1]))
              $ret = "User didn't exist in krb5 database - and failed to add";
            break;
            
@@ -530,7 +530,7 @@ class class_nhweb extends ServiceIntrospection
     
     function method_setclimit($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");
         
         if (!check_permission($_SESSION['member_id'], "SET_CREDIT_LIMIT"))
@@ -557,7 +557,7 @@ class class_nhweb extends ServiceIntrospection
   //function sp_add_member($connection, $member_number, $name, $handle, $unlock_text, $enroll_pin, $email, $join_date, $username)
     function method_addmember($params, $error)
     {
-      if (!isset($_SESSION['handle']))
+      if (!isset($_SESSION['username']))
         die("Not logged in");
         
       if (!check_permission($_SESSION['member_id'], "ADD_MEMBER"))
@@ -603,7 +603,7 @@ class class_nhweb extends ServiceIntrospection
     */
     function method_recordtran($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");
         
         if ($params[2] == -1)
@@ -634,7 +634,7 @@ class class_nhweb extends ServiceIntrospection
     
     function method_removegroupmember($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");
         
         if (!check_permission($_SESSION['member_id'], "REM_GRP_MEMBER"))
@@ -652,7 +652,7 @@ class class_nhweb extends ServiceIntrospection
     
     function method_addgroupmember($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");
         
         if (!check_permission($_SESSION['member_id'], "ADD_GRP_MEMBER"))
@@ -670,7 +670,7 @@ class class_nhweb extends ServiceIntrospection
     
     function method_togglegrouppermission($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");
         
         if (!check_permission($_SESSION['member_id'], "CHG_GRP_PERM"))
@@ -688,7 +688,7 @@ class class_nhweb extends ServiceIntrospection
     
     function method_addgroup($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");
         
         if (!check_permission($_SESSION['member_id'], "ADD_GROUP"))
@@ -706,7 +706,7 @@ class class_nhweb extends ServiceIntrospection
     
     function method_deletegroup($params, $error)
     {
-        if (!isset($_SESSION['handle']))
+        if (!isset($_SESSION['username']))
           die("Not logged in");
         
         if (!check_permission($_SESSION['member_id'], "DEL_GROUP"))
@@ -728,7 +728,7 @@ class class_nhweb extends ServiceIntrospection
     function method_getgroupmembers($params, $error)
     {
       
-      if (!isset($_SESSION['handle']))
+      if (!isset($_SESSION['username']))
         die("Not logged in");
         
       if (!check_permission($_SESSION['member_id'], "VIEW_GRP_MEMBERS"))
@@ -776,7 +776,7 @@ class class_nhweb extends ServiceIntrospection
     function method_getgrouppermissions($params, $error)
     {
       
-      if (!isset($_SESSION['handle']))
+      if (!isset($_SESSION['username']))
         die("Not logged in");
         
       if (!check_permission($_SESSION['member_id'], "VIEW_GRP_PERMIS"))
@@ -828,7 +828,7 @@ class class_nhweb extends ServiceIntrospection
     function method_getpermissions($params, $error)
     {
       
-      if (!isset($_SESSION['handle']))
+      if (!isset($_SESSION['username']))
         die("Not logged in");       
         
       $link = db_link2();
@@ -868,7 +868,7 @@ class class_nhweb extends ServiceIntrospection
     
     function method_memberlistbox($params, $error)
     {
-      if (!isset($_SESSION['handle']))
+      if (!isset($_SESSION['username']))
         die("Not logged in");
         
       if (!check_permission($_SESSION['member_id'], "VIEW_MEMBERS"))
@@ -897,7 +897,7 @@ class class_nhweb extends ServiceIntrospection
     function method_getsales($params, $error)
     {
       
-      if (!isset($_SESSION['handle']))
+      if (!isset($_SESSION['username']))
         die("Not logged in");
         
       if (!check_permission($_SESSION['member_id'], "VIEW_SALES"))
@@ -949,7 +949,7 @@ class class_nhweb extends ServiceIntrospection
 
     function method_memberlist($params, $error)
     {
-      if (!isset($_SESSION['handle']))
+      if (!isset($_SESSION['username']))
         die("Not logged in");
         
       if (!check_permission($_SESSION['member_id'], "VIEW_MEMBER_LIST"))
@@ -983,7 +983,7 @@ class class_nhweb extends ServiceIntrospection
 
     function method_viewpins($params, $error)
     {
-      if (!isset($_SESSION['handle']))
+      if (!isset($_SESSION['username']))
         die("Not logged in");
         
       if (!check_permission($_SESSION['member_id'], "VIEW_MEMBER_PINS"))
@@ -1041,7 +1041,7 @@ class class_nhweb extends ServiceIntrospection
     function method_gettransactionstatus($params, $error)
     {
       $status_str = "Error";
-      if (!isset($_SESSION['handle']))
+      if (!isset($_SESSION['username']))
         die("Not logged in");
         
         // member id of -1 means return logged in users transactions
@@ -1099,9 +1099,89 @@ class class_nhweb extends ServiceIntrospection
       return $status_str;
     }     
        
+    /*
+     * params:
+     *  0 = pin_id
+     *  1 = expiry
+     *  2 = state
+     */
+    function method_updatepin($params, $error)
+    {
+      if (!isset($_SESSION['username']))
+        die("Not logged in");
+        
+      if (!check_permission($_SESSION['member_id'], "AMEND_PINS"))
+      { 
+        $error->SetError(JsonRpcError_PermissionDenied, "Permission Denied (AMEND_PINS)");
+        return $error;          
+      }    
+      $err = "";
+
+      $link = db_link();
+      
+      if (strlen($params[1]) <= 1)
+        $d = "";
+      else
+      {
+        $exp_date=new DateTime($params[1]);
+        $d = date_format($exp_date, 'd/m/Y H:i:s');
+      }
+      
+      $ret = $link->sp_pin_update($params[0], $d, $params[2], $err);
+      $link->close();
+      
+      if (strlen($err) > 0)
+        $ret = $err;
+      else if (!$ret)
+        $ret = "Failed to update";
+      else
+        $ret = "";
+      
+      return $ret;
+    }       
        
        
-       
+    /*
+     * params:
+     *  0 = pin
+     *  1 = expiry
+     *  2 = state
+     *  3 = member_id
+     */
+    function method_insertpin($params, $error)
+    {
+      if (!isset($_SESSION['username']))
+        die("Not logged in");
+        
+      if (!check_permission($_SESSION['member_id'], "AMEND_PINS"))
+      { 
+        $error->SetError(JsonRpcError_PermissionDenied, "Permission Denied (AMEND_PINS)");
+        return $error;          
+      }    
+      $err = "";
+
+      $link = db_link();
+      
+      if (strlen($params[1]) <= 1)
+        $d = "";
+      else
+      {
+        $exp_date=new DateTime($params[1]);
+        $d = date_format($exp_date, 'd/m/Y H:i:s');
+      }
+      
+      $ret = $link->sp_pin_insert($params[0], $d, $params[2], $params[3], $err);
+      $link->close();
+      
+      if (strlen($err) > 0)
+        $ret = $err;
+      else if (!$ret)
+        $ret = "Failed to insert";
+      else
+        $ret = "";
+      
+      return $ret;
+    }       
            
     
     function method_logoff($params, $error)

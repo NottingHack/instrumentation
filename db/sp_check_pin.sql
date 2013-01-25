@@ -56,7 +56,7 @@ BEGIN
       p.expiry,
       p.state,
       p.member_id,
-      coalesce(m.handle, '<unknown>')
+      coalesce(m.handle, m.username, m.name, '<unknown>')
     into
       p_pin_id,
       p_unlock_text,

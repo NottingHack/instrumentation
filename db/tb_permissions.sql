@@ -40,7 +40,8 @@ insert into permissions (permission_code, permission_desc) values ('VIEW_MEMBER_
 insert into permissions (permission_code, permission_desc) values ('VIEW_MEMBER_PINS', 'View entry PINs');
 insert into permissions (permission_code, permission_desc) values ('VIEW_MEMBER_RFID', 'View registered RFID card details');
 insert into permissions (permission_code, permission_desc) values ('AMEND_PINS      ', 'Add / Cancel PINs');
-insert into permissions (permission_code, permission_desc) values ('WIFI_ACCESS     ', 'Connect to WiFi');
+insert into permissions (permission_code, permission_desc) values ('WIFI_ACCESS     ', 'Connect to Spacenet');
+insert into permissions (permission_code, permission_desc) values ('WIKI_ACCESS     ', 'Login to Wiki');
 
 
 

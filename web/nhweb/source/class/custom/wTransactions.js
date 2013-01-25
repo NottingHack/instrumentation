@@ -67,7 +67,10 @@ qx.Class.define("custom.wTransactions",
          
     }, this);
   //  trnButton.setWidth(60);
-    trnButton.setEnabled(true);        
+    if (qx.core.Init.getApplication().gotPermission("REC_TRAN_OWN"))
+      trnButton.setEnabled(true);
+    else
+      trnButton.setEnabled(false);      
   },
 
   members:

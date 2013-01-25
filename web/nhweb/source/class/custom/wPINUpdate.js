@@ -89,8 +89,16 @@ qx.Class.define("custom.wPINUpdate",
       {
         var sel = fState.getSelection(); 
         var item = sel[0];
+       
+        var strExp = "";
+        if (fExpiry.getValue() != null)
+          strExp = fExpiry.getValue();
         
-        this.savePIN(member_id, fPIN.getValue(), fExpiry.getValue(), item.getModel());
+        if (pin_id != -1)
+          this.updatePIN(pin_id, strExp, item.getModel()["$$user_id"]);
+        else
+          this.insertPIN(fPIN.getValue(), strExp, item.getModel()["$$user_id"], member_id)
+        
         this.close();
       }
     }, this); 
@@ -110,28 +118,44 @@ qx.Class.define("custom.wPINUpdate",
         fExpiry.setValue(dformat.parse(pin_expiry));
       }
       
-      fState.setModelSelection([state_model.getItem((pin_state-10)/10 )]);            
+    fState.setModelSelection([state_model.getItem((pin_state-10)/10 )]);
+    
     }  
   },
 
   members:
   {
 
-    savePIN : function(member_id, pin, expiry, state)
+    updatePIN : function(pin_id, expiry, state)
     {
-
-/*
       var rpc = new qx.io.remote.Rpc(qx.core.Init.getApplication().gURL, "qooxdoo.nhweb");
 
       try 
       {
-        var res = rpc.callSync("updateproduct", product_id, price, barcode, available, shortDesc, fullDesc);
+        var res = rpc.callSync("updatepin", pin_id, expiry, state);
+        if (res != "")
+          alert("Failed: " + res);        
       } catch (exc) 
       {
           alert("Exception during sync call: " + exc);
-
       }
-*/
+    },
+      
+    insertPIN : function(pin, expiry, state, member_id)
+    {
+      var rpc = new qx.io.remote.Rpc(qx.core.Init.getApplication().gURL, "qooxdoo.nhweb");
+
+      try 
+      {
+        var res = rpc.callSync("insertpin", pin, expiry, state, member_id);
+        if (res != "")
+          alert("Failed: " + res);        
+      } catch (exc) 
+      {
+          alert("Exception during sync call: " + exc);
+      }      
+
+
       return;
     }
   }

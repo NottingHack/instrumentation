@@ -46,7 +46,7 @@ BEGIN
     select 
       m.member_id,
       concat('Unlock:',  coalesce(m.unlock_text, 'Welcome')),
-      coalesce(m.handle, '<unknown>'),
+      coalesce(m.handle, m.username, m.name, '<unknown>'),
       r.state
     into
       member_id,

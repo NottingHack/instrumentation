@@ -11,3 +11,11 @@ create table pins
   member_id    int default NULL,
   primary key (pin_id)
 ) ENGINE = InnoDB; 
+
+/*
+ pin states:
+  10 = Active
+  20 = Expired
+  30 = Cancelled
+  40 = Enroll
+*/
