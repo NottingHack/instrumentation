@@ -231,7 +231,7 @@ class class_nhweb extends ServiceIntrospection
       }
 
       $link = db_link2();
-      if ($stmt = mysqli_prepare($link, "select count(*) as c from vend_log")) 
+      if ($stmt = mysqli_prepare($link, "select count(*) as c from vend_log where success_datetime is not null or cancelled_datetime is not null or failed_datetime is not null or denied_reason is not null or position is not null")) 
       {
         mysqli_stmt_execute($stmt);
         mysqli_stmt_bind_result($stmt, $c);
@@ -280,6 +280,7 @@ class class_nhweb extends ServiceIntrospection
         left outer join vmc_ref vr on vl.position = vr.loc_encoded
         left outer join transactions t on t.transaction_id = vl.transaction_id
         left outer join products p on p.product_id = t.product_id
+	where success_datetime is not null or cancelled_datetime is not null or failed_datetime is not null or denied_reason is not null or position is not null
         order by vl.vend_tran_id desc
         limit " . $params[0] . ", " . $params[1] . ";
       ");
