@@ -262,7 +262,7 @@ string CEMailProcess::sTo_lower(string s)
   return ret;
 }
  
-
+/*
 int main()
 {
   CEMailProcess mp;
@@ -283,3 +283,4 @@ int main()
   return 0;
 }
 
+*/
