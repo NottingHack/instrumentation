@@ -118,8 +118,13 @@ bool CEMailProcess::process()
       return false;
     }
     
-    boundary = "--" + _headers["content-type"].substr(pos + sizeof("boundary=")-1);
+    boundary = _headers["content-type"].substr(pos + sizeof("boundary=")-1);
     
+    /* Remove any quotes around the boundary string */
+    if ((boundary[0] == '"') && (boundary.length ()> 2))
+      boundary = boundary.substr(1, boundary.length()-2);
+    boundary = "--" + boundary;
+   
     for (unsigned int n=0; n < _body.size(); n++)
     {
       /* Search for boundary */
@@ -257,7 +262,7 @@ string CEMailProcess::sTo_lower(string s)
   return ret;
 }
  
-/*
+
 int main()
 {
   CEMailProcess mp;
@@ -277,4 +282,4 @@ int main()
   cout << "Body: " << endl << mp.get_body() << endl;
   return 0;
 }
-*/
+
