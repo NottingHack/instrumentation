@@ -5,6 +5,8 @@
 #include <sys/file.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 using namespace std;
 

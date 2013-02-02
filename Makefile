@@ -1,5 +1,5 @@
-all: nh-test INIReaderTest nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mini-matrix db/lib/CNHDBAccess.php
-
+all: nh-test INIReaderTest nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mini-matrix nh-mail db/lib/CNHDBAccess.php
+ 
 install: install_nh_holly install_gatekeeper
 
 install_gatekeeper: GateKeeper
@@ -36,24 +36,34 @@ nh-test: nh-test.o CNHmqtt.o INIReader.o ini.o CLogging.o
 
 nh-vend: nh-vend.o CNHmqtt.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o
 	g++ -lmysqlclient -lmosquitto -lpthread -o nh-vend nh-vend.o CNHmqtt.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o
+	cp nh-vend bin/
 
 nh-test-irc: nh-test-irc.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
 	g++ -lmosquitto -o nh-test-irc nh-test-irc.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
 
 nh-mini-matrix: nh-mini-matrix.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
 	g++ -lmosquitto -lpthread -o nh-mini-matrix nh-mini-matrix.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
+	cp nh-mini-matrix bin/
+
+#nh-udp2mqtt: nh-udp2mqtt.o CNHmqtt.o INIReader.o ini.o CLogging.o
+#	g++ -lmosquitto -lpthread -o nh-udp2mqtt nh-udp2mqtt.o CNHmqtt.o INIReader.o ini.o CLogging.o
+#	cp nh-udp2mqtt bin/
 
 nh-matrix: nh-matrix.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
 	g++ -lmosquitto -o nh-matrix nh-matrix.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
+	cp nh-matrix bin/
 
 nh-temperature: nh-temperature.o CNHmqtt.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o
 	g++ -lmosquitto -lmysqlclient -o nh-temperature nh-temperature.o CNHmqtt.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o
+	cp nh-temperature bin/
 
 nh-irc-misc: nh-irc-misc.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o
 	g++ -lmosquitto -lmysqlclient -o nh-irc-misc nh-irc-misc.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o
+	cp nh-irc-misc bin/
 
 nh-irccat: nh-irccat.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
 	g++ -lpthread -lmosquitto -o nh-irccat nh-irccat.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
+	cp nh-irccat bin/
 
 GateKeeper: GateKeeper.o CNHmqtt.o CNHmqtt_irc.o INIReader.o ini.o db/lib/CNHDBAccess.o CLogging.o
 	g++ -lmysqlclient -lmosquitto -lrt -o GateKeeper GateKeeper.o CNHmqtt.o CNHmqtt_irc.o INIReader.o ini.o db/lib/CNHDBAccess.o CLogging.o
@@ -67,8 +77,9 @@ nh-irc: nh-irc.o CNHmqtt.o INIReader.o ini.o irc.o CLogging.o
 	g++ -lmosquitto -lrt -o nh-irc nh-irc.o CNHmqtt.o INIReader.o ini.o irc.o CLogging.o
 	cp nh-irc bin/
 
-nh-mail: nh-mail.o INIReader.o ini.o CLogging.o
-	g++ -lmosquitto -o nh-mail nh-mail.o INIReader.o ini.o CLogging.o
+nh-mail: nh-mail.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o CEmailProcess.o
+	g++ -lmysqlclient -lmosquitto -o nh-mail nh-mail.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o CEmailProcess.o
+	cp nh-mail bin/
 
 web/nhweb/build/script/custom.js: $(wildcard web/nhweb/source/class/custom/*)
 	sh nhweb.sh
@@ -85,6 +96,7 @@ web2: nh-web db/lib/CNHDBAccess.php web/pwreset.php web/vend.php web/db.php
 	rsync -r --exclude=. -r web/status website/public/
 	cp web/pwreset.php website/public/
 	cp web/vend.php website/public/
+#	cp web/wikiauth.php website/public/
 	cp web/db.php website/
 	cp web/krb5_auth.php website/
 
@@ -109,6 +121,9 @@ nh-test-irc.o: nh-test-irc.cpp nh-test-irc.h
 
 nh-mini-matrix.o: nh-mini-matrix.cpp nh-mini-matrix.h
 	g++ -Wall -c nh-mini-matrix.cpp
+
+#nh-udp2mqtt.o: nh-udp2mqtt.cpp nh-udp2mqtt.h
+#	g++ -Wall -c nh-udp2mqtt.cpp
 
 nh-matrix.o: nh-matrix.cpp nh-matrix.h
 	g++ -Wall -c nh-matrix.cpp
@@ -149,6 +164,9 @@ INIReaderTest: ini.o INIReaderTest.o INIReader.o
 CLogging.o: CLogging.cpp CLogging.h
 	g++ -c CLogging.cpp
 
+CEmailProcess.o: CEmailProcess.cpp CEmailProcess.h
+	g++ -Wall -c CEmailProcess.cpp
+
 dblib: db/lib/gen_dblib
 
 db/lib/gen_dblib: db/lib/gen_dblib.c
@@ -167,5 +185,5 @@ db/lib/CNHDBAccess.o: db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h
 	g++ -Wall -c db/lib/CNHDBAccess.cpp -o db/lib/CNHDBAccess.o
 
 clean:
-	rm -f db/lib/gen_dblib db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h db/lib/CNHDBAccess.o nh-monitor.o nh-monitor CNHDBAccess.o nh-irc-misc.o nh-irccat.o nh-test-irc.o CNHmqtt_irc.o nh-irc nh-test nh-irccat nh-test-irc nh-irc-misc INIReaderTest GateKeeper_dbaccess.o GateKeeper.o GateKeeper mos_irc irc.o mos_irc.o nh-test.o CNHmqtt.o ini.o INIReader.o INIReaderTest.o nh-irc.o nh-gk-if.o CLogging.o nh-matrix.o nh-matrix nh-temperature.o nh-temperature nh-vend.o nh-vend nh-mini-matrix.o nh-mini-matrix nh-mail nh-mail.o web/nhweb/build/script/custom.js
+	rm -f db/lib/gen_dblib db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h db/lib/CNHDBAccess.o nh-monitor.o nh-monitor CNHDBAccess.o nh-irc-misc.o nh-irccat.o nh-test-irc.o CNHmqtt_irc.o nh-irc nh-test nh-irccat nh-test-irc nh-irc-misc INIReaderTest GateKeeper_dbaccess.o GateKeeper.o GateKeeper mos_irc irc.o mos_irc.o nh-test.o CNHmqtt.o ini.o INIReader.o INIReaderTest.o nh-irc.o nh-gk-if.o CLogging.o nh-matrix.o nh-matrix nh-temperature.o nh-temperature nh-vend.o nh-vend nh-mini-matrix.o nh-mini-matrix nh-mail nh-mail.o CEmailProcess.o web/nhweb/build/script/custom.js
 	rm -rf website/

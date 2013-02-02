@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2012, Daniel Swann <hs@dswann.co.uk>
+ * Copyright (c) 2013, Daniel Swann <hs@dswann.co.uk>
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@
  */
 
 #include "nh-mail.h"
-
+#include "CEmailProcess.h"
 #include <iostream>
 #include <cstdlib>
 #include <unistd.h>
@@ -36,6 +36,7 @@
 nh_mail::nh_mail(int argc, char *argv[]) 
 {
   log = NULL;
+  db = NULL;
   string config_file = "";
   config_file_parsed = false;
   int c;
@@ -102,6 +103,8 @@ nh_mail::nh_mail(int argc, char *argv[])
   log->dbg("mosq_server = " + mosq_server);
   out << "" << mosq_port;
   log->dbg("mosq_port = "   + out.str());  
+  
+  db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
 
 }
 
@@ -129,6 +132,9 @@ nh_mail::~nh_mail()
     delete log;
     log=NULL;
   }
+  
+  if (db != NULL)
+    delete db;
 }
 
 string nh_mail::get_str_option(string section, string option, string def_value)
@@ -222,57 +228,71 @@ int nh_mail::message_loop(void)
 int main(int argc, char *argv[])
 {
   nh_mail *nh;
+  CEMailProcess ep;
   
   string input_line;
-  string mail_from;
   string mail_subject;
-  string cmdline;
+  string mail_from;
+  string message_id;
+  string reply_to;
+  string body;
+  int ggemail_id;
+  string err;
   string searchstr;
   
-  while ((cin) && (((mail_from == "") || (mail_subject == ""))))
+  /* Read in email */
+  while (cin)
   {
     getline(cin, input_line);
+    ep.add_line(input_line);
+  }
     
-    if (input_line.substr(0, 6) == "From: ")    
-    {
-      mail_from = input_line.substr(6, string::npos);
-      mail_from = mail_from.substr(0, mail_from.find_first_of('<'));
-    
-      // Remove any quotes
-      for (unsigned int i = 0; i < mail_from.length(); i++)
-        if (mail_from[i] == '\"')
-          mail_from.replace(i, 1,"");
-    }
-    
-    if (input_line.substr(0, 9) == "Subject: ")    
-    {
-      mail_subject = input_line.substr(9, string::npos);
-     
-      searchstr = "[Nottinghack] ";
-      if (mail_subject.find(searchstr) != string::npos)
-      {
-        mail_subject = mail_subject.substr(mail_subject.find(searchstr) + searchstr.length(), string::npos);
-      }
-    }
+  if (!ep.process())
+  {
+    return -1;
   }
   
-  // Got From and Subject. Don't care about the rest of the mail, but need to 
-  // read it to keep fetchmail happy.
-  while (cin)
-    getline(cin, input_line);
+  mail_subject = ep.get_subject();
+  mail_from = ep.get_from();
+  message_id = ep.get_message_id();
+  reply_to = ep.get_reply_to();
+  body = ep.get_body();
+
+  mail_from = mail_from.substr(0, mail_from.find_first_of('<'));
+    
+  // Remove any quotes
+  for (unsigned int i = 0; i < mail_from.length(); i++)
+    if (mail_from[i] == '\"')
+      mail_from.replace(i, 1,"");   
+ 
+  searchstr = "[Nottinghack] ";
+  if (mail_subject.find(searchstr) != string::npos)
+  {
+    mail_subject = mail_subject.substr(mail_subject.find(searchstr) + searchstr.length(), string::npos);
+  }  
   
   if ((mail_from != "") && (mail_subject != ""))
   {
     nh = new nh_mail(argc, argv);
+    
+    /* Send name/subject over MQTT */
     nh->mosq_connect();
     nh->message_loop();
     mail_from.erase(mail_from.find_last_not_of(" \n\r\t")+1);
     nh->message_send(nh->mqtt_topic + "/" + mail_from, mail_subject);
     nh->message_loop();
 
+    if (ep.get_list_id() == "<nottinghack.googlegroups.com>")
+    {
+      /* Add to database */
+      nh->db->dbConnect();
+      nh->db->sp_log_ggemail (ep.get_subject(), body, reply_to, message_id, mail_from, err, ggemail_id);
+    }
+    
     delete nh; 
   }
 
+  return 0;
 }
 
 
