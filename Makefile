@@ -81,6 +81,9 @@ nh-mail: nh-mail.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o CEmailProce
 	g++ -lmysqlclient -lmosquitto -o nh-mail nh-mail.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o CEmailProcess.o
 	cp nh-mail bin/
 
+CalcWordCount: CalcWordCount.o db/lib/CNHDBAccess.o CLogging.o
+	g++ -Wall -lmysqlclient -o CalcWordCount CalcWordCount.o db/lib/CNHDBAccess.o CLogging.o
+
 web/nhweb/build/script/custom.js: $(wildcard web/nhweb/source/class/custom/*)
 	sh nhweb.sh
 
@@ -166,6 +169,9 @@ CLogging.o: CLogging.cpp CLogging.h
 
 CEmailProcess.o: CEmailProcess.cpp CEmailProcess.h
 	g++ -Wall -c CEmailProcess.cpp
+
+CalcWordCount.o: CalcWordCount.cpp 
+	g++ -Wall -c CalcWordCount.cpp
 
 dblib: db/lib/gen_dblib
 
