@@ -34,6 +34,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
+#include <vector>
+#include <sstream>
 
 using namespace std;
 
@@ -102,7 +104,6 @@ string CEMailProcess::qp_decode(string msg_line)
 
 bool CEMailProcess::process()
 {
-  unsigned int pos;
   string boundary;
   map<string,string>::iterator it;
   bool qp;
@@ -110,25 +111,15 @@ bool CEMailProcess::process()
   /* is this a MIME email? */
   if (_headers["content-type"].find("multipart") != string::npos)
   {
-    /* MIME email, get boundary */
-    pos = _headers["content-type"].find("boundary=");
-    if (pos == string::npos)
-    {
-      printf("Something went wrong getting boundary. Content-Type=[%s]\n", _headers["content-type"].c_str());
-      return false;
-    }
+    boundary = get_boundary(_headers["content-type"]);
     
-    boundary = _headers["content-type"].substr(pos + sizeof("boundary=")-1);
-    
-    /* Remove any quotes around the boundary string */
-    if ((boundary[0] == '"') && (boundary.length ()> 2))
-      boundary = boundary.substr(1, boundary.length()-2);
-    boundary = "--" + boundary;
+    if (boundary != "")
+      _boundaries.push_back(boundary);
    
     for (unsigned int n=0; n < _body.size(); n++)
     {
       /* Search for boundary */
-      if (_body[n] != boundary)
+      if (!is_boundary(_body[n]))
         continue;
       
       /* Make sure there's actaully something to read */
@@ -148,13 +139,21 @@ bool CEMailProcess::process()
         else
           qp = false;
         
-        while (n < _body.size() && (_body[n] != boundary))
+        while (n < _body.size() && (!is_boundary(_body[n])))
         {
           if (qp)
             _text_body.push_back(qp_decode(_body[n++]));
           else
             _text_body.push_back(_body[n++] + "\n");     
         }
+      } else if (_mime_header["content-type"].find("multipart") != string::npos)
+      {
+        /* Multipart within multipart. Also want to serach this multipart for a 
+         * text/plain component */
+        boundary = get_boundary(_mime_header["content-type"]);
+        
+        if (boundary != "")
+          _boundaries.push_back(boundary);        
       }
     }
   }
@@ -214,6 +213,43 @@ bool CEMailProcess::header_line(string msgdata,  map<string, string> &headers)
   return false;  
 }
 
+string CEMailProcess::get_boundary(string line)
+{
+  unsigned int pos;
+  string boundary;
+  
+  // Sanity check - if we think we've already found more than 10 
+  // differant boundaries, something's probably gone horribly wrong.
+  if (_boundaries.size() > 10)
+    return "";
+  
+  // MIME email, get boundary 
+  pos = line.find("boundary=");
+  if (pos == string::npos)
+  {
+    printf("Something went wrong getting boundary. Content-Type=[%s]\n", line.c_str());
+    return "";
+  }
+    
+  boundary = line.substr(pos + sizeof("boundary=")-1);
+    
+  // Remove any quotes around the boundary string 
+  if ((boundary[0] == '"') && (boundary.length ()> 2))
+    boundary = boundary.substr(1, boundary.length()-2);
+  boundary = "--" + boundary;
+  
+  return boundary;
+}
+    
+bool CEMailProcess::is_boundary(string line)
+{
+  for (unsigned int i = 0; i < _boundaries.size(); i++)  
+    if (line == _boundaries[i])
+      return true;
+  
+  return false;    
+}
+
 string CEMailProcess::get_subject()
 {
   return _headers["subject"];
@@ -221,7 +257,6 @@ string CEMailProcess::get_subject()
 
 string CEMailProcess::get_from()
 {
-  /* TODO: Probably want to always return the email address here, not name */
   return _headers["from"];
 }
 
@@ -261,7 +296,71 @@ string CEMailProcess::sTo_lower(string s)
   
   return ret;
 }
- 
+
+
+unsigned int CEMailProcess::get_msg_word_count(string msg_body)
+{
+  vector<string> msg_lines;
+  string msg_line;
+  unsigned int pos;
+  unsigned int word_count = 0;
+    
+  // Split string into lines
+  stringstream msg_body_ss(msg_body);
+  while (getline(msg_body_ss, msg_line))
+    msg_lines.push_back(msg_line);
+  
+  for (unsigned int i = 0; i < msg_lines.size(); i++)
+  {
+    if (msg_lines[i].size() <= 1)
+      continue;
+     
+    if ((pos = msg_lines[i].find_first_not_of(" ")) == string::npos)
+      continue;
+    
+    if (msg_lines[i][pos] == '>')
+      continue;
+    
+    if (msg_lines[i].find("You received this message because you are subsc") != string::npos)
+      break;
+    
+    word_count += get_word_count(msg_lines[i]); 
+  }
+  return word_count;
+}
+
+unsigned int CEMailProcess::get_word_count(string line)
+{
+  vector<string> words;  
+  unsigned int word_count = 0;
+  string word;
+  
+  // Split string into words
+  stringstream line_ss(line);
+  while (getline(line_ss, word, ' '))
+    words.push_back(sTo_lower(word));
+  
+  // Loop through and count words 
+  for (unsigned int i = 0; i < words.size(); i++)
+  {  
+    if (words[i].length() == 0)
+      continue;
+    
+    // The only single letter word we're going to count is A or I
+    if ((words[i].length() == 1) && (words[i].find_first_of("ai") == string::npos))
+      continue;
+    
+    // If the "word" doesn't have letters in it, then it's not a word
+    if (words[i].find_first_of("abcdefghijklmnopqrstuvwxyz") == string::npos)
+      continue;
+    
+    word_count++;
+  }
+    
+ return word_count; 
+}
+
+
 /*
 int main()
 {
@@ -282,5 +381,4 @@ int main()
   cout << "Body: " << endl << mp.get_body() << endl;
   return 0;
 }
-
 */

@@ -239,6 +239,7 @@ int main(int argc, char *argv[])
   int ggemail_id;
   string err;
   string searchstr;
+  unsigned int word_count = 0;
   
   /* Read in email */
   while (cin)
@@ -276,7 +277,8 @@ int main(int argc, char *argv[])
     nh = new nh_mail(argc, argv);
     
     /* Send name/subject over MQTT */
-    nh->mosq_connect();
+    if(nh->mosq_connect())
+      return -1;
     nh->message_loop();
     mail_from.erase(mail_from.find_last_not_of(" \n\r\t")+1);
     nh->message_send(nh->mqtt_topic + "/" + mail_from, mail_subject);
@@ -286,7 +288,11 @@ int main(int argc, char *argv[])
     {
       /* Add to database */
       nh->db->dbConnect();
-      nh->db->sp_log_ggemail (ep.get_subject(), body, reply_to, message_id, mail_from, err, ggemail_id);
+      nh->db->sp_log_ggemail (ep.get_subject(), body, reply_to, message_id, ep.get_from(), err, ggemail_id);
+      
+      /* Get and save word count */
+      word_count = ep.get_msg_word_count(body);
+      nh->db->sp_gg_set_auto_wc(ggemail_id, word_count);           
     }
     
     delete nh; 
