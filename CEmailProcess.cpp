@@ -36,8 +36,13 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
+#include <stdlib.h>
 
 using namespace std;
+
+const char CEMailProcess::months_days[MONTH_DAYS_SIZE][4] = 
+      {"jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec",
+      "mon","tue","wed","thr","thu","fri"};
 
 CEMailProcess::CEMailProcess()
 {
@@ -321,8 +326,11 @@ unsigned int CEMailProcess::get_msg_word_count(string msg_body)
     if (msg_lines[i][pos] == '>')
       continue;
     
+    if (is_on_xxx_wrote(msg_lines[i]))
+      continue;
+    
     if (msg_lines[i].find("You received this message because you are subsc") != string::npos)
-      break;
+      break; /* End of message */
     
     word_count += get_word_count(msg_lines[i]); 
   }
@@ -360,6 +368,60 @@ unsigned int CEMailProcess::get_word_count(string line)
  return word_count; 
 }
 
+bool CEMailProcess::is_on_xxx_wrote(string line)
+{
+  /* Should match:
+   * "On 9 February 2013 07:30, xxx xxxx <xxxxxxxxx@xxxxx.xxx> wrote:"
+   * "On 8 Feb 2013 23:56, "xxx xxxxxxxxx" <xxx@xxxxxxxxx.xxx> wrote:"
+   * "On Fri, Feb 8, 2013 at 7:44 PM"
+   * "On Friday, February 8, 2013 8:08:15 AM UTC, xxxxxxx xxxxx:"
+   */
+  
+  char on[3];
+  char a[11]; /* Maximum length of a month is 9 characters (9+comma+null) */
+  char b[11];
+  int i;
+  bool a_is_month_or_day = false;
+  bool b_is_month_or_day = false;
+  
+  i = sscanf(line.c_str(), "%2s %10s %10s", on, a, b);
+   
+  if (i < 3)
+    return false;
+  
+  /* Only matching on day/month abv. */
+  a[3] = '\0';
+  b[3] = '\0';
+  
+  if (strcmp(on, "on"))
+    return false;
+  
+  for (int j = 0; j < MONTH_DAYS_SIZE; j++)
+    if (!strcmp(months_days[j], a))
+    {
+      a_is_month_or_day = true;
+      break;
+    }
+  
+  for (int j = 0; j < MONTH_DAYS_SIZE; j++)
+    if (!strcmp(months_days[j], b))
+    {
+      b_is_month_or_day = true;
+      break;
+    }
+  
+  if 
+  (
+    (a_is_month_or_day && b_is_month_or_day) ||
+    ((a_is_month_or_day || b_is_month_or_day) && (atoi(a) || atoi(b)))
+  )
+  {
+    return true;
+  } else
+  { 
+    return false;
+  } 
+}
 
 /*
 int main()

@@ -4,6 +4,8 @@
 #include <vector>
 #include <utility>
 
+#define MONTH_DAYS_SIZE 12+8
+
 class CEMailProcess
 {
   public:
@@ -17,7 +19,7 @@ class CEMailProcess
     std::string get_reply_to();
     std::string get_body();
     std::string get_list_id();
-    
+
   private:
     std::string sTo_lower(std::string s);
     std::string qp_decode(std::string msg_line);
@@ -25,6 +27,7 @@ class CEMailProcess
     unsigned int get_word_count(std::string line);
     bool is_boundary(std::string line);
     bool header_line(std::string msgdata,  std::map<std::string, std::string> &headers);
+    bool is_on_xxx_wrote(std::string line);;
     bool _header_complete;
     std::vector<std::string> _body;
     std::string _last_field;
@@ -32,4 +35,6 @@ class CEMailProcess
     std::map<std::string, std::string> _mime_header;
     std::vector<std::string> _text_body;  
     std::vector<std::string> _boundaries;
+    static const char months_days[MONTH_DAYS_SIZE][4];
+        
 };  
