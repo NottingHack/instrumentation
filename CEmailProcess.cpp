@@ -38,6 +38,9 @@
 #include <sstream>
 #include <stdlib.h>
 
+#define STX 0x02
+#define ETX 0x03
+
 using namespace std;
 
 const char CEMailProcess::months_days[MONTH_DAYS_SIZE][4] = 
@@ -303,37 +306,53 @@ string CEMailProcess::sTo_lower(string s)
 }
 
 
-unsigned int CEMailProcess::get_msg_word_count(string msg_body)
+unsigned int CEMailProcess::get_msg_word_count(string msg_body, string &msg_body_out)
 {
   vector<string> msg_lines;
   string msg_line;
   unsigned int pos;
   unsigned int word_count = 0;
-    
+  bool get_wc;  
+  unsigned int i;
+  
   // Split string into lines
   stringstream msg_body_ss(msg_body);
   while (getline(msg_body_ss, msg_line))
     msg_lines.push_back(msg_line);
   
-  for (unsigned int i = 0; i < msg_lines.size(); i++)
+  for (i = 0; i < msg_lines.size(); i++)
   {
+    get_wc = true;
+    
     if (msg_lines[i].size() <= 1)
-      continue;
+      get_wc = false;
      
     if ((pos = msg_lines[i].find_first_not_of(" ")) == string::npos)
-      continue;
+      get_wc = false;
     
     if (msg_lines[i][pos] == '>')
-      continue;
+      get_wc = false;
     
     if (is_on_xxx_wrote(msg_lines[i]))
-      continue;
+      get_wc = false;
     
     if (msg_lines[i].find("You received this message because you are subsc") != string::npos)
       break; /* End of message */
     
-    word_count += get_word_count(msg_lines[i]); 
+    if (get_wc)
+    {
+      word_count += get_word_count(msg_lines[i]);
+      msg_body_out += char(STX) + msg_lines[i] + char(ETX) + "\n";
+    } else
+    {
+      msg_body_out += msg_lines[i] + "\n";
+    }
   }
+  
+  // Add the reminder of the message (if any) to the non-word-counted section
+  for (; i < msg_lines.size(); i++)
+    msg_body_out += msg_lines[i] + "\n";
+  
   return word_count;
 }
 
@@ -383,6 +402,8 @@ bool CEMailProcess::is_on_xxx_wrote(string line)
   int i;
   bool a_is_month_or_day = false;
   bool b_is_month_or_day = false;
+  
+  line = sTo_lower(line);
   
   i = sscanf(line.c_str(), "%2s %10s %10s", on, a, b);
    

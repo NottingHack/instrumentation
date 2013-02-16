@@ -236,6 +236,7 @@ int main(int argc, char *argv[])
   string message_id;
   string reply_to;
   string body;
+  string body_processed;
   int ggemail_id;
   string err;
   string searchstr;
@@ -291,8 +292,8 @@ int main(int argc, char *argv[])
       nh->db->sp_log_ggemail (ep.get_subject(), body, reply_to, message_id, ep.get_from(), err, ggemail_id);
       
       /* Get and save word count */
-      word_count = ep.get_msg_word_count(body);
-      nh->db->sp_gg_set_auto_wc(ggemail_id, word_count);           
+      word_count = ep.get_msg_word_count(body, body_processed);
+      nh->db->sp_gg_set_auto_wc(ggemail_id, word_count, body_processed);           
     }
     
     delete nh; 

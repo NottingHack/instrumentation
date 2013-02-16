@@ -12,7 +12,7 @@ class CEMailProcess
     CEMailProcess();
     bool add_line(std::string msgdata); /* Call this with email line of the received email */
     bool process(); /* Call after complete email has been passed into add_line */
-    unsigned int get_msg_word_count(std::string msg_body);
+    unsigned int get_msg_word_count(std::string msg_body, std::string &msg_body_out);
     std::string get_subject();
     std::string get_from();
     std::string get_message_id();
