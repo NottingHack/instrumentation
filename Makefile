@@ -86,8 +86,9 @@ web/nhweb/build/script/custom.js: $(wildcard web/nhweb/source/class/custom/*)
 
 nh-web: web/nhweb/build/script/custom.js
 
-web2: nh-web db/lib/CNHDBAccess.php web/pwreset.php web/vend.php web/db.php
+web2: nh-web db/lib/CNHDBAccess.php web/pwreset.php web/vend.php web/db.php web/wikiauth.php
 	mkdir -p website/public/nhweb/
+	mkdir -p website/public/wiki/
 	cp db/lib/CNHDBAccess.php website/
 	rsync -r --exclude=. web/nhweb/build/script website/public/nhweb/
 	rsync -r --exclude=. web/nhweb/build/resource website/public/nhweb/
@@ -96,7 +97,7 @@ web2: nh-web db/lib/CNHDBAccess.php web/pwreset.php web/vend.php web/db.php
 	rsync -r --exclude=. -r web/status website/public/
 	cp web/pwreset.php website/public/
 	cp web/vend.php website/public/
-#	cp web/wikiauth.php website/public/
+	cp web/wikiauth.php website/public/wiki/
 	cp web/db.php website/
 	cp web/krb5_auth.php website/
 
@@ -104,7 +105,7 @@ web2: nh-web db/lib/CNHDBAccess.php web/pwreset.php web/vend.php web/db.php
 CNHmqtt.o: CNHmqtt.cpp CNHmqtt.h
 	g++ -Wall -c CNHmqtt.cpp
 
-nh-mail.o: nh-mail.cpp nh-mail.h
+nh-mail.o: nh-mail.cpp nh-mail.h db/lib/CNHDBAccess.h
 	g++ -Wall -c nh-mail.cpp
 
 CNHmqtt_irc.o: CNHmqtt_irc.cpp CNHmqtt_irc.h
@@ -166,6 +167,10 @@ CLogging.o: CLogging.cpp CLogging.h
 
 CEmailProcess.o: CEmailProcess.cpp CEmailProcess.h
 	g++ -Wall -c CEmailProcess.cpp
+
+CalcWordCount.o: CalcWordCount.cpp
+	g++ -Wall -c CalcWordCount.cpp
+
 
 dblib: db/lib/gen_dblib
 
