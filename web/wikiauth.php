@@ -138,7 +138,7 @@ function login()
         } else
         {
           $result['access_granted'] = false;
-          $result['error'] = "Incorrect password / password check failed [$password], [$username]";
+          $result['error'] = "Incorrect password / password check failed for [$username]";
         }
       } else
       {
