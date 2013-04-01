@@ -314,31 +314,31 @@ unsigned int CEMailProcess::get_msg_word_count(string msg_body, string &msg_body
   unsigned int word_count = 0;
   bool get_wc;  
   unsigned int i;
-  
+
   // Split string into lines
   stringstream msg_body_ss(msg_body);
   while (getline(msg_body_ss, msg_line))
     msg_lines.push_back(msg_line);
-  
+
   for (i = 0; i < msg_lines.size(); i++)
   {
     get_wc = true;
-    
+
     if (msg_lines[i].size() <= 1)
       get_wc = false;
-     
-    if ((pos = msg_lines[i].find_first_not_of(" ")) == string::npos)
+
+    else if ((pos = msg_lines[i].find_first_not_of(" ")) == string::npos)
       get_wc = false;
-    
-    if (msg_lines[i][pos] == '>')
+
+    else if ((pos < msg_lines[i].size()) && (msg_lines[i][pos] == '>'))
       get_wc = false;
-    
-    if (is_on_xxx_wrote(msg_lines[i]))
+
+    else if (is_on_xxx_wrote(msg_lines[i]))
       get_wc = false;
-    
-    if (msg_lines[i].find("You received this message because you are subsc") != string::npos)
+
+    else if (msg_lines[i].find("You received this message because you are subsc") != string::npos)
       break; /* End of message */
-    
+
     if (get_wc)
     {
       word_count += get_word_count(msg_lines[i]);
@@ -348,7 +348,7 @@ unsigned int CEMailProcess::get_msg_word_count(string msg_body, string &msg_body
       msg_body_out += msg_lines[i] + "\n";
     }
   }
-  
+
   // Add the reminder of the message (if any) to the non-word-counted section
   for (; i < msg_lines.size(); i++)
     msg_body_out += msg_lines[i] + "\n";
