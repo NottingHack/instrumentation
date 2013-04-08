@@ -63,7 +63,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_transaction_log TO 'gk'@'localhost';
-GRANT EXECUTE ON PROCEDURE sp_transaction_log TO 'nh-web'@'localhost';

@@ -50,6 +50,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_pin_update TO 'gk'@'localhost'

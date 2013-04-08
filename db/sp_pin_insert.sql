@@ -66,5 +66,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_pin_insert TO 'gk'@'localhost'

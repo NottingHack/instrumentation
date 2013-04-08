@@ -68,5 +68,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_web_set_vendprd TO 'gk'@'localhost'

@@ -93,4 +93,3 @@ BEGIN
 END //
 DELIMITER ;
 
-GRANT EXECUTE ON PROCEDURE sp_space_net_activity TO 'gk'@'localhost'

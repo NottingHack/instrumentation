@@ -53,7 +53,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_password_reset_complete TO 'gk'@'localhost';
-GRANT EXECUTE ON PROCEDURE sp_password_reset_complete TO 'nh-web'@'localhost';

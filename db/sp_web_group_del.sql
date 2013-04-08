@@ -31,5 +31,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_web_group_del TO 'gk'@'localhost'

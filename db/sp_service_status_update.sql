@@ -15,5 +15,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-GRANT EXECUTE ON PROCEDURE sp_service_status_update TO 'gk'@'localhost'

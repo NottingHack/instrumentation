@@ -23,6 +23,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_web_group_add_member TO 'gk'@'localhost'

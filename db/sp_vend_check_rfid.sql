@@ -75,5 +75,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_vend_check_rfid TO 'gk'@'localhost'

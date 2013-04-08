@@ -32,6 +32,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_web_group_toggle_permission TO 'gk'@'localhost'

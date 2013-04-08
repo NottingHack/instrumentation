@@ -46,9 +46,3 @@ END //
 DELIMITER ;
 
 
-GRANT EXECUTE ON PROCEDURE sp_temperature_check TO 'gk'@'localhost'
-
-
-
-
-

@@ -169,6 +169,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_check_pin TO 'gk'@'localhost'

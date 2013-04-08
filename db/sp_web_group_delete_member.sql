@@ -24,6 +24,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_web_group_delete_member TO 'gk'@'localhost'

@@ -54,6 +54,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_gg_set_auto_wc TO 'gk'@'localhost'

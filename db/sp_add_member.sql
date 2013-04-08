@@ -117,5 +117,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-GRANT EXECUTE ON PROCEDURE sp_add_member TO 'gk'@'localhost'

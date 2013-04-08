@@ -56,5 +56,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_vend_failure TO 'gk'@'localhost'

@@ -90,6 +90,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_transaction_update TO 'gk'@'localhost'

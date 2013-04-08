@@ -46,6 +46,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_web_change_password TO 'gk'@'localhost'

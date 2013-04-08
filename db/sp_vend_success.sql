@@ -91,5 +91,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_vend_success TO 'gk'@'localhost'

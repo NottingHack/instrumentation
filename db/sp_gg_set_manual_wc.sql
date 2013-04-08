@@ -41,5 +41,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_gg_set_manual_wc TO 'gk'@'localhost'

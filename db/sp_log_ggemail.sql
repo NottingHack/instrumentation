@@ -34,5 +34,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_log_ggemail TO 'gk'@'localhost'

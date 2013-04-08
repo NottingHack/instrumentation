@@ -45,5 +45,8 @@ insert into permissions (permission_code, permission_desc) values ('WIKI_ACCESS 
 
 
 
+insert into group_permissions 
+select 1, permission_code 
+from permissions;
 
 

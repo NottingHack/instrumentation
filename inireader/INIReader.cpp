@@ -17,6 +17,12 @@ int INIReader::ParseError()
     return _error;
 }
 
+bool INIReader::KeyExists(string section, string name)
+{
+  string key = MakeKey(section, name);
+  return _values.count(key);
+}
+
 string INIReader::Get(string section, string name, string default_value)
 {
     string key = MakeKey(section, name);

@@ -43,6 +43,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_web_login TO 'gk'@'localhost'

@@ -41,9 +41,6 @@ END //
 DELIMITER ;
 
 
-GRANT EXECUTE ON PROCEDURE sp_last_seen TO 'gk'@'localhost'
-
-
 
 
 

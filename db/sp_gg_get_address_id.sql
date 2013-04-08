@@ -61,6 +61,3 @@ BEGIN
   
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_gg_get_address_id TO 'gk'@'localhost'

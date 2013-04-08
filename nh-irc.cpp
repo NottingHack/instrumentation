@@ -69,7 +69,7 @@ class nh_irc : public CNHmqtt
    
     int irc_connect()
     {
-      if (mosq == NULL)
+      if (_mosq == NULL)
       {
         log->dbg ("Must connect to mosquitto before IRC");
         return -1;
@@ -105,13 +105,13 @@ class nh_irc : public CNHmqtt
     {
       // Disconnected from IRC, so send ourselves a reset message
       m->log->dbg("Disconnected from IRC!");
-      m->message_send(m->mqtt_rx, "RESET");      
+      m->message_send(m->_mqtt_rx, "TERMINATE");      
       return NULL;
     }
       
     // If the bot is sent a private message, publish to /pm/<nick>, if 
     // it's a chat message in the channel, send to /<channel>/<nick>.
-    if (m->mosq_connected)
+    if (m->_mosq_connected)
     {
       if (channel.substr(0,1)=="#")
         m->message_send(m->irc_mqtt_rx + "/" + channel.substr(1) + "/" + user, message);
@@ -170,47 +170,17 @@ class nh_irc : public CNHmqtt
 
 int main(int argc, char *argv[])
 {
+  nh_irc nh = nh_irc(argc, argv);
  
-  nh_irc *nh;
-  bool reset = true;
+  nh_irc::daemonize();
   
-  nh = NULL;
-  
-  
-  
-  // All this is basicly just to auto-reconnect to IRC, with a small delay between retries
-  while (reset)
-  {
-    reset = false;
-    if (nh!=NULL)
-    {
-      delete nh;
-      nh = NULL;
-    }
-    nh = new nh_irc(argc, argv);
-    nh_irc::daemonize(); // will only work on first run
-    nh->mosq_connect();
+  while (nh.mosq_connect())
+    sleep(10);
     
-    if (nh->irc_connect())
-    {
-      reset = true;
-      sleep(2);
-      continue;
-    }
+  while (nh.irc_connect())
+    sleep(10);
     
-    if (nh->message_loop() == EXIT_RESET)
-    {
-      reset = true;
-      sleep(2);
-    }
-  }
-    
-  if (nh!=NULL)
-  {
-    delete nh;
-    nh = NULL;
-  }
+  nh.message_loop();
   
   return 0;
-  
 }

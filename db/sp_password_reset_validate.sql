@@ -46,7 +46,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_password_reset_validate TO 'gk'@'localhost';
-GRANT EXECUTE ON PROCEDURE sp_password_reset_validate TO 'nh-web'@'localhost';

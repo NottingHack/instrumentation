@@ -38,6 +38,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_log_email TO 'gk'@'localhost'

@@ -160,7 +160,7 @@ int nh_mail::mosq_connect()
   
   log->dbg("Connecting to Mosquitto as [" + out.str() + "]");;
   
-  mosq = mosquitto_new(out.str().c_str(), this);  
+  mosq = mosquitto_new(out.str().c_str(), true, this);  
   if(!mosq)
   {
     cout << "mosquitto_new() failed!";
@@ -171,7 +171,7 @@ int nh_mail::mosq_connect()
 //  mosquitto_message_callback_set(mosq, nh_mail::message_callback);  
   
     // int mosquitto_connect(struct mosquitto *mosq, const char *host, int port, int keepalive, bool clean_session);
-  if(mosquitto_connect(mosq, mosq_server.c_str(), mosq_port, 300, true)) 
+  if(mosquitto_connect(mosq, mosq_server.c_str(), mosq_port, 300)) 
   {
     log->dbg("mosq_connnect failed!");
     mosquitto_destroy(mosq);
@@ -183,7 +183,7 @@ int nh_mail::mosq_connect()
   return 0;       
 }
 
-void nh_mail::connect_callback(void *obj, int result)
+void nh_mail::connect_callback(struct mosquitto *mosq, void *obj, int result)
 {
   nh_mail *m = (nh_mail*)obj;
 
@@ -203,7 +203,7 @@ int nh_mail::message_send(string topic, string message, bool no_debug)
   if (!no_debug)
     log->dbg("Sending message,  topic=[" + topic + "], message=[" + message + "]");
   pthread_mutex_lock(&mosq_mutex);
-  ret = mosquitto_publish(mosq, NULL, topic.c_str(), message.length(), (uint8_t*)message.c_str(), 0, false);
+  ret = mosquitto_publish(mosq, NULL, topic.c_str(), message.length(), message.c_str(), 0, false);
   pthread_mutex_unlock(&mosq_mutex);
   return ret;
 }
@@ -220,7 +220,7 @@ int nh_mail::message_loop(void)
   if (mosq==NULL)
     return -1;
   
-  mosquitto_loop(mosq, 50);
+  mosquitto_loop(mosq, 50, -1);
   
   return 0;
 }

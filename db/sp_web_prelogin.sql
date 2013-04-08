@@ -44,5 +44,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_web_prelogin TO 'gk'@'localhost'

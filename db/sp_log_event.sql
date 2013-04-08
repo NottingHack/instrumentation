@@ -15,5 +15,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_log_event TO 'gk'@'localhost'

@@ -27,5 +27,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_temperature_update TO 'gk'@'localhost'

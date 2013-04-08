@@ -32,23 +32,28 @@
 #include <iostream>
 #include <cstdlib>
 #include <unistd.h>
+#include <libgen.h>
+#include <string.h>
 
 CNHmqtt::CNHmqtt(int argc, char *argv[]) 
 {
   log = NULL;
   string config_file = "";
-  config_file_parsed = false;
+  _config_file_parsed = false;
+  _config_file_default_parsed = false;
   int c;
   std::stringstream out;
-  reader = NULL;
-  mosq_connected = false;
+  _reader = NULL;
+  _mosq_connected = false;
   log = new CLogging();
   string logfile;
-  uid = 0;
-  no_staus_debug = false;
+  _uid = 0;
+  _no_staus_debug = false;
+  string def_config="";
+  char buf[256]="";
   
   mosquitto_lib_init();
-  mosq = NULL;
+  _mosq = NULL;
     
   debug_mode = false;
     
@@ -89,38 +94,48 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
       }
       
       
-  CNHmqtt::mqtt_topic = "test"; //man_channel;
-  CNHmqtt::status = "Running";
-  CNHmqtt::mosq_server = "127.0.0.1";
-  CNHmqtt::mosq_port = 1883;      
+  CNHmqtt::_mqtt_topic = "test"; //man_channel;
+  CNHmqtt::_status = "Running";
+  CNHmqtt::_mosq_server = "127.0.0.1";
+  CNHmqtt::_mosq_port = 1883;      
   
-  pthread_mutex_init (&mosq_mutex, NULL);
+  pthread_mutex_init (&_mosq_mutex, NULL);
       
   if (config_file != "")
   {
-    reader = new INIReader(config_file);
-    
-    if (reader->ParseError() < 0) 
-    {
-        log->dbg("Failed to open/parse config file [" + config_file + "]");
-    } else
-    {
-      config_file_parsed = true;
-      mosq_server = reader->Get("mqtt", "host", "localhost");
-      mosq_port   = reader->GetInteger("mqtt", "port", 1883);
-      mqtt_topic  = reader->Get("mqtt", "topic", "test"); 
-      logfile     = reader->Get("mqtt", "logfile", ""); 
-      uid         = reader->GetInteger("mqtt", "uid", 0);
+    // Open process specific config file
+    log->dbg("Opening config file: [" + config_file + "]");
+    _reader = new INIReader(config_file);
+    if (_reader->ParseError() < 0) 
+      log->dbg("Failed to open/parse config file [" + config_file + "]");
+    else
+      _config_file_parsed = true;
+        
+    // Open general config file
+    strcpy(buf, config_file.c_str());
+    def_config = (string)dirname(buf) + "/default.conf" ;
+    log->dbg("Opening config file: [" + def_config + "]");
+    _reader_default = new INIReader(def_config);
+    if (_reader_default->ParseError() < 0) 
+      log->dbg("Failed to open/parse config file [" + def_config + "]");
+    else
+      _config_file_default_parsed = true;
+            
+    _mosq_server = get_str_option("mqtt", "host", "localhost");
+    _mosq_port   = get_int_option("mqtt", "port", 1883);
+    _mqtt_topic  = get_str_option("mqtt", "topic", "test"); 
+    logfile      = get_str_option("mqtt", "logfile", ""); 
+    _uid         = get_int_option("mqtt", "uid", 0);
       
-      if (reader->Get("mqtt", "no_status_debug", "false") == "true")
-        no_staus_debug = true;
-      else no_staus_debug = false; 
-    }    
+    if (get_str_option("mqtt", "no_status_debug", "false") == "true")
+      _no_staus_debug = true;
+    else 
+      _no_staus_debug = false;    
   }
   
   // Switch to less privileged user if set
-  if (uid)
-    if (setuid(uid))
+  if (_uid)
+    if (setuid(_uid))
     {
       log->dbg("Failed to switch user!");
       exit(1);
@@ -130,33 +145,30 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
     if(!log->open_logfile(logfile))
       exit(1);
   
-  mqtt_rx = mqtt_topic + "/rx";
-  mqtt_tx = mqtt_topic + "/tx";
+  _mqtt_rx = _mqtt_topic + "/rx";
+  _mqtt_tx = _mqtt_topic + "/tx";
   
-  log->dbg("mosq_server = " + mosq_server);
-  out << "" << mosq_port;
+  log->dbg("mosq_server = " + _mosq_server);
+  out << "" << _mosq_port;
   log->dbg("mosq_port = "   + out.str());
-  log->dbg("mqtt_tx = "     + mqtt_tx);
-  log->dbg("mqtt_rx = "     + mqtt_rx);
-  
-  terminate = false;
-  reset = false;  
+  log->dbg("mqtt_tx = "     + _mqtt_tx);
+  log->dbg("mqtt_rx = "     + _mqtt_rx);
 }
 
 CNHmqtt::~CNHmqtt()
 {
-  if (mosq_connected && (mosq != NULL))
-    mosquitto_disconnect(mosq);         
+  if (_mosq_connected && (_mosq != NULL))
+    mosquitto_disconnect(_mosq);         
   
-  if (mosq != NULL)
-    mosquitto_destroy(mosq); 
+  if (_mosq != NULL)
+    mosquitto_destroy(_mosq); 
   
   mosquitto_lib_cleanup();
   
-  if (reader!=NULL)
+  if (_reader!=NULL)
   {
-    delete reader;
-    reader=NULL;
+    delete _reader;
+    _reader=NULL;
   }
   
   if (log!=NULL)
@@ -181,66 +193,57 @@ int CNHmqtt::daemonize()
 }
 
 string CNHmqtt::get_str_option(string section, string option, string def_value)
+/* Get string value from config file. First try process specific config file, then 
+ * default config file, then finally just return def_value */
 {
-  if (config_file_parsed && reader != NULL)
-    return reader->Get(section, option, def_value); 
+  if (_config_file_parsed && _reader != NULL && _reader->KeyExists(section, option))    
+    return _reader->Get(section, option, def_value); 
+  else if (_config_file_default_parsed && _reader_default != NULL && _reader_default->KeyExists(section, option))
+    return _reader_default->Get(section, option, def_value); 
   else
-    return def_value;
+    return def_value; 
 }
 
 int CNHmqtt::get_int_option(string section, string option, int def_value)
 {
-  if (config_file_parsed && reader != NULL)
-    return reader->GetInteger(section, option, def_value); 
+  if (_config_file_parsed && _reader != NULL && _reader->KeyExists(section, option))    
+    return _reader->GetInteger(section, option, def_value); 
+  else if (_config_file_default_parsed && _reader_default != NULL && _reader_default->KeyExists(section, option))
+    return _reader_default->GetInteger(section, option, def_value); 
   else
-    return def_value;
+    return def_value;  
 }
 
 int CNHmqtt::mosq_connect()
 {
   std::stringstream out;
-  out << mqtt_topic << "-" << getpid();
+  out << _mqtt_topic << "-" << getpid();
   
   log->dbg("Connecting to Mosquitto as [" + out.str() + "]");;
   
-  mosq = mosquitto_new(out.str().c_str(), this);  
-  if(!mosq)
+  _mosq = mosquitto_new(out.str().c_str(), true, this);  
+  if(!_mosq)
   {
     cout << "mosquitto_new() failed!";
     return -1;
   }  
   
-  mosquitto_connect_callback_set(mosq, CNHmqtt::connect_callback);
-  mosquitto_message_callback_set(mosq, CNHmqtt::message_callback);  
+  mosquitto_message_callback_set(_mosq, CNHmqtt::message_callback);  
   
-    // int mosquitto_connect(struct mosquitto *mosq, const char *host, int port, int keepalive, bool clean_session);
-  if(mosquitto_connect(mosq, mosq_server.c_str(), mosq_port, 300, true)) 
+  if(mosquitto_connect(_mosq, _mosq_server.c_str(), _mosq_port, 300)) 
   {
     log->dbg("mosq_connnect failed!");
-    mosquitto_destroy(mosq);
-    mosq = NULL;
+    mosquitto_destroy(_mosq);
+    _mosq = NULL;
     return -1;
   }
-  mosq_connected = true;
+  _mosq_connected = true;
+  subscribe(_mqtt_rx);
     
   return 0;       
 }
 
-void CNHmqtt::connect_callback(void *obj, int result)
-{
-  CNHmqtt *m = (CNHmqtt*)obj;
-
-  if(!result)
-  {  
-    m->log->dbg("Connected to mosquitto.");  
-    mosquitto_subscribe(m->mosq, NULL, m->get_topic().c_str(), 0);
-  } else
-  {
-    m->log->dbg("Failed to connect to mosquitto!");
-  }
-}
-
-void CNHmqtt::message_callback(void *obj, const struct mosquitto_message *message)
+void CNHmqtt::message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message)
 {
   CNHmqtt *m = (CNHmqtt*)obj;
   string payload;
@@ -252,11 +255,11 @@ void CNHmqtt::message_callback(void *obj, const struct mosquitto_message *messag
     payload = ((char *)message->payload);
     topic = ((char *)message->topic);    
     
-    if (!m->no_staus_debug)
+    if (!m->_no_staus_debug)
       m->log->dbg("Got mqtt message, topic=[" + topic + "], message=[" + payload + "]");
     else // no_staus_debug is set - so only print out message to log if it's /not/ a status request
     {
-      if (!((topic == m->mqtt_rx) && (payload == "STATUS")))
+      if (!((topic == m->_mqtt_rx) && (payload == "STATUS")))
         m->log->dbg("Got mqtt message, topic=[" + topic + "], message=[" + payload + "]");
     }
       
@@ -273,13 +276,13 @@ int CNHmqtt::subscribe(string topic)
     return -1;
   }
     
-  if (!mosq_connected)
+  if (!_mosq_connected)
   {
     log->dbg("Subscribe failed - Not connected!");
     return -1;
   }    
     
-  if(mosquitto_subscribe(mosq, NULL, topic.c_str(), 0))
+  if(mosquitto_subscribe(_mosq, NULL, topic.c_str(), 0))
   {
     log->dbg("Subscribe failed!");
     return -1;
@@ -291,22 +294,16 @@ int CNHmqtt::subscribe(string topic)
 void CNHmqtt::process_message(string topic, string message)
 {
   // Process any messages sent to our management topic (terminate or status)
-  if (topic == mqtt_rx)
+  if (topic == _mqtt_rx)
   {
     if (message == "TERMINATE")
     {
       log->dbg("Terminate message received...");  
-      terminate = true;
+      mosquitto_disconnect(_mosq);
     }
     
     if (message == "STATUS")
-      message_send(mqtt_tx, status, no_staus_debug);
-    
-    if (message == "RESET")
-    {
-      log->dbg("RESET message received...");
-      reset = true;
-    }
+      message_send(_mqtt_tx, _status, _no_staus_debug);
   }
 }
 
@@ -316,9 +313,9 @@ int CNHmqtt::message_send(string topic, string message, bool no_debug)
   
   if (!no_debug)
     log->dbg("Sending message,  topic=[" + topic + "], message=[" + message + "]");
-  pthread_mutex_lock(&mosq_mutex);
-  ret = mosquitto_publish(mosq, NULL, topic.c_str(), message.length(), (uint8_t*)message.c_str(), 0, false);
-  pthread_mutex_unlock(&mosq_mutex);
+  pthread_mutex_lock(&_mosq_mutex);
+  ret = mosquitto_publish(_mosq, NULL, topic.c_str(), message.length(), message.c_str(), 0, false);
+  pthread_mutex_unlock(&_mosq_mutex);
   return ret;
 }
 
@@ -329,40 +326,26 @@ int CNHmqtt::message_send(string topic, string message)
 
 string CNHmqtt::get_topic()
 {
-  return mqtt_rx;
+  return _mqtt_rx;
 }
 
 int CNHmqtt::message_loop(void)
 {
   string dbgmsg="";
+  int ret;
   
-  if (mosq==NULL)
+  if (_mosq==NULL)
     return -1;
   
-  while(!mosquitto_loop(mosq, 50)  && !terminate && !reset);
+  ret = mosquitto_loop_forever(_mosq, 50, 999);
   
-  if (terminate)
-    log->dbg("terminate=true");
-  else
-    log->dbg("terminate=false");
+  log->dbg("Exit. mosquitto_loop_forever ret = " + itos(ret));
+  _mosq_connected = false;
+  mosquitto_disconnect(_mosq);
+  mosquitto_destroy(_mosq);
+  _mosq = NULL;  
   
-  if (reset)
-    log->dbg("reset=true");
-  else
-    log->dbg("reset=false");  
-  
-  log->dbg("Exit.");
-  mosq_connected = false;
-  mosquitto_disconnect(mosq);
-  mosquitto_destroy(mosq);
-  mosq = NULL;  
-  
-  if (terminate)
-    return EXIT_TERMINATE;
-  else if (reset)
-    return EXIT_RESET;
-  else
-    return 0;
+  return 0;
 }
 
 

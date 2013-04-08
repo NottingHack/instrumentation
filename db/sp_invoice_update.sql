@@ -46,6 +46,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_invoice_update TO 'gk'@'localhost'

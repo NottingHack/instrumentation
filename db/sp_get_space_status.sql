@@ -41,5 +41,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_get_space_status TO 'gk'@'localhost'

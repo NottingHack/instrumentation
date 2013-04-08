@@ -106,6 +106,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_invoice_prepare TO 'gk'@'localhost'

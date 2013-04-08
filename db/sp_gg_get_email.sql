@@ -35,5 +35,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_gg_get_email TO 'gk'@'localhost'

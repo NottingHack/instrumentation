@@ -113,6 +113,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_vend_request TO 'gk'@'localhost'

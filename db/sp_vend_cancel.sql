@@ -43,6 +43,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_vend_cancel TO 'gk'@'localhost'

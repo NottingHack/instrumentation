@@ -37,6 +37,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-
-GRANT EXECUTE ON PROCEDURE sp_add_card TO 'gk'@'localhost'

@@ -17,7 +17,7 @@ class CNHmqtt
     CNHmqtt(int argc, char *argv[]);
     ~CNHmqtt();
     string get_topic();
-    struct mosquitto *mosq; //needs to be public so can be accessed by static callback
+    struct mosquitto *_mosq; //needs to be public so can be accessed by static callback
     void dbg(string msg);
     int message_loop(void);
     static int daemonize();
@@ -26,18 +26,18 @@ class CNHmqtt
     virtual void process_message(string topic, string message);
    
     int subscribe(string topic);
-    bool mosq_connected;
+    bool _mosq_connected;
     static bool debug_mode;
     static bool daemonized;
     static string itos(int n);
     
   protected:
-    string mqtt_topic;
-    string mqtt_rx;
-    string mqtt_tx;
-    string status; // returned in response to status mqtt message (so should be short!)
-    string mosq_server;
-    int mosq_port;
+    string _mqtt_topic;
+    string _mqtt_rx;
+    string _mqtt_tx;
+    string _status; // returned in response to status mqtt message (so should be short!)
+    string _mosq_server;
+    int _mosq_port;
     CLogging *log;
 
     int message_send(string topic, string message);
@@ -46,15 +46,14 @@ class CNHmqtt
     string get_str_option(string section, string option, string def_value);
         
   private:
-    static void connect_callback(void *obj, int result);
-    static void message_callback(void *obj, const struct mosquitto_message *message);  
-    bool terminate;
-    bool reset;
-    bool config_file_parsed;
-    bool no_staus_debug;
-    INIReader *reader;
-    uid_t uid;
-    pthread_mutex_t mosq_mutex;
+    static void message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message);  
+    bool _config_file_parsed;
+    bool _config_file_default_parsed;
+    bool _no_staus_debug;
+    INIReader *_reader;
+    INIReader *_reader_default;
+    uid_t _uid;
+    pthread_mutex_t _mosq_mutex;
 };
 
 

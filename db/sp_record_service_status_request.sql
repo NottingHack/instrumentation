@@ -26,5 +26,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_record_service_status_request TO 'gk'@'localhost'

@@ -29,5 +29,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_set_credit_limit TO 'gk'@'localhost'

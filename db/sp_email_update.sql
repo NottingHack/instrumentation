@@ -41,5 +41,3 @@ BEGIN
 END //
 DELIMITER ;
 
-
-GRANT EXECUTE ON PROCEDURE sp_email_update TO 'gk'@'localhost'
