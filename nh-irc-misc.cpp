@@ -37,12 +37,14 @@ class nh_irc_misc : public CNHmqtt_irc
     CNHDBAccess *db;   
     string entry_announce;
     string door_button;
+    string tts_topic;
     
     nh_irc_misc(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
     {
       db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   ;   
       entry_announce = get_str_option("gatekeeper", "entry_announce", "nh/gk/entry_announce");
       door_button = get_str_option("gatekeeper", "door_button", "nh/gk/DoorButton");
+      tts_topic = get_str_option("tts", "topic", "nh/tts/gk");
     }
 
     void process_message(string topic, string message)
@@ -64,13 +66,13 @@ class nh_irc_misc : public CNHmqtt_irc
       
       CNHmqtt_irc::process_message(topic, message);
     }
-   
-    
     
    void process_irc_message(irc_msg msg)
    {
      string activity;
      string temperature;
+     string sMsg = msg;
+     string tts_msg;
      
      if (msg=="!help")
      {
@@ -79,6 +81,7 @@ class nh_irc_misc : public CNHmqtt_irc
 //     msg.reply("!alert - Flash light next to matrix display");  Comming soon....
        msg.reply("!status - Best guess if the space is open");   
        msg.reply("!temp - Latest Temperature readings"); 
+       msg.reply("!say <message> - Speak <message> on Gatekeepers text-to-speach system");
        msg.reply("Temperature graphs: http://cacti.nottinghack.org.uk/graph_view.php"); 
 
      }
@@ -93,10 +96,15 @@ class nh_irc_misc : public CNHmqtt_irc
      {
         db->sp_temperature_check(temperature);
         msg.reply(temperature);      
-     }          
+     }        
+     
+     if (sMsg.substr(0, 5) == "!say ")
+     {
+       tts_msg = sMsg.substr(5, string::npos);
+       message_send(tts_topic, tts_msg);
+     }
    }
       
-   
    bool setup()
    {
      if (!init()) // connect to mosquitto, daemonize, etc
@@ -112,7 +120,6 @@ class nh_irc_misc : public CNHmqtt_irc
    }
   
 };
-
 
 
 int main(int argc, char *argv[])

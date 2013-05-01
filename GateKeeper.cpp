@@ -52,6 +52,7 @@ class GateKeeper : public CNHmqtt_irc
     string twitter_out;
     string last_seen;
     string entry_announce;
+    string tts_topic;
     CNHDBAccess *db;
 
     GateKeeper(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
@@ -68,7 +69,7 @@ class GateKeeper : public CNHmqtt_irc
       lastman_close = get_str_option("gatekeeper", "lastman_close", "Hackspace is closed");
       twitter_out = get_str_option("gatekeeper", "twitter_out", "nh/twitter/tx/status");
       entry_announce = get_str_option("gatekeeper", "entry_announce", "nh/gk/entry_announce");
-
+      tts_topic = get_str_option("tts", "topic", "nh/tts/gk");
       db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
       handle = "";
     }
@@ -160,6 +161,11 @@ class GateKeeper : public CNHmqtt_irc
         } else
         {
           message_send(unlock, unlock_text); 
+          
+          if (unlock_text.substr(0, 7) == "Unlock:")
+            message_send(tts_topic, unlock_text.substr(7, string::npos));
+          else
+            message_send(tts_topic, unlock_text);    
         }
       }
       
@@ -183,7 +189,6 @@ class GateKeeper : public CNHmqtt_irc
     db->dbConnect();
     return 0;
   }
-
   
   void setup()
   {
