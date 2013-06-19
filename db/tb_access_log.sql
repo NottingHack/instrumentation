@@ -7,5 +7,6 @@ create table access_log
   rfid_serial   varchar(50),
   pin           varchar(50),
   access_result int, -- denied/granted
+  member_id     int,
   primary key (access_id)
 );

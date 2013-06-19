@@ -35,6 +35,7 @@ BEGIN
   
   set ck_exists = 0;
   set access_granted = 0;
+  set p_member_id = NULL;
  
   main: begin  
   
@@ -160,11 +161,11 @@ BEGIN
   end main;
   
   if (access_granted = 1) then
-    insert into access_log (rfid_serial, pin, access_result)
-    values (null, pin, 20); -- granted
+    insert into access_log (rfid_serial, pin, access_result, member_id)
+    values (null, pin, 20, p_member_id); -- granted
   else
-    insert into access_log (rfid_serial, pin, access_result)
-    values (null, pin, 10); -- denied
+    insert into access_log (rfid_serial, pin, access_result, member_id)
+    values (null, pin, 10, p_member_id); -- denied
   end if;
 
 END //

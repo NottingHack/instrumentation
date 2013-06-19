@@ -20,8 +20,7 @@ BEGIN
     days,
     mhs
   from members m 
-  inner join rfid_tags r on r.member_id = m.member_id 
-  inner join access_log l on l.rfid_serial = r.rfid_serial 
+  inner join access_log l on l.member_id = m.member_id
   where m.member_id = member_id 
   order by access_time desc
   limit 1;

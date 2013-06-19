@@ -21,6 +21,8 @@ BEGIN
   declare r_state int;
   declare member_id int;
 
+  set member_id = NULL;
+  
   main: begin  
     set access_granted = 0;
     
@@ -73,11 +75,11 @@ BEGIN
 
   -- add entry to access log
   if (access_granted = 1) then
-    insert into access_log (rfid_serial, pin, access_result)
-    values (rfid_serial, null, 20); -- granted
+    insert into access_log (rfid_serial, pin, access_result, member_id)
+    values (rfid_serial, null, 20, member_id); -- granted
   else
-    insert into access_log (rfid_serial, pin, access_result)
-    values (rfid_serial, null, 10); -- denied
+    insert into access_log (rfid_serial, pin, access_result, member_id)
+    values (rfid_serial, null, 10, member_id); -- denied
   end if;
 
 END //
