@@ -44,6 +44,11 @@ BEGIN
       set unlock_text = "Access Denied";
       leave main;
     end if;
+    
+    -- Update the last used time set against the card
+    update rfid_tags 
+    set last_used = sysdate()
+    where rfid_tags.rfid_serial = rfid_serial;
 
     select 
       m.member_id,
