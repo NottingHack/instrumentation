@@ -10,7 +10,7 @@ CREATE PROCEDURE sp_check_rfid
 (
    IN  rfid_serial  varchar(50),
    OUT unlock_text  varchar(95),
-   OUT handle       varchar(100),
+   OUT username     varchar(50),
    OUT last_seen    varchar(100),
    OUT err          varchar(100)
 )
@@ -53,12 +53,12 @@ BEGIN
     select 
       m.member_id,
       concat('Unlock:',  coalesce(m.unlock_text, 'Welcome')),
-      coalesce(m.handle, m.username, m.name, '<unknown>'),
+      coalesce(m.username, '<unknown>'),
       r.state
     into
       member_id,
       unlock_text,
-      handle,
+      username,
       r_state
     from members m 
     inner join rfid_tags r on r.member_id = m.member_id 

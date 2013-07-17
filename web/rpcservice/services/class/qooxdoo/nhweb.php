@@ -268,7 +268,7 @@ class class_nhweb extends ServiceIntrospection
       $result = mysqli_query($link, "
         select
           vl.vend_tran_id,
-          m.handle,
+          m.username as handle,
           vl.success_datetime,
           vl.cancelled_datetime, 
           concat('£', cast((vl.amount_scaled/100) as decimal(20,2))) as amount,
@@ -310,17 +310,17 @@ class class_nhweb extends ServiceIntrospection
         $result = mysqli_query($link, "
         select 
           m.member_id,
-          m.handle, 
+          m.username, 
           m.name,
           concat('£', cast((m.balance/100) as decimal(20,2))) as balance,
           concat('£', cast((m.credit_limit/100) as decimal(20,2))) as credit_limit,
           m.credit_limit as climit_int
         from members m
-        order by m.handle;");
+        order by m.username;");
         $rows = array();
         while($row = mysqli_fetch_assoc($result)) 
         {
-          $rows[] = array($row["member_id"], $row["handle"], $row["name"], $row["balance"], $row["credit_limit"], $row["climit_int"]);
+          $rows[] = array($row["member_id"], $row["username"], $row["name"], $row["balance"], $row["credit_limit"], $row["climit_int"]);
         }
         mysqli_close($link);
         return json_encode($rows);
@@ -426,14 +426,14 @@ class class_nhweb extends ServiceIntrospection
           select 
             m.member_id,
             m.name,
-            m.handle,
+            m.email,
             m.username,
             case (fn_check_permission(m.member_id, 'WEB_LOGON'))
               when 1 then 'Yes'
               else 'No'
             end as logon_en
           from members m
-          order by m.handle;");
+          order by m.username;");
         $rows = array();
         while($row = mysqli_fetch_assoc($result)) 
         {
@@ -442,7 +442,7 @@ class class_nhweb extends ServiceIntrospection
           else
             $pwset = "No";
           
-          $rows[] = array($row["member_id"],  $row["name"], $row["handle"], $row["username"], $pwset, $row["logon_en"]);
+          $rows[] = array($row["member_id"],  $row["name"], $row["email"], $row["username"], $pwset, $row["logon_en"]);
         }
         mysqli_close($link);
         return json_encode($rows);
@@ -556,8 +556,11 @@ class class_nhweb extends ServiceIntrospection
 
 
   //function sp_add_member($connection, $member_number, $name, $handle, $unlock_text, $enroll_pin, $email, $join_date, $username)
+  
     function method_addmember($params, $error)
     {
+      die("USE HMS");
+    
       if (!isset($_SESSION['username']))
         die("Not logged in");
         
@@ -742,8 +745,8 @@ class class_nhweb extends ServiceIntrospection
       if ($stmt = mysqli_prepare($link, "
         select 
           m.member_id,
-          m.handle,
-          m.member_number
+          m.username,
+          'N/A' as member_number
         from members m
         inner join member_group mg on mg.member_id = m.member_id
         where mg.grp_id = ?")) 
@@ -882,13 +885,13 @@ class class_nhweb extends ServiceIntrospection
         $result = mysqli_query($link, "
           select 
             m.member_id,
-            m.handle 
+            m.username 
           from members m
-          order by m.handle;");
+          order by m.username;");
         $rows = array();
         while($row = mysqli_fetch_assoc($result)) 
         {
-          $rows[] = array($row["member_id"], $row["handle"]);
+          $rows[] = array($row["member_id"], $row["username"]);
         }
         mysqli_close($link);
         return json_encode($rows);
@@ -912,7 +915,7 @@ class class_nhweb extends ServiceIntrospection
         select 
           t.transaction_id,
           t.transaction_datetime,
-          m.handle,
+          m.username,
           t.transaction_type,
           concat('£', cast((-1*t.amount/100) as decimal(20,2))) as price
         from transactions t 
@@ -963,11 +966,11 @@ class class_nhweb extends ServiceIntrospection
         $result = mysqli_query($link, "
           select
             m.member_id,
-            m.member_number,
+            m.member_status,
             m.name,
             m.email,
             m.join_date,
-            m.handle,
+            m.username,
             m.unlock_text,
             (select count(*) from rfid_tags r where r.member_id = m.member_id and r.state in (10, 40)) as RFID,
             (select count(*) from pins      p where p.member_id = m.member_id and p.state in (10, 40)) as pins
@@ -975,7 +978,7 @@ class class_nhweb extends ServiceIntrospection
         $rows = array();
         while($row = mysqli_fetch_assoc($result)) 
         {
-          $rows[] = array($row["member_id"], $row["member_number"], $row["name"], $row["email"], $row["join_date"], $row["handle"], $row["unlock_text"], $row["RFID"], $row["pins"]);
+          $rows[] = array($row["member_id"], $row["member_status"], $row["name"], $row["email"], $row["join_date"], $row["username"], $row["unlock_text"], $row["RFID"], $row["pins"]);
         }
         mysqli_close($link);
         return json_encode($rows);

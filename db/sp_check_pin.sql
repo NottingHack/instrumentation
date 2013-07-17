@@ -15,7 +15,7 @@ CREATE PROCEDURE sp_check_pin
 (
    IN  pin          varchar(12),
    OUT unlock_text  varchar(95),
-   OUT handle       varchar(100),
+   OUT username     varchar(50),
    OUT err          varchar(100)
 )
 SQL SECURITY DEFINER
@@ -53,20 +53,20 @@ BEGIN
   
     select
       p.pin_id,
-      p.unlock_text,
+      m.unlock_text,
       p.expiry,
       p.state,
       p.member_id,
-      coalesce(m.handle, m.username, m.name, '<unknown>')
+      coalesce(m.username, '<unknown>')
     into
       p_pin_id,
       p_unlock_text,
       p_expiry,
       p_state,
       p_member_id,
-      handle
+      username
     from pins p 
-    left outer join members m on p.member_id = m.member_id
+    inner join members m on p.member_id = m.member_id
     where p.pin = pin
       and p.state in (10, 40); -- active, enroll
 

@@ -4,8 +4,7 @@ create table pins
 (
   pin_id       int not null auto_increment,
   pin          varchar(12),
-  unlock_text  varchar(100),
-  date_added   timestamp default CURRENT_TIMESTAMP,   
+  date_added   timestamp default CURRENT_TIMESTAMP,
   expiry       timestamp NULL default NULL,
   state        int,
   member_id    int default NULL,
