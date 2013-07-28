@@ -5,6 +5,8 @@ drop procedure if exists sp_vend_request;
  * Check the members.balance+credit_limit covers the requested amout.
  * If allowed (result=1), also create a pending entry in the transactions table (as the 
  * vending machine should start vending on receipt of a successful result).
+ * 
+ * Note on err: This should be <= 16 characters as it sent to the LCD on failure
  */
 
 DELIMITER //
@@ -40,7 +42,7 @@ BEGIN
       and v.transaction_id is null;
       
     if (ck_exists = 0) then
-      set err = 'unable to find matching entry in vend_log (BUG?)'; 
+      set err = 'VR01 failed'; -- unable to find matching entry in vend_log (BUG?) 
       leave main;
     end if;
     
@@ -62,7 +64,7 @@ BEGIN
     for update;
 
     if (r_state != 10) then -- STATE_ACTIVE
-      set err = 'RFID serial not active';
+      set err = 'VR02 Not active' -- 'RFID serial not active';
       update vend_log
       set req_datetime = sysdate(), denied_reason = err, amount_scaled = amount 
       where vend_log.vend_tran_id = vend_tran_id;      
@@ -77,7 +79,7 @@ BEGIN
       and v.member_id = member_id;
       
     if (ck_exists != 1) then
-      set err = 'Member ID / rfid / tran_id mismatch (BUG?)';
+      set err = 'VR03 int error ' -- Member ID / rfid / tran_id mismatch (BUG?)';
       update vend_log
       set req_datetime = sysdate(), denied_reason = err, amount_scaled = amount 
       where vend_log.vend_tran_id = vend_tran_id;      
@@ -87,7 +89,7 @@ BEGIN
     if ((balance - amount) < (-1*climit)) then
       -- Insufficient credit 
       -- TODO: Check/sum pending transactions
-      set err = 'Insufficient credit';
+      set err = 'out of credit';
       update vend_log
       set req_datetime = sysdate(), denied_reason = err, amount_scaled = amount 
       where vend_log.vend_tran_id = vend_tran_id;

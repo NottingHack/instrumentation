@@ -110,7 +110,6 @@ class nh_vend : public CNHmqtt
     void receive_thread()
     {
       char buf[BUFLEN];
-      char response[BUFLEN];
       char dbgbuf[BUFLEN+256];
       struct sockaddr_in addr;
       socklen_t addrlen;
@@ -127,18 +126,7 @@ class nh_vend : public CNHmqtt
             
         sprintf(dbgbuf, "%s:%d < [%s]", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port), buf);
         log->dbg(dbgbuf);
-        memset(response, 0, sizeof(response));
-        process_message(buf, len, response);
-        if (strlen(response) > 0)
-        {      
-          sprintf(dbgbuf, "%s:%d > [%s]", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port), response);
-          log->dbg(dbgbuf);
-          if (sendto(sck, response, strlen(response), 0, (struct sockaddr *)&addr, addrlen) == -1)
-            log->dbg("Send failed!");
-        }
-          
-          
-        
+        process_message(buf, len, &addr);
         
         memset(buf, 0, sizeof(buf));  
       }
@@ -146,11 +134,29 @@ class nh_vend : public CNHmqtt
       perror("Done.");
      return;         
     }
+    
+  int vend_message_send(string msg, struct sockaddr_in *addr)
+  {
+    char dbgbuf[400];
+    
+    if (msg.length() > 0)
+    {
+      sprintf(dbgbuf, "%s:%d > [%s]", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port), msg.c_str());
+      log->dbg(dbgbuf);
+      if (sendto(sck, msg.c_str(), msg.length(), 0, (struct sockaddr *)addr, sizeof(struct sockaddr_in)) == -1)
+      {
+        log->dbg("Send failed!");
+        return -1;
+      }
+    }
 
-  void process_message(char *msgbuf, unsigned int len, char *response)
+    return 0;
+  }
+
+  void process_message(char *msgbuf, unsigned int len, struct sockaddr_in *addr)
   {
     char rfid_serial[20];
-    char addr[20];
+    char temp_addr[20];
     float temp;
     char dbgbuf[256];
     char tran_id[7];
@@ -161,6 +167,10 @@ class nh_vend : public CNHmqtt
     int vend_ok;
     char position[20];
     string tweet;
+    string handle;
+    int balance;
+    char msg_response[BUFLEN]="";
+    char disp_msg[100];
     
     // expected message format:
     // XXXX:YYYY...
@@ -183,7 +193,8 @@ class nh_vend : public CNHmqtt
       
       if (db->sp_vend_check_rfid (rfid_serial, ret, err))
       {
-        sprintf(response, "DENY:%s", rfid_serial);
+        sprintf(msg_response, "DENY:%s", rfid_serial);
+        vend_message_send(msg_response, addr);
         log->dbg("Card lookup failed!");
         return;
       }
@@ -193,19 +204,28 @@ class nh_vend : public CNHmqtt
       
       if (ret.length() <= 0)
       {
-        sprintf(response, "DENY:%s", rfid_serial);
+        sprintf(msg_response, "DENY:%s", rfid_serial);
+        vend_message_send(msg_response, addr);
         log->dbg("Card lookup failed! (strlen)");
         return;
       }        
       
       if (ret == "0")
       {
-        sprintf(response, "DENY:%s", rfid_serial);
+        sprintf(msg_response, "DENY:%s", rfid_serial);
+        vend_message_send(msg_response, addr);
         log->dbg("Card rejected.");
       }  else
       {
-        // Card good
-        sprintf(response, "GRNT:%s:%s", rfid_serial, ret.c_str());        
+        // Card good, get members details
+        db->sp_get_details_from_rfid(rfid_serial, handle, balance, err);
+
+        sprintf(msg_response, "GRNT:%s:%s", rfid_serial, ret.c_str());
+        vend_message_send(msg_response, addr);
+        
+        // Send status info for LCD 
+        sprintf(disp_msg, "DISP:%s\nBal: %3.2f\n", handle.c_str(), ((float)balance / 100.00));
+        vend_message_send(disp_msg, addr);
       }
       
       return;
@@ -219,7 +239,8 @@ class nh_vend : public CNHmqtt
       if ((args=sscanf(msgbuf+5, "%19[^:]:%6[^:]:%d", rfid_serial, tran_id, &amount_scaled)) != 3)
       {
         log->dbg("Failed to split string");
-        sprintf(response, "VDNY");
+        vend_message_send("VDNY", addr);
+        
         return;
       }
       
@@ -229,22 +250,33 @@ class nh_vend : public CNHmqtt
       vend_ok = 0;
       if (db->sp_vend_request (rfid_serial, tran_id, amount_scaled, err, vend_ok))
       {
-        sprintf(response, "VDNY:%s:%s", rfid_serial, tran_id); // Vend DeNY
+        sprintf(msg_response, "VDNY:%s:%s", rfid_serial, tran_id); // Vend DeNY
+        vend_message_send(msg_response, addr);
         log->dbg("Card lookup failed!");
         return;
       }
 
-      sprintf(response, "err = [%s], vend_ok = [%d]", err.c_str(), vend_ok);   
-      log->dbg(response);
+      sprintf(msg_response, "err = [%s], vend_ok = [%d]", err.c_str(), vend_ok);   
+      log->dbg(msg_response);
 
       if (!vend_ok)
       {
-        sprintf(response, "VDNY:%s", rfid_serial);
+        sprintf(msg_response, "VDNY:%s", rfid_serial);
+        vend_message_send(msg_response, addr);
         log->dbg("Card rejected.");
+        
+        // Send status info for LCD 
+        sprintf(disp_msg, "DISP:Denied:\n%s", err.c_str());
+        vend_message_send(disp_msg, addr);
+        
       }  else
       {
         // Card good
-        sprintf(response, "VNOK:%s:%s", rfid_serial, tran_id);        
+        sprintf(msg_response, "VNOK:%s:%s", rfid_serial, tran_id);
+        vend_message_send(msg_response, addr);
+
+        sprintf(disp_msg, "DISP:Vending...\n");
+        vend_message_send(disp_msg, addr);
       }
       
       return;
@@ -263,7 +295,7 @@ class nh_vend : public CNHmqtt
       }      
       
       sprintf(dbgbuf, "Vend succces: Serial = [%s], transaction id = [%s], position = [%s]", rfid_serial, tran_id, position);      
-      log->dbg(dbgbuf);           
+      log->dbg(dbgbuf);
     
       db->sp_vend_success(rfid_serial, tran_id, position, err);
       if (err != "")
@@ -288,15 +320,15 @@ class nh_vend : public CNHmqtt
       {
         log->dbg("Failed to split string. BUG **** Vend failure not recored ****");
         return;
-      }      
+      }
       
       sprintf(dbgbuf, "Vend failure: Serial = [%s], transaction id = [%s]", rfid_serial, tran_id);      
-      log->dbg(dbgbuf);           
+      log->dbg(dbgbuf);
     
       db->sp_vend_failure(rfid_serial, tran_id, err);
       if (err != "")
         log->dbg((string)"err = [" + err + (string)"]");   
-    }    
+    }
     
     // Vend CANcel
     if (!strncmp(msgbuf, "VCAN", 4))
@@ -309,7 +341,7 @@ class nh_vend : public CNHmqtt
         return;
       }      
       
-      sprintf(dbgbuf, "Vend cancel: Serial = [%s], transaction id = [%s]", rfid_serial, tran_id);      
+      sprintf(dbgbuf, "Vend cancel: Serial = [%s], transaction id = [%s]", rfid_serial, tran_id);
       log->dbg(dbgbuf);           
     
       db->sp_vend_cancel(rfid_serial, tran_id, err);
@@ -321,18 +353,18 @@ class nh_vend : public CNHmqtt
     if (!strncmp(msgbuf, "TEMP", 4))
     {    
       temp = 0;
-      memset(addr, 0, sizeof(addr));
+      memset(temp_addr, 0, sizeof(temp_addr));
       memset(tran_id, 0, sizeof(tran_id));
-      if ((args=sscanf(msgbuf+5, "%19[^:]:%f6[^:]", addr, &temp)) != 2)
+      if ((args=sscanf(msgbuf+5, "%19[^:]:%f6[^:]", temp_addr, &temp)) != 2)
       {
         log->dbg("Failed to split temperature string.");
         return;
       }      
       
-      sprintf(dbgbuf, "Temperature report: Address = [%s], temperature = [%f]", addr, temp);      
+      sprintf(dbgbuf, "Temperature report: Address = [%s], temperature = [%f]", temp_addr, temp);      
       log->dbg(dbgbuf);           
     
-      sprintf(dbgbuf, "%s:%.2f", addr, temp);
+      sprintf(dbgbuf, "%s:%.2f", temp_addr, temp);
       if ((temp < -30) || (temp > 80))
         log->dbg("Out of range temperature - not transmitting"); 
       else  
@@ -342,7 +374,8 @@ class nh_vend : public CNHmqtt
     // DeBUG -request from vending machine for debug level
     if (!strncmp(msgbuf, "DBUG", 4))
     {   
-      sprintf(response, "DBUG:%d", debug_level); 
+      sprintf(msg_response, "DBUG:%d", debug_level); 
+      vend_message_send(msg_response, addr);
     }
     
     // CASH - Cash sale
