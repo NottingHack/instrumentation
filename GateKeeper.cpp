@@ -32,6 +32,7 @@
 
 #include <stdio.h>
 #include <time.h>
+#include <string.h>
 
 bool CNHmqtt::debug_mode = false;
 bool CNHmqtt::daemonized = false; 
@@ -54,6 +55,8 @@ class GateKeeper : public CNHmqtt_irc
     string entry_announce;
     string tts_topic;
     CNHDBAccess *db;
+    time_t last_valid_read;
+    int read_timeout;
 
     GateKeeper(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
     {
@@ -70,8 +73,10 @@ class GateKeeper : public CNHmqtt_irc
       twitter_out = get_str_option("gatekeeper", "twitter_out", "nh/twitter/tx/status");
       entry_announce = get_str_option("gatekeeper", "entry_announce", "nh/gk/entry_announce");
       tts_topic = get_str_option("tts", "topic", "nh/tts/gk");
+      read_timeout = get_int_option("gatekeeper", "read_timeout", 4);
       db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
       handle = "";
+      memset(&last_valid_read, 0, sizeof(last_valid_read));
     }
     
     ~GateKeeper()
@@ -83,6 +88,7 @@ class GateKeeper : public CNHmqtt_irc
     {
       string unlock_text;
       string err;
+      time_t current_time;
 
       if (topic==door_contact)
       {
@@ -151,24 +157,34 @@ class GateKeeper : public CNHmqtt_irc
           db->sp_log_event("FIRST_IN", "");
         }         
       }
-      
+
+      time(&current_time);
       if (topic==rfid)
       {
-        if(db->sp_check_rfid(message, unlock_text, handle, last_seen, err))
-        {
-          log->dbg("Call to sp_check_rfid failed");
-           message_send(unlock, "Access Denied");        
+        if (difftime(current_time, last_valid_read) > read_timeout) // If there's been an unlock message sent in the
+        {                                                           // last few seconds, do nothing (door is already open)
+          if(db->sp_check_rfid(message, unlock_text, handle, last_seen, err))
+          {
+            log->dbg("Call to sp_check_rfid failed");
+            message_send(unlock, "Access Denied");
+          } else
+          {
+            message_send(unlock, unlock_text); 
+
+            if (unlock_text.substr(0, 7) == "Unlock:")
+            {
+              time(&last_valid_read); 
+              message_send(tts_topic, unlock_text.substr(7, string::npos));
+            }
+            else
+              message_send(tts_topic, unlock_text);
+          }
         } else
         {
-          message_send(unlock, unlock_text); 
-          
-          if (unlock_text.substr(0, 7) == "Unlock:")
-            message_send(tts_topic, unlock_text.substr(7, string::npos));
-          else
-            message_send(tts_topic, unlock_text);    
+          log->dbg("Ignoring message: came too soon after previous valid card");
         }
       }
-      
+
       if (topic==keypad)
       {
         db->sp_check_pin(message, unlock_text, handle, err);
