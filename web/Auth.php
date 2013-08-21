@@ -67,6 +67,10 @@ class NHAuth extends AuthPlugin
   public function authenticate( $username, $password ) 
   {
     writeMsg("authenticate( $username, <password> )");
+
+   // lets not authenticate local users against the members database in case of collisions 
+   if ($this->is_local_user($username))
+      return false;
     return $this->check_password($username, $password);
   }
 
@@ -321,15 +325,45 @@ class NHAuth extends AuthPlugin
     writeMsg("domainList()");
     return array();
   }
-  
+
+  /* Test if $username is a local user. Assume if the user exists in the mediawiki database *
+   * and had a valid password set, that they're local                                       */
+  function is_local_user($username)
+  {
+    $user = User::newFromName($username, 'creatable');
+    if ($user == false) // means the username is invalid (not just doesn't exist)
+    {
+      writeMsg("is_local_user> invalid username");
+      return false;
+    }
+
+    $user->load();
+
+    if ($user->mId == "0") // user doesn't exist
+    {
+      writeMsg("is_local_user> user doesn't exist");
+      return false;
+    }
+
+    if ($user->mPassword == "#") /* invalid password hash, as set by this plugin on account creation */
+    {
+      writeMsg("is_local_user> invalid hash - user not local");
+      return false;
+    } else
+    {
+      writeMsg("is_local_user> Not obviously invald password hash - so local user");
+      return true;
+    }
+  }
+
   function check_password($username, $password)
   {
     $data = array('function'=>'login',
                   'username'=>$username,
                   'password'=>$password);
-                  
+
     $result = $this->hms_query($data);
-    
+
     $granted = false;
     if ($result != FALSE)
     {
