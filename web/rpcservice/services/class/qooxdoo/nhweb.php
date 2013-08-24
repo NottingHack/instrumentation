@@ -316,6 +316,7 @@ class class_nhweb extends ServiceIntrospection
           concat('£', cast((m.credit_limit/100) as decimal(20,2))) as credit_limit,
           m.credit_limit as climit_int
         from members m
+        where m.member_status >= 5
         order by m.username;");
         $rows = array();
         while($row = mysqli_fetch_assoc($result)) 
@@ -967,14 +968,15 @@ class class_nhweb extends ServiceIntrospection
           select
             m.member_id,
             m.member_status,
-            m.name,
+            ifnull(m.name, '<not set>') as name,
             m.email,
             m.join_date,
             m.username,
             m.unlock_text,
             (select count(*) from rfid_tags r where r.member_id = m.member_id and r.state in (10, 40)) as RFID,
             (select count(*) from pins      p where p.member_id = m.member_id and p.state in (10, 40)) as pins
-          from members m;");
+          from members m
+          where m.member_status >= 5");
         $rows = array();
         while($row = mysqli_fetch_assoc($result)) 
         {
