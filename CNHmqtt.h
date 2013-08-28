@@ -35,7 +35,8 @@ class CNHmqtt
     string _mqtt_topic;
     string _mqtt_rx;
     string _mqtt_tx;
-    string _status; // returned in response to status mqtt message (so should be short!)
+    string _status_name; // process name to report in respose to status message
+    string _status_topic;
     string _mosq_server;
     int _mosq_port;
     CLogging *log;

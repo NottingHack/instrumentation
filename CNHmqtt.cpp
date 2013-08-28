@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2011, Daniel Swann <hs@dswann.co.uk>
+ * Copyright (c) 2013, Daniel Swann <hs@dswann.co.uk>
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -95,7 +95,6 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
       
       
   CNHmqtt::_mqtt_topic = "test"; //man_channel;
-  CNHmqtt::_status = "Running";
   CNHmqtt::_mosq_server = "127.0.0.1";
   CNHmqtt::_mosq_port = 1883;      
   
@@ -121,11 +120,18 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
     else
       _config_file_default_parsed = true;
             
-    _mosq_server = get_str_option("mqtt", "host", "localhost");
-    _mosq_port   = get_int_option("mqtt", "port", 1883);
-    _mqtt_topic  = get_str_option("mqtt", "topic", "test"); 
-    logfile      = get_str_option("mqtt", "logfile", ""); 
-    _uid         = get_int_option("mqtt", "uid", 0);
+    _mosq_server  = get_str_option("mqtt", "host", "localhost");
+    _mosq_port    = get_int_option("mqtt", "port", 1883);
+    _mqtt_topic   = get_str_option("mqtt", "topic", "test"); 
+    logfile       = get_str_option("mqtt", "logfile", ""); 
+    _uid          = get_int_option("mqtt", "uid", 0);
+    
+    _status_topic = get_str_option("mqtt", "status_topic", "nh/status");
+    _status_name  = get_str_option("mqtt", "status_name", "");
+    
+    // No status/proces name set in config file, default to process id
+    if (_status_name == "")
+      _status_name = itos(getpid());
       
     if (get_str_option("mqtt", "no_status_debug", "false") == "true")
       _no_staus_debug = true;
@@ -239,6 +245,7 @@ int CNHmqtt::mosq_connect()
   }
   _mosq_connected = true;
   subscribe(_mqtt_rx);
+  subscribe(_status_topic);
     
   return 0;       
 }
@@ -259,7 +266,7 @@ void CNHmqtt::message_callback(struct mosquitto *mosq, void *obj, const struct m
       m->log->dbg("Got mqtt message, topic=[" + topic + "], message=[" + payload + "]");
     else // no_staus_debug is set - so only print out message to log if it's /not/ a status request
     {
-      if (!((topic == m->_mqtt_rx) && (payload == "STATUS")))
+      if (topic != m->_status_topic)
         m->log->dbg("Got mqtt message, topic=[" + topic + "], message=[" + payload + "]");
     }
       
@@ -301,10 +308,11 @@ void CNHmqtt::process_message(string topic, string message)
       log->dbg("Terminate message received...");  
       mosquitto_disconnect(_mosq);
     }
-    
+  } else if (topic == _status_topic)
+  {
     if (message == "STATUS")
-      message_send(_mqtt_tx, _status, _no_staus_debug);
-  }
+      message_send(_status_topic, "Running: " + _status_name, _no_staus_debug);
+  } 
 }
 
 int CNHmqtt::message_send(string topic, string message, bool no_debug)

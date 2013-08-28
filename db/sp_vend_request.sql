@@ -64,7 +64,7 @@ BEGIN
     for update;
 
     if (r_state != 10) then -- STATE_ACTIVE
-      set err = 'VR02 Not active' -- 'RFID serial not active';
+      set err = 'VR02 Not active'; -- 'RFID serial not active';
       update vend_log
       set req_datetime = sysdate(), denied_reason = err, amount_scaled = amount 
       where vend_log.vend_tran_id = vend_tran_id;      
@@ -79,7 +79,7 @@ BEGIN
       and v.member_id = member_id;
       
     if (ck_exists != 1) then
-      set err = 'VR03 int error ' -- Member ID / rfid / tran_id mismatch (BUG?)';
+      set err = 'VR03 int error '; -- Member ID / rfid / tran_id mismatch (BUG?)';
       update vend_log
       set req_datetime = sysdate(), denied_reason = err, amount_scaled = amount 
       where vend_log.vend_tran_id = vend_tran_id;      
