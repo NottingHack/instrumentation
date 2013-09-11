@@ -36,7 +36,8 @@ class CNHmqtt
     string _mqtt_rx;
     string _mqtt_tx;
     string _status_name; // process name to report in respose to status message
-    string _status_topic;
+    string _status_req_topic; // topic status requests are sent to
+    string _status_res_topic; // topic status responses are to be published to
     string _mosq_server;
     int _mosq_port;
     CLogging *log;

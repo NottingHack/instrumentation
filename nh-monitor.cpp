@@ -68,7 +68,7 @@ class nh_monitor : public CNHmqtt
   // Subscribe to the status MQTT topc 
   int subscribe_service()
   {
-    subscribe(_status_topic);
+    subscribe(_status_res_topic);
     return 0;
   }
   
@@ -81,7 +81,7 @@ class nh_monitor : public CNHmqtt
     string sname, state;
     unsigned int pos;
     
-    if ((topic != _status_topic) || (message == "STATUS"))
+    if ((topic != _status_res_topic) || (message == "STATUS"))
       return;
     
     if ((pos = message.find_first_of(":"))==string::npos)
@@ -93,8 +93,14 @@ class nh_monitor : public CNHmqtt
     state = message.substr(0, pos);               // E.g. "Running" or "Terminated"
     sname = message.substr(pos+2, string::npos);  // E.g. "Gatekeeper"
     
-    if (state != "Running" && state != "Terminated")
+    if (state != "Running" && state != "Terminated" && state != "Restart")
       return;
+    
+    if (state == "Restart")
+    {
+      _db->sp_record_service_restart(sname);
+      _db->sp_log_event("PROCESS_RESTART", sname);
+    }
     
     // Record the reply
     _db->sp_record_service_status(sname, (state=="Running" ? RUNNING_TRUE : RUNNING_FALSE), state);
@@ -106,8 +112,8 @@ class nh_monitor : public CNHmqtt
   {
     _db->sp_service_status_update(_timeout_period);
     _db->sp_record_service_status_request("N/A");
-    
-    switch(message_send(_status_topic, "STATUS"))
+
+    switch(message_send(_status_req_topic, "STATUS"))
     {
       case MOSQ_ERR_SUCCESS:
         _db->sp_record_service_status("Mosquitto", RUNNING_TRUE, "Connected");

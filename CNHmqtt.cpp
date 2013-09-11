@@ -126,7 +126,8 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
     logfile       = get_str_option("mqtt", "logfile", ""); 
     _uid          = get_int_option("mqtt", "uid", 0);
     
-    _status_topic = get_str_option("mqtt", "status_topic", "nh/status");
+    _status_req_topic = get_str_option("mqtt", "status_request", "nh/status/req");
+    _status_res_topic = get_str_option("mqtt", "status_response", "nh/status/res");
     _status_name  = get_str_option("mqtt", "status_name", "");
     
     // No status/proces name set in config file, default to process id
@@ -245,9 +246,11 @@ int CNHmqtt::mosq_connect()
   }
   _mosq_connected = true;
   subscribe(_mqtt_rx);
-  subscribe(_status_topic);
-    
-  return 0;       
+  subscribe(_status_req_topic);
+  
+  message_send(_status_res_topic, "Restart: " + _status_name);
+
+  return 0;
 }
 
 void CNHmqtt::message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message)
@@ -260,16 +263,16 @@ void CNHmqtt::message_callback(struct mosquitto *mosq, void *obj, const struct m
   if(message->payloadlen)
   { 
     payload = ((char *)message->payload);
-    topic = ((char *)message->topic);    
+    topic = ((char *)message->topic);
     
     if (!m->_no_staus_debug)
       m->log->dbg("Got mqtt message, topic=[" + topic + "], message=[" + payload + "]");
     else // no_staus_debug is set - so only print out message to log if it's /not/ a status request
     {
-      if (topic != m->_status_topic)
+      if (topic != m->_status_req_topic)
         m->log->dbg("Got mqtt message, topic=[" + topic + "], message=[" + payload + "]");
     }
-      
+
     m->process_message(topic, payload);
   }
 }
@@ -308,10 +311,10 @@ void CNHmqtt::process_message(string topic, string message)
       log->dbg("Terminate message received...");  
       mosquitto_disconnect(_mosq);
     }
-  } else if (topic == _status_topic)
+  } else if (topic == _status_req_topic)
   {
     if (message == "STATUS")
-      message_send(_status_topic, "Running: " + _status_name, _no_staus_debug);
+      message_send(_status_res_topic, "Running: " + _status_name, _no_staus_debug);
   } 
 }
 
