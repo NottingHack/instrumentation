@@ -21,7 +21,7 @@ BEGIN
       when 'LAST_OUT' then 'No'
       else '???'
     end as state, 
-    time_to_sec(timediff(now(), event_time))  
+    unix_timestamp(event_time)
   into
     space_open,
     last_change
