@@ -311,7 +311,7 @@ class class_nhweb extends ServiceIntrospection
         select 
           m.member_id,
           m.username, 
-          m.name,
+          concat_ws(' ', ifnull(m.firstname, ''), ifnull(m.surname, '')) as name,
           concat('£', cast((m.balance/100) as decimal(20,2))) as balance,
           concat('£', cast((m.credit_limit/100) as decimal(20,2))) as credit_limit,
           m.credit_limit as climit_int
@@ -426,7 +426,7 @@ class class_nhweb extends ServiceIntrospection
         $result = mysqli_query($link, "
           select 
             m.member_id,
-            m.name,
+            concat_ws(' ', ifnull(m.firstname, ''), ifnull(m.surname, '')) as name,
             m.email,
             m.username,
             case (fn_check_permission(m.member_id, 'WEB_LOGON'))
@@ -968,7 +968,7 @@ class class_nhweb extends ServiceIntrospection
           select
             m.member_id,
             m.member_status,
-            ifnull(m.name, '<not set>') as name,
+            concat_ws(' ', ifnull(m.firstname, ''), ifnull(m.surname, '')) as name,
             m.email,
             m.join_date,
             m.username,

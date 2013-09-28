@@ -3,7 +3,8 @@ drop table if exists members;
 create table members 
 (
   member_id         int not null auto_increment,
-  name              varchar(50),
+  firstname         varchar(100),
+  surname           varchar(100),
   email             varchar(100),
   join_date         date,
   unlock_text       varchar(95),

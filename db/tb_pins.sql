@@ -8,6 +8,7 @@ create table pins
   expiry       timestamp NULL default NULL,
   state        int,
   member_id    int default NULL,
+  constraint pins_pin unique (pin),
   primary key (pin_id)
 ) ENGINE = InnoDB; 
 
