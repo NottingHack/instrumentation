@@ -28,6 +28,7 @@ BEGIN
   declare p_expiry timestamp;
   declare p_state int;
   declare p_member_id int;
+  declare p_member_status int;
   
   declare l_rfid_serial varchar(50);
   declare l_access_result int;
@@ -57,21 +58,23 @@ BEGIN
       p.expiry,
       p.state,
       p.member_id,
-      coalesce(m.username, '<unknown>')
+      coalesce(m.username, '<unknown>'),
+      m.member_status
     into
       p_pin_id,
       p_unlock_text,
       p_expiry,
       p_state,
       p_member_id,
-      username
+      username,
+      p_member_status
     from pins p 
     inner join members m on p.member_id = m.member_id
     where p.pin = pin
       and p.state in (10, 40); -- active, enroll
 
     -- check pin has not expired
-    if (p_expiry > sysdate()) then
+    if (p_expiry < sysdate()) then
       set err = "PIN expired";
       set unlock_text = "Access Denied";
       
@@ -80,7 +83,14 @@ BEGIN
       set state = 20 -- expired
       where pin_id = p_pin_id;
       
-      leave main;      
+      leave main;
+    end if;
+    
+    if (p_member_status != 5) then -- 5 = current member
+      set err = "Not a current member";
+      set unlock_text = "Access Denied";
+      
+      leave main;
     end if;
     
     -- Check for an enroll pin (to register a card)

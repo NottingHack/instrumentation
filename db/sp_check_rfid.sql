@@ -20,6 +20,7 @@ BEGIN
   declare access_granted int;
   declare r_state int;
   declare member_id int;
+  declare member_status int;
 
   set member_id = NULL;
   
@@ -54,12 +55,14 @@ BEGIN
       m.member_id,
       concat('Unlock:',  coalesce(m.unlock_text, 'Welcome')),
       coalesce(m.username, '<unknown>'),
-      r.state
+      r.state,
+      m.member_status
     into
       member_id,
       unlock_text,
       username,
-      r_state
+      r_state,
+      member_status
     from members m 
     inner join rfid_tags r on r.member_id = m.member_id 
     where r.state = 10 -- STATE_ACTIVE
@@ -68,6 +71,12 @@ BEGIN
 
     if (r_state != 10) then -- STATE_ACTIVE
       set err = "RFID serial not active";
+      set unlock_text = "Access Denied";
+      leave main;
+    end if;
+    
+    if (member_status != 5) then -- 5=current member
+      set err = "Not a current member";
       set unlock_text = "Access Denied";
       leave main;
     end if;
