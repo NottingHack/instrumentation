@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2011, Daniel Swann <hs@dswann.co.uk>, Matt Lloyd 
+ * Copyright (c) 2013, Daniel Swann <hs@dswann.co.uk>, Matt Lloyd 
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -36,71 +36,80 @@
 class nh_temperature : public CNHmqtt
 {
 public:
-	CNHDBAccess *db;
-	string temperature_topic;
-	
-    nh_temperature(int argc, char *argv[]) : CNHmqtt(argc, argv)
-    {
-		temperature_topic = get_str_option("temperature", "dtemperature_topic", "nh/temp");
-		
-		db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   ;
-		
-    }
-	
-	~nh_temperature()
-    {
-		delete db;
-    }
-	
-    void process_message(string topic, string message)
-    {
-		
-		if (topic==temperature_topic)
-		{
-			string address;
-			float temp;
-			
-			// break apart message into addres and temp
-			address = message.substr(0,16);
-			
-			std::istringstream b( message.substr(17, message.length() - 17) );
-			b >> temp;
-			
-			db->sp_temperature_update(address, temp);
-			
-		}
-		
-		
-		CNHmqtt::process_message(topic, message);
-    }
-	
-	bool setup()
-    {
-		subscribe(temperature_topic);
-		
-		if (db->dbConnect())
-			return false;
-		
-		return true;
-    }
-	
-};
+  CNHDBAccess *db;
+  string temperature_topic;
+  string temperature_topic_out;
 
+  nh_temperature(int argc, char *argv[]) : CNHmqtt(argc, argv)
+  {
+    temperature_topic     = get_str_option("temperature", "temperature_topic", "nh/temp");
+    temperature_topic_out = get_str_option("temperature", "temperature_topic_out", "nh/temperature");
+
+    db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   ;
+  }
+
+  ~nh_temperature()
+  {
+    delete db;
+  }
+
+  void process_message(string topic, string message)
+  {
+    if (topic==temperature_topic)
+    {
+      string address;
+      float temp;
+      string desc;
+      ostringstream ssTemp;
+
+
+      // break apart message into addres and temp
+      address = message.substr(0,16);
+
+      std::istringstream b( message.substr(17, message.length() - 17) );
+      b >> temp;
+
+      db->sp_temperature_update(address, temp);
+      
+      // publish room name / temperature to mqtt
+      if (!db->sp_temperature_get_desc(address, desc))
+        if (desc != "")
+        {
+          ssTemp << temp;
+          string strTemp(ssTemp.str());
+          message_send(temperature_topic_out + "/" + desc, strTemp);
+        }
+    }
+
+    CNHmqtt::process_message(topic, message);
+  }
+
+  bool setup()
+  {
+    subscribe(temperature_topic);
+    
+    if (db->dbConnect())
+      return false;
+    
+    return true;
+  }
+  
+};
 
 
 int main(int argc, char *argv[])
 {
-	
-	nh_temperature nh = nh_temperature(argc, argv);
-	
-	nh.mosq_connect();
-	
-	if (!nh.setup())
+  
+  nh_temperature nh = nh_temperature(argc, argv);
+  
+  nh.mosq_connect();
+  
+  if (!nh.setup())
     return 1;
-	
-	// run with "-d" flag to avoid daemonizing
-	nh_temperature::daemonize(); // will only work on first run
-	nh.message_loop();
-	return 0;
-	
+  
+  // run with "-d" flag to avoid daemonizing
+  nh_temperature::daemonize(); // will only work on first run
+  nh.message_loop();
+  return 0;
+  
 }
