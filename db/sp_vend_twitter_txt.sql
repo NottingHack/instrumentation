@@ -22,7 +22,7 @@ BEGIN
   main: begin  
  
     set tweet = "";
-    select concat(m.handle, ' purchased a ', p.shortdesc, ' from the vending machine')
+    select concat(m.username, ' purchased a ', p.shortdesc, ' from the vending machine')
     into tweet
     from vend_log vl
     inner join vmc_ref vr on vr.loc_encoded = vl.position
@@ -35,5 +35,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
-GRANT EXECUTE ON PROCEDURE sp_vend_twitter_txt TO 'gk'@'localhost'

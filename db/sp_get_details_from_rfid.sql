@@ -9,7 +9,7 @@ DELIMITER //
 CREATE PROCEDURE sp_get_details_from_rfid
 (
    IN  rfid_serial  varchar(50),
-   OUT handle       varchar(100),
+   OUT username     varchar(100),
    OUT balance      int,
    OUT err          varchar(100)
 )
@@ -20,7 +20,6 @@ BEGIN
 
   main: begin  
     set rfid_serial = rtrim(rfid_serial);
-    
 
     -- See if the serial is known
     select count(*) into ck_exists
@@ -34,10 +33,10 @@ BEGIN
     end if;
 
     select 
-      m.handle,
+      m.username,
       m.balance
     into
-      handle,
+      username,
       balance
     from members m 
     inner join rfid_tags r on r.member_id = m.member_id 
@@ -49,4 +48,3 @@ BEGIN
 
 END //
 DELIMITER ;
-
