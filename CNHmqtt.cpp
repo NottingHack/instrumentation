@@ -235,7 +235,8 @@ int CNHmqtt::mosq_connect()
     return -1;
   }  
   
-  mosquitto_message_callback_set(_mosq, CNHmqtt::message_callback);  
+  mosquitto_message_callback_set(_mosq, CNHmqtt::message_callback);
+  mosquitto_connect_callback_set(_mosq, CNHmqtt::connect_callback);
   
   if(mosquitto_connect(_mosq, _mosq_server.c_str(), _mosq_port, 300)) 
   {
@@ -244,13 +245,32 @@ int CNHmqtt::mosq_connect()
     _mosq = NULL;
     return -1;
   }
-  _mosq_connected = true;
+
   subscribe(_mqtt_rx);
   subscribe(_status_req_topic);
   
   message_send(_status_res_topic, "Restart: " + _status_name);
 
   return 0;
+}
+
+void CNHmqtt::connect_callback(struct mosquitto *mosq, void *obj, int result)
+{
+  ((CNHmqtt*)obj)->connected();
+}
+
+void CNHmqtt::connected()
+{
+  list<string>::iterator i;
+  log->dbg("(re)connected to mosquitto");
+  _mosq_connected = true;
+  
+  for(i=_topic_list.begin(); i != _topic_list.end(); ++i)
+  {
+    log->dbg("Subscribing to: [" + *i + "]");
+    mosquitto_subscribe(_mosq, NULL, (*i).c_str(), 0);
+  }
+  
 }
 
 void CNHmqtt::message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message)
@@ -279,25 +299,24 @@ void CNHmqtt::message_callback(struct mosquitto *mosq, void *obj, const struct m
 
 int CNHmqtt::subscribe(string topic)
 {
-  log->dbg("Subscribing to topic [" + topic + "]");
   if (topic=="")
   {
     log->dbg("Cannot subscribe to empty topic!");
     return -1;
   }
-    
-  if (!_mosq_connected)
+
+  if (_mosq_connected)
   {
-    log->dbg("Subscribe failed - Not connected!");
-    return -1;
-  }    
-    
-  if(mosquitto_subscribe(_mosq, NULL, topic.c_str(), 0))
-  {
-    log->dbg("Subscribe failed!");
-    return -1;
+    log->dbg("Subscribing to topic [" + topic + "]");
+    if(mosquitto_subscribe(_mosq, NULL, topic.c_str(), 0))
+    {
+      log->dbg("Subscribe failed!");
+      return -1;
+    }
   }
-  
+
+  _topic_list.push_back(topic);
+
   return 0;
 }
 

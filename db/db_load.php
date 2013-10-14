@@ -20,7 +20,7 @@ $mysql_dbase = $aConfig['mysql']['database'];
 $mysql_user = $aConfig['mysql_admin']['username'];
 $mysql_passwd = $aConfig['mysql_admin']['password'];
 
-$oDB = new mysqli($mysql_server, $mysql_user, $mysql_user, $mysql_dbase);
+$oDB = new mysqli($mysql_server, $mysql_user, $mysql_passwd, $mysql_dbase);
 
 if ($oDB->connect_errno) 
   die("Failed to connect to database: [" . $mysqli->connect_error . "]\n");
