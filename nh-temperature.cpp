@@ -39,11 +39,13 @@ public:
   CNHDBAccess *db;
   string temperature_topic;
   string temperature_topic_out;
+  string light_level_topic;
 
   nh_temperature(int argc, char *argv[]) : CNHmqtt(argc, argv)
   {
     temperature_topic     = get_str_option("temperature", "temperature_topic", "nh/temp");
     temperature_topic_out = get_str_option("temperature", "temperature_topic_out", "nh/temperature");
+    light_level_topic     = get_str_option("light_level", "light_level_topic", "nh/lightlevel");
 
     db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   ;
   }
@@ -80,6 +82,13 @@ public:
           message_send(temperature_topic_out + "/" + desc, strTemp);
         }
     }
+    else if ((topic.length() > light_level_topic.length()+1) && topic.substr(0, light_level_topic.length()) == light_level_topic)
+    {
+      string room = topic.substr(light_level_topic.length()+1, string::npos);
+      
+      db->sp_light_level_update(room, atoi(message.c_str()));
+    }
+    
 
     CNHmqtt::process_message(topic, message);
   }
@@ -87,6 +96,7 @@ public:
   bool setup()
   {
     subscribe(temperature_topic);
+    subscribe(light_level_topic + "/#");
     
     if (db->dbConnect())
       return false;
