@@ -133,6 +133,12 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
         bind[count].buffer= (char *) param_value[n];
         bind[count].buffer_length= 0; //param_length[n];
         bind[count].is_null= 0;      
+      } else if (param_type[n] == P_TYPE_TIMESTAMP)
+      {
+        bind[count].buffer_type= MYSQL_TYPE_TIMESTAMP;
+        bind[count].buffer= (char *) param_value[n];
+        bind[count].buffer_length= 4;
+        bind[count].is_null= 0;
       }
       count++;      
     }
@@ -331,28 +337,21 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
     return -1;
   
 }
-/*
-int main(int argc, char *argv[])
+
+void CNHDBAccess::time_t2mysql(MYSQL_TIME *myTime, const time_t *cTime)
 {
-  CNHDBAccess *db;
-  CLogging *log;
-  log = new CLogging();
-  string a;
-  string b;
-  string c;
-  int ret;
-  
-  db = new CNHDBAccess("localhost", "gk", "gk", "instrumentation", log);   
-  db->dbConnect();
-  
-  ret = db->sp_check_pin ("123", a, b, c);
-  
-  log->dbg("a=" + a);
-  log->dbg("b=" + b);
-  log->dbg("c=" + c);
+  struct tm ti;
+
+  localtime_r(cTime, &ti);
+
+  myTime->year = 1900 + ti.tm_year;
+  myTime->month = ti.tm_mon+1; // mysql expects 1-12, tm is 0-11
+  myTime->day = ti.tm_mday;
+  myTime->hour = ti.tm_hour;
+  myTime->minute = ti.tm_min;
+  myTime->second = ti.tm_sec;
 }
 
-*/
 string itos(int n)
 {
   string s;

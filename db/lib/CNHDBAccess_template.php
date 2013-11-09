@@ -1,4 +1,5 @@
 
+/* TODO: add support for P_TYPE::TIMESTAMP */
 class P_DIR
 {
   const IN = 1;
@@ -12,6 +13,7 @@ class P_TYPE
   const VARCHAR = 2;
   const FLOAT = 3;
   const TEXT = 4;
+  const TIMESTAMP = 5;
 }
 
 class CNHDBAccess extends mysqli

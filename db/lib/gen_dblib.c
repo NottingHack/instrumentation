@@ -39,6 +39,7 @@
 #define P_TYPE_VARCHAR 2
 #define P_TYPE_FLOAT 3
 #define P_TYPE_TEXT 4
+#define P_TYPE_TIMESTAMP 5
 
 enum lang 
 {
@@ -489,6 +490,11 @@ int add_param(struct param **param_list, char *param_line)
     p_type = P_TYPE_FLOAT;
     ptr += 5;
   }
+  else if (!strncasecmp(ptr, "timestamp", 9))
+  {
+    p_type = P_TYPE_TIMESTAMP;
+    ptr += 9;
+  }
   else
   {
     printf ("Unknown variable type! (line=[%s])\n", param_line);
@@ -556,6 +562,9 @@ int output_func_def(struct sp_def *sps, FILE *out, int header)
     lst = param_list;
     do
     {
+      if (lst->p_direction != P_DIR_IN && lst->p_type == P_TYPE_TIMESTAMP)
+        printf("Error - output timestamp parameters not yet supported...");
+
       if (lst->p_type == P_TYPE_INT) 
         fprintf(out, "int ");
       else if ((lst->p_type == P_TYPE_VARCHAR))
@@ -563,7 +572,9 @@ int output_func_def(struct sp_def *sps, FILE *out, int header)
       else if ((lst->p_type == P_TYPE_FLOAT))
         fprintf(out, "float ");
       else if ((lst->p_type == P_TYPE_TEXT))
-        fprintf(out, "string ");      
+        fprintf(out, "string ");
+      else if ((lst->p_type == P_TYPE_TIMESTAMP))
+        fprintf(out, "time_t* ");
       else 
         return -1;
 
@@ -631,7 +642,9 @@ int generate_sp_function(struct sp_def *sp, FILE *out_imp)
       else if ((lst->p_type == P_TYPE_FLOAT))
         fprintf(out_imp, "  param_type[%d] =  P_TYPE_FLOAT;\n", param_count);
       else if ((lst->p_type == P_TYPE_TEXT))
-        fprintf(out_imp, "  param_type[%d] =  P_TYPE_TEXT;\n", param_count);      
+        fprintf(out_imp, "  param_type[%d] =  P_TYPE_TEXT;\n", param_count);
+      else if ((lst->p_type == P_TYPE_TIMESTAMP))
+        fprintf(out_imp, "  param_type[%d] =  P_TYPE_TIMESTAMP;\n", param_count);
       else 
         return -1;
 
@@ -644,9 +657,17 @@ int generate_sp_function(struct sp_def *sp, FILE *out_imp)
       else 
         return -1;      
    
-       fprintf(out_imp, "  param_value[%d] = &%s;\n", param_count, lst->p_name);
-       fprintf(out_imp, "  param_len[%d] = %d;\n", param_count, lst->p_len);
-       fprintf(out_imp, "\n");
+      if ((lst->p_type == P_TYPE_TIMESTAMP))
+      {
+        fprintf(out_imp, "  MYSQL_TIME MyTime%d;\n", param_count);
+        fprintf(out_imp, "  time_t2mysql(&MyTime%d, (time_t*)%s);\n", param_count, lst->p_name);
+        fprintf(out_imp, "  param_value[%d] = &MyTime%d;\n", param_count, param_count);
+      } else
+      {
+        fprintf(out_imp, "  param_value[%d] = &%s;\n", param_count, lst->p_name);
+      }
+      fprintf(out_imp, "  param_len[%d] = %d;\n", param_count, lst->p_len);
+      fprintf(out_imp, "\n");
         
       lst = lst->next_param;
       param_count++;
@@ -717,7 +738,9 @@ int generate_sp_function_php(struct sp_def *sp, FILE *fh_out)
       else if ((lst->p_type == P_TYPE_FLOAT))
         fprintf(fh_out, "    $params[%d]['type'] =  P_TYPE::FLOAT;\n", param_count);
       else if ((lst->p_type == P_TYPE_TEXT))
-        fprintf(fh_out, "    $params[%d]['type'] =  P_TYPE::TEXT;\n", param_count);      
+        fprintf(fh_out, "    $params[%d]['type'] =  P_TYPE::TEXT;\n", param_count);
+      else if ((lst->p_type == P_TYPE_TIMESTAMP))
+        fprintf(fh_out, "    $params[%d]['type'] =  P_TYPE::TIMESTAMP;\n", param_count);
       else 
         return -1;
 

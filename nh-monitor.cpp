@@ -187,6 +187,8 @@ class nh_monitor : public CNHmqtt
     // Enter mosquitto message loop
     retval = message_loop();
     _query_thread_exit = true;
+    
+    log->dbg("returned from message_loop() - retval = " + itos(retval));
    
     // Interupt & join query thread    
     if (_qThread > 0)
