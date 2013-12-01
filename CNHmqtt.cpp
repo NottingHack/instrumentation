@@ -35,6 +35,8 @@
 #include <libgen.h>
 #include <string.h>
 
+using namespace std;
+
 CNHmqtt::CNHmqtt(int argc, char *argv[]) 
 {
   log = NULL;

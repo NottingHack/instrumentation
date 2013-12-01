@@ -77,12 +77,6 @@ int output_body(FILE *fh_out, struct sp_def *sp_ptr, enum lang langtyp);
 int main(int argc, char *argv[])
 {
   int n;
-  FILE *out_imp;      // Implementation - output .cpp file
-  FILE *out_hed;      // Header - output .h file
-  FILE *in_imp_tpl;   // Implementation template
-  FILE *in_hed_tpl;   // Header template
-  char filepath [256];
-  int path_end;
 
 
   
@@ -568,11 +562,11 @@ int output_func_def(struct sp_def *sps, FILE *out, int header)
       if (lst->p_type == P_TYPE_INT) 
         fprintf(out, "int ");
       else if ((lst->p_type == P_TYPE_VARCHAR))
-        fprintf(out, "string ");
+        fprintf(out, "std::string ");
       else if ((lst->p_type == P_TYPE_FLOAT))
         fprintf(out, "float ");
       else if ((lst->p_type == P_TYPE_TEXT))
-        fprintf(out, "string ");
+        fprintf(out, "std::string ");
       else if ((lst->p_type == P_TYPE_TIMESTAMP))
         fprintf(out, "time_t* ");
       else 
@@ -588,19 +582,16 @@ int output_func_def(struct sp_def *sps, FILE *out, int header)
         return -1;      
    
       
-      if (lst->next_param == NULL)
-        fprintf(out, "%s", lst->p_name);
-      else
-        fprintf(out, "%s, ", lst->p_name);
+      fprintf(out, "%s, ", lst->p_name);
         
       lst = lst->next_param;
       param_count++;
     } while (lst != NULL);  
     
     if (header)
-      fprintf(out, ");\n");
+      fprintf(out, "dbrows *rs=NULL);\n");
     else
-      fprintf(out, ")\n");
+      fprintf(out, "dbrows *rs)\n");
   }
   
   return param_count;
@@ -674,7 +665,7 @@ int generate_sp_function(struct sp_def *sp, FILE *out_imp)
     } while (lst != NULL);
     
     fprintf(out_imp, "  pthread_mutex_lock(&mysql_mutex);\n");
-    fprintf(out_imp, "  retval = exec_sp(\"%s\", param_dir, param_type, param_value, param_len, %d);\n", sp_name, param_count);
+    fprintf(out_imp, "  retval = exec_sp(\"%s\", param_dir, param_type, param_value, param_len, %d, rs);\n", sp_name, param_count);
     fprintf(out_imp, "  pthread_mutex_unlock(&mysql_mutex);\n");
     fprintf(out_imp, "  return retval;\n");
     fprintf(out_imp, "}\n\n");

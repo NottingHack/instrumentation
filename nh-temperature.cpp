@@ -33,6 +33,8 @@
 #include <string>
 #include <sstream>
 
+using namespace std;
+
 class nh_temperature : public CNHmqtt
 {
 public:

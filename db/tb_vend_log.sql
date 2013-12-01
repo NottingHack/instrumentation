@@ -3,7 +3,8 @@ drop table if exists vend_log;
 create table vend_log 
 (
   vend_tran_id        int not null auto_increment,
-  transaction_id      int null default null,  
+  transaction_id      int null default null,
+  vmc_id              int null,
   rfid_serial         varchar(50),
   member_id           int,
   enq_datetime        timestamp NULL default NULL,

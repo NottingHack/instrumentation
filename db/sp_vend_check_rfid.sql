@@ -9,6 +9,7 @@ drop procedure if exists sp_vend_check_rfid;
 DELIMITER //
 CREATE PROCEDURE sp_vend_check_rfid
 (
+   IN  vmc_id       int,
    IN  rfid_serial  varchar(50),
    OUT tran_id      varchar(6),
    OUT err          varchar(100)
@@ -63,9 +64,9 @@ BEGIN
       leave main;
     end if;
 
-    insert into vend_log(rfid_serial, member_id, enq_datetime) 
-    values (rfid_serial, member_id, sysdate());
-    
+    insert into vend_log(vmc_id, rfid_serial, member_id, enq_datetime) 
+    values (vmc_id, rfid_serial, member_id, sysdate());
+
     set tran_id = last_insert_id();
 
   end main;

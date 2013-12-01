@@ -1,6 +1,8 @@
 #include "CNHmqtt.h"
 #include "nh-test.h"
 
+using namespace std;
+
 class nh_test : public CNHmqtt
 {
   public:

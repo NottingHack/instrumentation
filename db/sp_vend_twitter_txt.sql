@@ -20,7 +20,7 @@ BEGIN
   declare continue HANDLER for SQLWARNING begin end;
 
   main: begin  
- 
+
     set tweet = "";
     select concat(m.username, ' purchased a ', p.shortdesc, ' from the vending machine')
     into tweet
@@ -29,8 +29,10 @@ BEGIN
     inner join vmc_state vs on vs.vmc_ref_id = vr.vmc_ref_id
     inner join products p on p.product_id = vs.product_id
     inner join members m on m.member_id = vl.member_id
-    where vl.vend_tran_id = vend_tran_id ;
-    
+    inner join vmc_details vd on vd.vmc_id = vl.vmc_id
+    where vl.vend_tran_id = vend_tran_id
+      and vd.vmc_type = 'VEND'; -- Don't want tweets for payments
+
   end main;
 
 END //

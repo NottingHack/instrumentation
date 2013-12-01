@@ -56,7 +56,7 @@ class CNHmqtt
     INIReader *_reader_default;
     uid_t _uid;
     pthread_mutex_t _mosq_mutex;
-    list<std::string> _topic_list;
+    std::list<std::string> _topic_list;
 };
 
 

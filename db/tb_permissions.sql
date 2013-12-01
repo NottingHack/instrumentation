@@ -35,7 +35,7 @@ insert into permissions (permission_code, permission_desc) values ('ADD_UPD_PROD
 insert into permissions (permission_code, permission_desc) values ('VIEW_ACCESS_MEM ', 'View Access > Members');
 insert into permissions (permission_code, permission_desc) values ('SET_PASSWORD    ', 'Set any members password');
 insert into permissions (permission_code, permission_desc) values ('VIEW_SALES      ', 'View sales list of a product (inc. handle of purchaser)');
---insert into permissions (permission_code, permission_desc) values ('ADD_MEMBER      ', 'Add member');
+-- insert into permissions (permission_code, permission_desc) values ('ADD_MEMBER      ', 'Add member');
 insert into permissions (permission_code, permission_desc) values ('VIEW_MEMBER_LIST', 'View full members list');
 insert into permissions (permission_code, permission_desc) values ('VIEW_MEMBER_PINS', 'View entry PINs');
 insert into permissions (permission_code, permission_desc) values ('VIEW_MEMBER_RFID', 'View registered RFID card details');

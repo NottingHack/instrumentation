@@ -86,7 +86,7 @@ BEGIN
       leave main;
     end if;    
     
-    if ((balance - amount) < (-1*climit)) then
+    if (((balance - amount) < (-1*climit)) and (amount > 0)) then
       -- Insufficient credit 
       -- TODO: Check/sum pending transactions
       set err = 'out of credit';

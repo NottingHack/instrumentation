@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-using namespace std;
 
 class CLogging
 {
@@ -16,16 +15,17 @@ class CLogging
   public:
     CLogging();
     ~CLogging();
-    void dbg(string msg);
-    bool open_logfile(string logfile);
+    void dbg(std::string msg);
+    void dbg(std::string area, std::string msg);
+    bool open_logfile(std::string logfile);
     
   private:
     int logfile;
     pthread_mutex_t logfile_mutex;
-    string sLogfile;
+    std::string sLogfile;
     
-    string patLogfile;
-    string opnLogfile;
-    string curLogfile();
+    std::string patLogfile;
+    std::string opnLogfile;
+    std::string curLogfile();
     
 };

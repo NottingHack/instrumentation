@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2011, Daniel Swann <hs@dswann.co.uk>
+ * Copyright (c) 2013, Daniel Swann <hs@dswann.co.uk>
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of nh-irc nor the names of its
+ * 3. Neither the name of the project nor the names of its
  *    contributors may be used to endorse or promote products derived from
  *    this software without specific prior written permission.
  * 
@@ -28,6 +28,7 @@
  */
 
 #include "CLogging.h"
+using namespace std;
 
 // Logging.
 // Not using ofstream becasue it can't open files in exclusive mode!
@@ -98,6 +99,13 @@ bool CLogging::open_logfile(string log_file)
   
   opnLogfile = filename;
   return true;
+}
+
+void CLogging::dbg(string area, string msg)
+{
+ 
+  //if (area != "DB")
+    dbg("[" + area + "] " + msg); 
 }
 
 void CLogging::dbg(string msg)
