@@ -89,7 +89,7 @@ web/nhweb/build/script/custom.js: $(wildcard web/nhweb/source/class/custom/*)
 
 nh-web: web/nhweb/build/script/custom.js
 
-web2: nh-web db/lib/CNHDBAccess.php web/pwreset.php web/vend.php web/db.php web/wikiauth.php
+web2: nh-web db/lib/CNHDBAccess.php web/vend.php web/db.php web/wikiauth.php
 	mkdir -p website/public/nhweb/
 	mkdir -p website/public/wiki/
 	cp db/lib/CNHDBAccess.php website/
@@ -98,7 +98,6 @@ web2: nh-web db/lib/CNHDBAccess.php web/pwreset.php web/vend.php web/db.php web/
 	cp web/nhweb/build/index.html website/public/nhweb/index.html
 	rsync -r --exclude=. -r web/rpcservice website/public/
 	rsync -r --exclude=. -r web/status website/public/
-	cp web/pwreset.php website/public/
 	cp web/vend.php website/public/
 	cp web/wikiauth.php website/public/wiki/
 	cp web/db.php website/
