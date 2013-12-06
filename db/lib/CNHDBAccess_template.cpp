@@ -33,7 +33,6 @@
 #include <cstdio>
 #include <string>
 #include <stdlib.h>
-#include "../../CLogging.h"
 #include <sstream>
 
 /* TODO: Add support for P_TYPE_TEXT (MySQL "TEXT" field type) */

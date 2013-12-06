@@ -1,88 +1,63 @@
-all: nh-test INIReaderTest nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tts db/lib/CNHDBAccess.php 
- 
-install: install_nh_holly install_gatekeeper
 
-install_gatekeeper: GateKeeper
-	stop GateKeeper
-	cp GateKeeper /home/instrumentation/bin/
-	chmod 555 /home/instrumentation/bin/GateKeeper
-	start GateKeeper
+SRC_DIR = cpp/
+DATABASE = database/
+BUILD_DIR = build/
 
-install_nh_holly: nh-irc
-	stop nh-holly
-	cp nh-irc /home/instrumentation/bin/
-	chmod 555 /home/instrumentation/bin/nh-irc
-	start nh-holly
+OBJ_BASE = CNHmqtt.o INIReader.o ini.o CLogging.o
+OBJS_BASE  := $(addprefix $(BUILD_DIR),$(OBJ_BASE))
 
-install_irccat: nh-irccat
-	stop nh-irccat
-	cp nh-irccat /home/instrumentation/bin/
-	chmod 555 /home/instrumentation/nh-irccar
-	cp command_runner.py /home/instrumentation/bin/
-	chmod 555 /home/instrumentaion/bin/command_runner.py
-	cp -r irccat /home/instrumentation/bin/
-	chmod 755 /home/instrumentaion/bin/irccat
-	chmod 555 /home/instrumentaion/bin/irccat/*
-	start nh-irccat
-	
-install_upstart:
-	cp upstart/* /etc/init/
-	
-install_conf:
-	cp -r conf /home/instrumentaion/
+OBJ_DBLIB = CNHDBAccess.o CDBValue.o
+OBJS_DBLIB  := $(addprefix $(BUILD_DIR),$(OBJ_DBLIB))
 
-nh-test: nh-test.o CNHmqtt.o INIReader.o ini.o CLogging.o
-	g++ -lmosquitto -o nh-test nh-test.o CNHmqtt.o INIReader.o ini.o CLogging.o
+CC_OUT = -o $(BUILD_DIR)$(notdir $@)
 
-nh-tts: nh-tts.o CNHmqtt.o INIReader.o ini.o CLogging.o
-	g++ -lmosquitto -lpthread -o nh-tts nh-tts.o CNHmqtt.o INIReader.o ini.o CLogging.o
+BIN_OUT = bin/
 
-nh-vend: nh-vend.o CNHmqtt.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o db/lib/CDBValue.o
-	g++ -lmysqlclient -lmosquitto -lpthread -o nh-vend nh-vend.o CNHmqtt.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o db/lib/CDBValue.o
-	cp nh-vend bin/
+CFLAGS = -Wall -c -g
+LFLAGS = -Wall -g
+CC = g++
 
-nh-test-irc: nh-test-irc.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
-	g++ -lmosquitto -o nh-test-irc nh-test-irc.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
 
-#nh-udp2mqtt: nh-udp2mqtt.o CNHmqtt.o INIReader.o ini.o CLogging.o
-#	g++ -lmosquitto -lpthread -o nh-udp2mqtt nh-udp2mqtt.o CNHmqtt.o INIReader.o ini.o CLogging.o
-#	cp nh-udp2mqtt bin/
+all: nh-test nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tts db/lib/CNHDBAccess.php 
 
-nh-matrix: nh-matrix.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
-	g++ -lmosquitto -o nh-matrix nh-matrix.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
-	cp nh-matrix bin/
+nh-test: $(BUILD_DIR)nh-test.o $(OBJS_BASE)
+	g++ -lmosquitto -o $(BIN_OUT)nh-test $(BUILD_DIR)nh-test.o $(OBJS_BASE)
 
-nh-temperature: nh-temperature.o CNHmqtt.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o db/lib/CDBValue.o
-	g++ -lmosquitto -lmysqlclient -o nh-temperature nh-temperature.o CNHmqtt.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o db/lib/CDBValue.o
-	cp nh-temperature bin/
+nh-tts: $(BUILD_DIR)nh-tts.o $(OBJS_BASE)
+	g++ -lmosquitto -lpthread -o $(BIN_OUT)nh-tts $(BUILD_DIR)nh-tts.o $(OBJS_BASE)
 
-nh-irc-misc: nh-irc-misc.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o db/lib/CDBValue.o
-	g++ -lmosquitto -lmysqlclient -o nh-irc-misc nh-irc-misc.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o db/lib/CDBValue.o
-	cp nh-irc-misc bin/
+nh-vend: $(BUILD_DIR)nh-vend.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-vend $(BUILD_DIR)nh-vend.o $(OBJS_BASE) $(OBJS_DBLIB)
 
-nh-irccat: nh-irccat.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
-	g++ -lpthread -lmosquitto -o nh-irccat nh-irccat.o CNHmqtt_irc.o CNHmqtt.o INIReader.o ini.o CLogging.o
-	cp nh-irccat bin/
+nh-test-irc: $(BUILD_DIR)nh-test-irc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
+	g++ -lmosquitto -o $(BIN_OUT)nh-test-irc $(BUILD_DIR)nh-test-irc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
 
-GateKeeper: GateKeeper.o CNHmqtt.o CNHmqtt_irc.o INIReader.o ini.o db/lib/CNHDBAccess.o CLogging.o db/lib/CDBValue.o
-	g++ -lmysqlclient -lmosquitto -lrt -o GateKeeper GateKeeper.o CNHmqtt.o CNHmqtt_irc.o INIReader.o ini.o db/lib/CNHDBAccess.o CLogging.o db/lib/CDBValue.o
-	cp GateKeeper bin/
+nh-matrix: $(BUILD_DIR)nh-matrix.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
+	g++ -lmosquitto -o $(BIN_OUT)nh-matrix  $(BUILD_DIR)nh-matrix.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
 
-nh-monitor: nh-monitor.o CNHmqtt.o INIReader.o ini.o db/lib/CNHDBAccess.o CLogging.o db/lib/CDBValue.o
-	g++ -lmysqlclient -lmosquitto -lpthread -o nh-monitor nh-monitor.o CNHmqtt.o INIReader.o ini.o db/lib/CNHDBAccess.o CLogging.o db/lib/CDBValue.o
-	cp nh-monitor bin/
+nh-temperature: $(BUILD_DIR)nh-temperature.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lmosquitto -lmysqlclient -o $(BIN_OUT)nh-temperature $(BUILD_DIR)nh-temperature.o $(OBJS_BASE) $(OBJS_DBLIB)
 
-nh-irc: nh-irc.o CNHmqtt.o INIReader.o ini.o irc.o CLogging.o
-	g++ -lmosquitto -lrt -o nh-irc nh-irc.o CNHmqtt.o INIReader.o ini.o irc.o CLogging.o
-	cp nh-irc bin/
+nh-irc-misc: $(BUILD_DIR)nh-irc-misc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lmosquitto -lmysqlclient -o $(BIN_OUT)nh-irc-misc $(BUILD_DIR)nh-irc-misc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
 
-nh-mail: nh-mail.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o CEmailProcess.o db/lib/CDBValue.o
-	g++ -lmysqlclient -lmosquitto -o nh-mail nh-mail.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o CEmailProcess.o db/lib/CDBValue.o
-	cp nh-mail bin/
+nh-irccat: $(BUILD_DIR)nh-irccat.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
+	g++ -lpthread -lmosquitto -o $(BIN_OUT)nh-irccat $(BUILD_DIR)nh-irccat.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
 
-nh-macmon: nh-macmon.o CNHmqtt.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o CMacmon.o db/lib/CDBValue.o
-	g++ -lpcap -lmysqlclient -lmosquitto -o nh-macmon CNHmqtt.o nh-macmon.o INIReader.o ini.o CLogging.o db/lib/CNHDBAccess.o CMacmon.o db/lib/CDBValue.o
-	cp nh-macmon bin/
+GateKeeper: $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lmysqlclient -lmosquitto -lrt -o $(BIN_OUT)GateKeeper $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
+
+nh-monitor: $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-monitor $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
+
+nh-irc: $(BUILD_DIR)nh-irc.o $(BUILD_DIR)irc.o $(OBJS_BASE)
+	g++ -lmosquitto -lrt -o $(BIN_OUT)nh-irc $(BUILD_DIR)nh-irc.o $(BUILD_DIR)irc.o $(OBJS_BASE)
+
+nh-mail: $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o $(OBJS_DBLIB)
+	g++ -lmysqlclient -lmosquitto -o $(BIN_OUT)nh-mail $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o $(OBJS_DBLIB)
+
+nh-macmon: $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lpcap -lmysqlclient -lmosquitto -o $(BIN_OUT)nh-macmon $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 web/nhweb/build/script/custom.js: $(wildcard web/nhweb/source/class/custom/*)
 	sh nhweb.sh
@@ -104,102 +79,101 @@ web2: nh-web db/lib/CNHDBAccess.php web/vend.php web/db.php web/wikiauth.php
 	cp web/krb5_auth.php website/
 
 
-CNHmqtt.o: CNHmqtt.cpp CNHmqtt.h
-	g++ -Wall -c CNHmqtt.cpp
+$(BUILD_DIR)CNHmqtt.o: $(SRC_DIR)CNHmqtt.cpp $(SRC_DIR)CNHmqtt.h
+	g++ -Wall -c $(SRC_DIR)CNHmqtt.cpp $(CC_OUT)
 
-nh-mail.o: nh-mail.cpp nh-mail.h db/lib/CNHDBAccess.h
-	g++ -Wall -c nh-mail.cpp
+$(BUILD_DIR)nh-mail.o: $(SRC_DIR)nh-mail.cpp $(SRC_DIR)nh-mail.h db/lib/CNHDBAccess.h
+	g++ -Wall -c $(SRC_DIR)nh-mail.cpp $(CC_OUT)
 
-CNHmqtt_irc.o: CNHmqtt_irc.cpp CNHmqtt_irc.h
-	g++ -Wall -c CNHmqtt_irc.cpp
+$(BUILD_DIR)CNHmqtt_irc.o: $(SRC_DIR)CNHmqtt_irc.cpp $(SRC_DIR)CNHmqtt_irc.h
+	g++ -Wall -c $(SRC_DIR)CNHmqtt_irc.cpp $(CC_OUT)
 
-nh-test.o: nh-test.cpp nh-test.h
-	g++ -Wall -c nh-test.cpp
+$(BUILD_DIR)nh-test.o: $(SRC_DIR)nh-test.cpp $(SRC_DIR)nh-test.h
+	g++ -Wall -c $(SRC_DIR)nh-test.cpp $(CC_OUT)
 
-nh-tts.o: nh-tts.cpp nh-tts.h
-	g++ -Wall -c nh-tts.cpp
+$(BUILD_DIR)nh-tts.o: $(SRC_DIR)nh-tts.cpp $(SRC_DIR)nh-tts.h
+	g++ -Wall -c $(SRC_DIR)nh-tts.cpp $(CC_OUT)
 
-nh-vend.o: nh-vend.cpp nh-vend.h
-	g++ -Wall -c nh-vend.cpp
+$(BUILD_DIR)nh-vend.o: $(SRC_DIR)nh-vend.cpp $(SRC_DIR)nh-vend.h
+	g++ -Wall -c $(SRC_DIR)nh-vend.cpp $(CC_OUT)
 
-nh-test-irc.o: nh-test-irc.cpp nh-test-irc.h
-	g++ -Wall -c nh-test-irc.cpp
+$(BUILD_DIR)nh-test-irc.o: $(SRC_DIR)nh-test-irc.cpp $(SRC_DIR)nh-test-irc.h
+	g++ -Wall -c $(SRC_DIR)nh-test-irc.cpp $(CC_OUT)
 
-#nh-udp2mqtt.o: nh-udp2mqtt.cpp nh-udp2mqtt.h
-#	g++ -Wall -c nh-udp2mqtt.cpp
+$(BUILD_DIR)nh-matrix.o: $(SRC_DIR)nh-matrix.cpp $(SRC_DIR)nh-matrix.h
+	g++ -Wall -c $(SRC_DIR)nh-matrix.cpp $(CC_OUT)
 
-nh-matrix.o: nh-matrix.cpp nh-matrix.h
-	g++ -Wall -c nh-matrix.cpp
+$(BUILD_DIR)nh-temperature.o: $(SRC_DIR)nh-temperature.cpp $(SRC_DIR)nh-temperature.h db/lib/CNHDBAccess.o
+	g++ -Wall -c $(SRC_DIR)nh-temperature.cpp $(CC_OUT)
 
-nh-temperature.o: nh-temperature.cpp nh-temperature.h db/lib/CNHDBAccess.o
-	g++ -Wall -c nh-temperature.cpp
+$(BUILD_DIR)nh-irc-misc.o: $(SRC_DIR)nh-irc-misc.cpp $(SRC_DIR)nh-irc-misc.h
+	g++ -Wall -c $(SRC_DIR)nh-irc-misc.cpp $(CC_OUT)
 
-nh-irc-misc.o: nh-irc-misc.cpp nh-irc-misc.h
-	g++ -Wall -c nh-irc-misc.cpp
+$(BUILD_DIR)nh-macmon.o: $(SRC_DIR)nh-macmon.cpp $(SRC_DIR)nh-macmon.h db/lib/CNHDBAccess.h
+	g++ -Wall -c $(SRC_DIR)nh-macmon.cpp $(CC_OUT)
 
-nh-macmon.o: nh-macmon.cpp nh-macmon.h db/lib/CNHDBAccess.h
-	g++ -Wall -c nh-macmon.cpp
+$(BUILD_DIR)nh-irccat.o: $(SRC_DIR)nh-irccat.cpp $(SRC_DIR)nh-irccat.h
+	g++ -Wall -c $(SRC_DIR)nh-irccat.cpp $(CC_OUT)
 
-irccat.o: nh-irccat.cpp nh-irccat.h
-	g++ -Wall -c nh-irccat.cpp
+$(BUILD_DIR)GateKeeper.o: $(SRC_DIR)GateKeeper.cpp db/lib/CNHDBAccess.h
+	g++ -Wall -c $(SRC_DIR)GateKeeper.cpp $(CC_OUT)
 
-GateKeeper.o: GateKeeper.cpp db/lib/CNHDBAccess.h
-	g++ -Wall -c GateKeeper.cpp
+$(BUILD_DIR)nh-monitor.o: $(SRC_DIR)nh-monitor.cpp db/lib/CNHDBAccess.h
+	g++ -Wall -c $(SRC_DIR)nh-monitor.cpp $(CC_OUT)
 
-nh-monitor.o: nh-monitor.cpp db/lib/CNHDBAccess.h
-	g++ -Wall -c nh-monitor.cpp
+$(BUILD_DIR)nh-irc.o: $(SRC_DIR)nh-irc.cpp
+	g++ -Wall -Wextra -c $(SRC_DIR)nh-irc.cpp $(CC_OUT)
 
-nh-irc.o: nh-irc.cpp
-	g++ -Wall -Wextra -c nh-irc.cpp
+$(BUILD_DIR)irc.o: $(SRC_DIR)irc.cpp $(SRC_DIR)irc.h
+	g++ -c $(SRC_DIR)irc.cpp  $(CC_OUT)
 
-irc.o: irc.cpp irc.h
-	g++ -c irc.cpp 
+$(BUILD_DIR)ini.o: $(SRC_DIR)inireader/ini.c $(SRC_DIR)inireader/ini.h
+	gcc -c $(SRC_DIR)inireader/ini.c $(CC_OUT)
 
-ini.o: inireader/ini.c inireader/ini.h
-	gcc -c inireader/ini.c
+$(BUILD_DIR)INIReaderTest.o: $(SRC_DIR)inireader/INIReaderTest.cpp
+	g++ -c $(SRC_DIR)inireader/INIReaderTest.cpp $(CC_OUT)
 
-INIReaderTest.o: inireader/INIReaderTest.cpp
-	g++ -c inireader/INIReaderTest.cpp
+$(BUILD_DIR)INIReader.o: $(SRC_DIR)inireader/INIReader.cpp $(SRC_DIR)inireader/INIReader.h
+	g++ -c $(SRC_DIR)inireader/INIReader.cpp $(CC_OUT)
 
-INIReader.o: inireader/INIReader.cpp inireader/INIReader.h
-	g++ -c inireader/INIReader.cpp
+INIReaderTest: $(BUILD_DIR)ini.o $(BUILD_DIR)INIReaderTest.o $(BUILD_DIR)INIReader.o
+	g++ -o INIReaderTest $(BUILD_DIR)INIReader.o $(BUILD_DIR)INIReaderTest.o $(BUILD_DIR)ini.o
 
-INIReaderTest: ini.o INIReaderTest.o INIReader.o
-	g++ -o INIReaderTest INIReader.o INIReaderTest.o ini.o
+$(BUILD_DIR)CLogging.o: $(SRC_DIR)CLogging.cpp $(SRC_DIR)CLogging.h
+	g++ -c $(SRC_DIR)CLogging.cpp $(CC_OUT)
 
-CLogging.o: CLogging.cpp CLogging.h
-	g++ -c CLogging.cpp
+$(BUILD_DIR)CEmailProcess.o: $(SRC_DIR)CEmailProcess.cpp $(SRC_DIR)CEmailProcess.h
+	g++ -Wall -c $(SRC_DIR)CEmailProcess.cpp $(CC_OUT)
 
-CEmailProcess.o: CEmailProcess.cpp CEmailProcess.h
-	g++ -Wall -c CEmailProcess.cpp
+$(BUILD_DIR)CalcWordCount.o: $(SRC_DIR)CalcWordCount.cpp
+	g++ -Wall -c $(SRC_DIR)CalcWordCount.cpp $(CC_OUT)
 
-CalcWordCount.o: CalcWordCount.cpp
-	g++ -Wall -c CalcWordCount.cpp
-
-CMacmon.o: CMacmon.cpp CMacmon.h
-	g++ -Wall -c CMacmon.cpp
+$(BUILD_DIR)CMacmon.o: $(SRC_DIR)CMacmon.cpp $(SRC_DIR)CMacmon.h
+	g++ -Wall -c $(SRC_DIR)CMacmon.cpp 
 
 
-dblib: db/lib/gen_dblib
+dblib: $(BUILD_DIR)gen_dblib
 
-db/lib/gen_dblib: db/lib/gen_dblib.c
-	gcc -Wall -o db/lib/gen_dblib db/lib/gen_dblib.c
+$(BUILD_DIR)gen_dblib: db/lib/gen_dblib.c
+	gcc -Wall -o $(BUILD_DIR)gen_dblib db/lib/gen_dblib.c
 
-db/lib/CNHDBAccess.cpp: db/lib/gen_dblib db/lib/CNHDBAccess_template.cpp $(wildcard db/sp_*.sql)
-	db/lib/gen_dblib db/lib $(wildcard db/sp_*.sql)
+db/lib/CNHDBAccess.cpp: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.cpp $(wildcard db/sp_*.sql)
+	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/sp_*.sql)
 
-db/lib/CNHDBAccess.h: db/lib/gen_dblib db/lib/CNHDBAccess_template.h $(wildcard db/sp_*.sql)
-	db/lib/gen_dblib db/lib $(wildcard db/sp_*.sql)
+db/lib/CNHDBAccess.h: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.h $(wildcard db/sp_*.sql)
+	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/sp_*.sql)
 
-db/lib/CNHDBAccess.php: db/lib/gen_dblib db/lib/CNHDBAccess_template.php $(wildcard db/sp_*.sql)
-	db/lib/gen_dblib db/lib $(wildcard db/sp_*.sql)
+db/lib/CNHDBAccess.php: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.php $(wildcard db/sp_*.sql)
+	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/sp_*.sql)
 
-db/lib/CNHDBAccess.o: db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h 
-	g++ -Wall -c db/lib/CNHDBAccess.cpp -o db/lib/CNHDBAccess.o
+$(BUILD_DIR)CNHDBAccess.o: db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h 
+	g++ -Wall -c db/lib/CNHDBAccess.cpp -o $(BUILD_DIR)CNHDBAccess.o
 
-db/lib/CDBValue.o: db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.h
-	g++ -Wall -c db/lib/CDBValue.cpp -o db/lib/CDBValue.o
+$(BUILD_DIR)CDBValue.o: db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.h
+	g++ -Wall -c db/lib/CDBValue.cpp -o $(BUILD_DIR)CDBValue.o
 
 clean:
-	rm -f db/lib/gen_dblib db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h db/lib/CNHDBAccess.o nh-monitor.o nh-monitor CNHDBAccess.o CDBValue.o nh-irc-misc.o nh-irccat.o nh-test-irc.o CNHmqtt_irc.o nh-irc nh-test nh-irccat nh-test-irc nh-irc-misc INIReaderTest GateKeeper_dbaccess.o GateKeeper.o GateKeeper mos_irc irc.o mos_irc.o nh-test.o CNHmqtt.o ini.o INIReader.o INIReaderTest.o nh-irc.o nh-gk-if.o CLogging.o nh-matrix.o nh-matrix nh-temperature.o nh-temperature nh-vend.o nh-vend nh-mail nh-mail.o nh-macmon nh-macmon.o CMacmon.o CEmailProcess.o web/nhweb/build/script/custom.js nh-tts nh-tts.o
-	rm -rf website/
+	rm -fv build/*
+	rm -fv bin/*
+	rm -fv web/nhweb/build/script/custom.js
+	rm -rfv website/

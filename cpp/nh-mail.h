@@ -4,7 +4,7 @@
 #include "mosquitto.h"
 #include "CLogging.h"
 #include "inireader/INIReader.h"
-#include "db/lib/CNHDBAccess.h"
+#include "CNHDBAccess.h"
 
 #define EXIT_TERMINATE 1 
 #define EXIT_RESET 2

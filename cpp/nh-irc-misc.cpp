@@ -28,7 +28,7 @@
  */
 
 #include "CNHmqtt_irc.h"
-#include "db/lib/CNHDBAccess.h"
+#include "CNHDBAccess.h"
 #include "nh-irc-misc.h"
 
 class nh_irc_misc : public CNHmqtt_irc

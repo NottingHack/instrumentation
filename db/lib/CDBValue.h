@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 #include <stdlib.h>
-#include "../../CLogging.h"
+#include "CLogging.h"
 
 #define VAL_TYPE_INT 1
 #define VAL_TYPE_VARCHAR 2

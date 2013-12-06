@@ -1,8 +1,7 @@
 bool CNHmqtt::debug_mode = false;
 bool CNHmqtt::daemonized = false;
 
-#include "db/lib/CNHDBAccess.h"
-//#include "CVMC.h"
+#include "CNHDBAccess.h"
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/types.h>

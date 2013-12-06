@@ -28,7 +28,7 @@
  */
 
 #include "CNHmqtt_irc.h"
-#include "db/lib/CNHDBAccess.h"
+#include "CNHDBAccess.h"
 
 #include <stdio.h>
 #include <time.h>

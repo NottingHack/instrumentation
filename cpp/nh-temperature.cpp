@@ -28,7 +28,7 @@
  */
 
 #include "CNHmqtt.h"
-#include "db/lib/CNHDBAccess.h"
+#include "CNHDBAccess.h"
 #include "nh-temperature.h"
 #include <string>
 #include <sstream>

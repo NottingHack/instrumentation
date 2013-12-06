@@ -6,7 +6,7 @@
 #include <list>
 #include <string>
 #include <time.h>
-#include "../../CLogging.h"
+#include "CLogging.h"
 #include "CDBValue.h"
 
 
