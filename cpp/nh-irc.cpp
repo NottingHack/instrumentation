@@ -91,24 +91,24 @@ class nh_irc : public CNHmqtt
       subscribe(irc_mqtt_tx + "/#");
       return 0;
     }
-    
+
   static int irc_callback(string user, string channel, string message, void *obj)
   {
     nh_irc *m;
-    
+
     // "channel" is either the channel name (e.g. '#nottinghack'), or an irc nick
     // if the bot was privmsg'd (e.g. 'daniel1111')
-    
+
     m = (nh_irc*)obj;
-    
+
     if ((user=="") && (channel=="INTERNAL") && (message=="DISCONNECTED"))
     {
       // Disconnected from IRC, so send ourselves a reset message
       m->log->dbg("Disconnected from IRC!");
       m->message_send(m->_mqtt_rx, "TERMINATE");      
-      return NULL;
+      return 0;
     }
-      
+
     // If the bot is sent a private message, publish to /pm/<nick>, if 
     // it's a chat message in the channel, send to /<channel>/<nick>.
     if (m->_mosq_connected)
@@ -118,10 +118,10 @@ class nh_irc : public CNHmqtt
       else
         m->message_send(m->irc_mqtt_rx + "/pm/" + user, message);
     }
-        
-    return NULL;
-  }    
-    
+
+    return 0;
+  }
+
   void process_message(string topic, string message)
   {
     string nick_chan;

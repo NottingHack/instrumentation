@@ -2,6 +2,7 @@
 #include "nh-irccat.h"
 #include <string.h>
 
+using namespace std;
 
 class nh_irccat: public CNHmqtt_irc
 {

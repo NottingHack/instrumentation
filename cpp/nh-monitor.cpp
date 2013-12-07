@@ -33,7 +33,9 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <errno.h>
-#include <signal.h>  
+#include <signal.h>
+
+using namespace std;
 
 bool CNHmqtt::debug_mode = false;
 bool CNHmqtt::daemonized = false; 
@@ -79,7 +81,7 @@ class nh_monitor : public CNHmqtt
    *    Terminated: WorkshopMQTT                                             */
   {
     string sname, state;
-    unsigned int pos;
+    size_t pos;
     
     if ((topic != _status_res_topic) || (message == "STATUS"))
       return;

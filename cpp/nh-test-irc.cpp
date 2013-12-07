@@ -1,6 +1,8 @@
 #include "CNHmqtt_irc.h"
 #include "nh-test-irc.h"
 
+using namespace std;
+
 /* 
  * Test app using the IRC bot over MQTT.
  * Execute as "./nh-test-irc -d -c nh-test-irc.conf" to run without daemonizing

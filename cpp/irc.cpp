@@ -182,6 +182,7 @@ void *irc::readThread(void *arg)
     irc *Irc;
     Irc = (irc*) arg;  
     Irc->readThread();
+    return NULL;
 }
 
 // Watch for connection timeouts. If we don't get anyting from the server in the timeout period,
@@ -219,6 +220,7 @@ void *irc::activityThread(void *arg)
     irc *Irc;
     Irc = (irc*) arg;  
     Irc->activityThread();
+    return NULL;
 }
 
 void irc::wait()
@@ -232,7 +234,7 @@ void irc::processMessage(string message)
 {
   string tx;
   int pos;
-  int n;
+  unsigned int n;
   char buf[20];
   
   string prefix;
@@ -386,7 +388,7 @@ int irc::rx_privmsg(string prefix, string params)
   string user;
   string channel;
   string message;
-  int pos, n;
+  unsigned int pos, n;
   
   if (prefix.length() <= 2)
     return -1; // A chat message with no user is no good!
@@ -408,6 +410,8 @@ int irc::rx_privmsg(string prefix, string params)
   for (n=0; n < callbacks.size(); n++)
     if (callbacks.at(n).trigger == message.substr(0, callbacks.at(n).trigger.length()))
       (*callbacks.at(n).ircCallback)(user, channel, message, callbacks.at(n).obj);
+
+  return 0;
 }
 
 int irc::join(string room)
@@ -428,7 +432,7 @@ int irc::write(string msg)
 {
   string d;
   int ret;
-  
+
   d = msg;
   d.erase(d.find_last_not_of("\r\n")+1);
 
@@ -475,13 +479,13 @@ int irc::send(string room, string message)
 int irc::addCallback(string trigger, int (*ircCallback)(string, string, string, void*), void *obj)
 {
   struct callback cb;
-  int n;
+  unsigned int n;
   
   cb.trigger = trigger;
   cb.ircCallback = ircCallback;
   cb.obj = obj;
   
-  if (ircCallback = NULL)
+  if (ircCallback == NULL)
     return -1;
   
   // Don't allow the same trigger word/phrase to be used more than once.

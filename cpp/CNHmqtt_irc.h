@@ -1,8 +1,6 @@
 #pragma once
 #include "CNHmqtt.h"
 
-using namespace std;
-
 
 class CNHmqtt_irc : CNHmqtt
 {
@@ -12,11 +10,11 @@ class CNHmqtt_irc : CNHmqtt
     
     class irc_msg {
       public:
-        string nick;
-        string channel;
-        string message;
+        std::string nick;
+        std::string channel;
+        std::string message;
         
-        irc_msg(string msg, string chan, string nk, CNHmqtt_irc *irc_con)
+        irc_msg(std::string msg, std::string chan, std::string nk, CNHmqtt_irc *irc_con)
         { 
           message = msg;
           channel = chan;
@@ -24,7 +22,7 @@ class CNHmqtt_irc : CNHmqtt
           con = irc_con;  
         }
         
-        int reply(string rep)
+        int reply(std::string rep)
         {
           if (channel=="")
             return con->irc_send_nick (rep, nick);
@@ -32,7 +30,7 @@ class CNHmqtt_irc : CNHmqtt
             return con->irc_send_channel (rep, channel);        
         }
         
-        int reply_pm(string rep)
+        int reply_pm(std::string rep)
         {
           return con->irc_send_nick (rep, nick);        
         }        
@@ -42,14 +40,14 @@ class CNHmqtt_irc : CNHmqtt
           return (channel=="");
         }
 
-        // Allow comparision to a string to work (and only consider message not nick/chan)
-        bool operator==(const string &str_message) const 
+        // Allow comparision to a std::string to work (and only consider message not nick/chan)
+        bool operator==(const std::string &str_message) const 
         {
           return (message==str_message);
         }
         
-        // Allow cast to string
-        operator string() 
+        // Allow cast to std::string
+        operator std::string() 
         { 
           return message; 
         }        
@@ -58,16 +56,16 @@ class CNHmqtt_irc : CNHmqtt
         CNHmqtt_irc *con;
     };    
     
-    string irc_out;
-    string irc_in;    
+    std::string irc_out;
+    std::string irc_in;    
     
-    static bool decode_irc_topic(string irc_in, string topic, string &nick, string &channel);
-    int irc_reply(string message, irc_msg dst);
-    int irc_send_nick (string message, string nick);
-    int irc_send_channel (string message, string channel);
-    bool is_irc_msg(string topic); 
-    void process_message(string topic, string message);
-    virtual void process_irc_message(irc_msg msg) {};
+    static bool decode_irc_topic(std::string irc_in, std::string topic, std::string &nick, std::string &channel);
+    int irc_reply(std::string message, irc_msg dst);
+    int irc_send_nick (std::string message, std::string nick);
+    int irc_send_channel (std::string message, std::string channel);
+    bool is_irc_msg(std::string topic); 
+    void process_message(std::string topic, std::string message);
+    virtual void process_irc_message(irc_msg msg) = 0;
     bool init();
 
     using CNHmqtt::get_str_option;

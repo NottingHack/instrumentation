@@ -31,6 +31,8 @@
 #include "CNHDBAccess.h"
 #include "nh-irc-misc.h"
 
+using namespace std;
+
 class nh_irc_misc : public CNHmqtt_irc
 {
   public:

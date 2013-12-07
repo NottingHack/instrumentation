@@ -13,50 +13,53 @@ CC_OUT = -o $(BUILD_DIR)$(notdir $@)
 
 BIN_OUT = bin/
 
-CFLAGS = -Wall -c -g
+ALL_BIN = nh-test nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tts
+ALL_BINS := $(addprefix $(BIN_OUT),$(ALL_BIN))
+
+CFLAGS = -Wall -Wextra -c -g
 LFLAGS = -Wall -g
 CC = g++
 
 
-all: nh-test nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tts db/lib/CNHDBAccess.php 
+all: $(ALL_BINS) db/lib/CNHDBAccess.php
 
-nh-test: $(BUILD_DIR)nh-test.o $(OBJS_BASE)
+$(BIN_OUT)nh-test: $(BUILD_DIR)nh-test.o $(OBJS_BASE)
 	g++ -lmosquitto -o $(BIN_OUT)nh-test $(BUILD_DIR)nh-test.o $(OBJS_BASE)
 
-nh-tts: $(BUILD_DIR)nh-tts.o $(OBJS_BASE)
+$(BIN_OUT)nh-tts: $(BUILD_DIR)nh-tts.o $(OBJS_BASE)
 	g++ -lmosquitto -lpthread -o $(BIN_OUT)nh-tts $(BUILD_DIR)nh-tts.o $(OBJS_BASE)
 
-nh-vend: $(BUILD_DIR)nh-vend.o $(OBJS_BASE) $(OBJS_DBLIB)
+$(BIN_OUT)nh-vend: $(BUILD_DIR)nh-vend.o $(OBJS_BASE) $(OBJS_DBLIB)
 	g++ -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-vend $(BUILD_DIR)nh-vend.o $(OBJS_BASE) $(OBJS_DBLIB)
 
-nh-test-irc: $(BUILD_DIR)nh-test-irc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
+$(BIN_OUT)nh-test-irc: $(BUILD_DIR)nh-test-irc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
 	g++ -lmosquitto -o $(BIN_OUT)nh-test-irc $(BUILD_DIR)nh-test-irc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
 
-nh-matrix: $(BUILD_DIR)nh-matrix.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
+$(BIN_OUT)nh-matrix: $(BUILD_DIR)nh-matrix.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
 	g++ -lmosquitto -o $(BIN_OUT)nh-matrix  $(BUILD_DIR)nh-matrix.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
 
-nh-temperature: $(BUILD_DIR)nh-temperature.o $(OBJS_BASE) $(OBJS_DBLIB)
+$(BIN_OUT)nh-temperature: $(BUILD_DIR)nh-temperature.o $(OBJS_BASE) $(OBJS_DBLIB)
 	g++ -lmosquitto -lmysqlclient -o $(BIN_OUT)nh-temperature $(BUILD_DIR)nh-temperature.o $(OBJS_BASE) $(OBJS_DBLIB)
 
-nh-irc-misc: $(BUILD_DIR)nh-irc-misc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
+$(BIN_OUT)nh-irc-misc: $(BUILD_DIR)nh-irc-misc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
 	g++ -lmosquitto -lmysqlclient -o $(BIN_OUT)nh-irc-misc $(BUILD_DIR)nh-irc-misc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
 
-nh-irccat: $(BUILD_DIR)nh-irccat.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
+$(BIN_OUT)nh-irccat: $(BUILD_DIR)nh-irccat.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
 	g++ -lpthread -lmosquitto -o $(BIN_OUT)nh-irccat $(BUILD_DIR)nh-irccat.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
 
-GateKeeper: $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
+$(BIN_OUT)GateKeeper: $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
 	g++ -lmysqlclient -lmosquitto -lrt -o $(BIN_OUT)GateKeeper $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
 
-nh-monitor: $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
+$(BIN_OUT)nh-monitor: $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
 	g++ -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-monitor $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
 
-nh-irc: $(BUILD_DIR)nh-irc.o $(BUILD_DIR)irc.o $(OBJS_BASE)
+$(BIN_OUT)nh-irc: $(BUILD_DIR)nh-irc.o $(BUILD_DIR)irc.o $(OBJS_BASE)
 	g++ -lmosquitto -lrt -o $(BIN_OUT)nh-irc $(BUILD_DIR)nh-irc.o $(BUILD_DIR)irc.o $(OBJS_BASE)
 
-nh-mail: $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o $(OBJS_DBLIB)
+$(BIN_OUT)nh-mail: $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o $(OBJS_DBLIB)
 	g++ -lmysqlclient -lmosquitto -o $(BIN_OUT)nh-mail $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o $(OBJS_DBLIB)
 
-nh-macmon: $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
+$(BIN_OUT)nh-macmon: $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
 	g++ -lpcap -lmysqlclient -lmosquitto -o $(BIN_OUT)nh-macmon $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 web/nhweb/build/script/custom.js: $(wildcard web/nhweb/source/class/custom/*)
@@ -80,76 +83,76 @@ web2: nh-web db/lib/CNHDBAccess.php web/vend.php web/db.php web/wikiauth.php
 
 
 $(BUILD_DIR)CNHmqtt.o: $(SRC_DIR)CNHmqtt.cpp $(SRC_DIR)CNHmqtt.h
-	g++ -Wall -c $(SRC_DIR)CNHmqtt.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)CNHmqtt.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-mail.o: $(SRC_DIR)nh-mail.cpp $(SRC_DIR)nh-mail.h db/lib/CNHDBAccess.h
-	g++ -Wall -c $(SRC_DIR)nh-mail.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-mail.cpp $(CC_OUT)
 
 $(BUILD_DIR)CNHmqtt_irc.o: $(SRC_DIR)CNHmqtt_irc.cpp $(SRC_DIR)CNHmqtt_irc.h
-	g++ -Wall -c $(SRC_DIR)CNHmqtt_irc.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)CNHmqtt_irc.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-test.o: $(SRC_DIR)nh-test.cpp $(SRC_DIR)nh-test.h
-	g++ -Wall -c $(SRC_DIR)nh-test.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-test.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-tts.o: $(SRC_DIR)nh-tts.cpp $(SRC_DIR)nh-tts.h
-	g++ -Wall -c $(SRC_DIR)nh-tts.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-tts.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-vend.o: $(SRC_DIR)nh-vend.cpp $(SRC_DIR)nh-vend.h
-	g++ -Wall -c $(SRC_DIR)nh-vend.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-vend.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-test-irc.o: $(SRC_DIR)nh-test-irc.cpp $(SRC_DIR)nh-test-irc.h
-	g++ -Wall -c $(SRC_DIR)nh-test-irc.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-test-irc.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-matrix.o: $(SRC_DIR)nh-matrix.cpp $(SRC_DIR)nh-matrix.h
-	g++ -Wall -c $(SRC_DIR)nh-matrix.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-matrix.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-temperature.o: $(SRC_DIR)nh-temperature.cpp $(SRC_DIR)nh-temperature.h db/lib/CNHDBAccess.o
-	g++ -Wall -c $(SRC_DIR)nh-temperature.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-temperature.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-irc-misc.o: $(SRC_DIR)nh-irc-misc.cpp $(SRC_DIR)nh-irc-misc.h
-	g++ -Wall -c $(SRC_DIR)nh-irc-misc.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-irc-misc.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-macmon.o: $(SRC_DIR)nh-macmon.cpp $(SRC_DIR)nh-macmon.h db/lib/CNHDBAccess.h
-	g++ -Wall -c $(SRC_DIR)nh-macmon.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-macmon.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-irccat.o: $(SRC_DIR)nh-irccat.cpp $(SRC_DIR)nh-irccat.h
-	g++ -Wall -c $(SRC_DIR)nh-irccat.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-irccat.cpp $(CC_OUT)
 
 $(BUILD_DIR)GateKeeper.o: $(SRC_DIR)GateKeeper.cpp db/lib/CNHDBAccess.h
-	g++ -Wall -c $(SRC_DIR)GateKeeper.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)GateKeeper.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-monitor.o: $(SRC_DIR)nh-monitor.cpp db/lib/CNHDBAccess.h
-	g++ -Wall -c $(SRC_DIR)nh-monitor.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-monitor.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-irc.o: $(SRC_DIR)nh-irc.cpp
-	g++ -Wall -Wextra -c $(SRC_DIR)nh-irc.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-irc.cpp $(CC_OUT)
 
 $(BUILD_DIR)irc.o: $(SRC_DIR)irc.cpp $(SRC_DIR)irc.h
-	g++ -c $(SRC_DIR)irc.cpp  $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)irc.cpp  $(CC_OUT)
 
 $(BUILD_DIR)ini.o: $(SRC_DIR)inireader/ini.c $(SRC_DIR)inireader/ini.h
 	gcc -c $(SRC_DIR)inireader/ini.c $(CC_OUT)
 
 $(BUILD_DIR)INIReaderTest.o: $(SRC_DIR)inireader/INIReaderTest.cpp
-	g++ -c $(SRC_DIR)inireader/INIReaderTest.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)inireader/INIReaderTest.cpp $(CC_OUT)
 
 $(BUILD_DIR)INIReader.o: $(SRC_DIR)inireader/INIReader.cpp $(SRC_DIR)inireader/INIReader.h
-	g++ -c $(SRC_DIR)inireader/INIReader.cpp $(CC_OUT)
+	$(CC) -c $(SRC_DIR)inireader/INIReader.cpp $(CC_OUT)
 
 INIReaderTest: $(BUILD_DIR)ini.o $(BUILD_DIR)INIReaderTest.o $(BUILD_DIR)INIReader.o
 	g++ -o INIReaderTest $(BUILD_DIR)INIReader.o $(BUILD_DIR)INIReaderTest.o $(BUILD_DIR)ini.o
 
 $(BUILD_DIR)CLogging.o: $(SRC_DIR)CLogging.cpp $(SRC_DIR)CLogging.h
-	g++ -c $(SRC_DIR)CLogging.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)CLogging.cpp $(CC_OUT)
 
 $(BUILD_DIR)CEmailProcess.o: $(SRC_DIR)CEmailProcess.cpp $(SRC_DIR)CEmailProcess.h
-	g++ -Wall -c $(SRC_DIR)CEmailProcess.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)CEmailProcess.cpp $(CC_OUT)
 
 $(BUILD_DIR)CalcWordCount.o: $(SRC_DIR)CalcWordCount.cpp
-	g++ -Wall -c $(SRC_DIR)CalcWordCount.cpp $(CC_OUT)
+	$(CC) $(CFLAGS) -c $(SRC_DIR)CalcWordCount.cpp $(CC_OUT)
 
 $(BUILD_DIR)CMacmon.o: $(SRC_DIR)CMacmon.cpp $(SRC_DIR)CMacmon.h
-	g++ -Wall -c $(SRC_DIR)CMacmon.cpp 
+	$(CC) $(CFLAGS) -c $(SRC_DIR)CMacmon.cpp 
 
 
 dblib: $(BUILD_DIR)gen_dblib
@@ -167,10 +170,10 @@ db/lib/CNHDBAccess.php: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.php $(
 	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/sp_*.sql)
 
 $(BUILD_DIR)CNHDBAccess.o: db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h 
-	g++ -Wall -c db/lib/CNHDBAccess.cpp -o $(BUILD_DIR)CNHDBAccess.o
+	$(CC) $(CFLAGS) -c db/lib/CNHDBAccess.cpp -o $(BUILD_DIR)CNHDBAccess.o
 
 $(BUILD_DIR)CDBValue.o: db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.h
-	g++ -Wall -c db/lib/CDBValue.cpp -o $(BUILD_DIR)CDBValue.o
+	$(CC) $(CFLAGS) -c db/lib/CDBValue.cpp -o $(BUILD_DIR)CDBValue.o
 
 clean:
 	rm -fv build/*

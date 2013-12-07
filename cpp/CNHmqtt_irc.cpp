@@ -1,5 +1,6 @@
 #include "CNHmqtt_irc.h"
 
+using namespace std;
 
 CNHmqtt_irc::CNHmqtt_irc(int argc, char *argv[]) : CNHmqtt(argc, argv)
 {

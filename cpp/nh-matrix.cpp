@@ -40,6 +40,8 @@
 
 #define BUFLEN 512
 
+using namespace std;
+
 enum {MSG_ALERT, MSG_IRC, MSG_MAIL, MSG_TWITTER, MSG_MAX};
 
 class nh_mini_matrix : public CNHmqtt_irc
@@ -98,7 +100,7 @@ class nh_mini_matrix : public CNHmqtt_irc
     void process_message(string topic, string message)
     {   
       char envlope[4];
-      unsigned int pos;
+      unsigned long pos;
 
       // Door opened - cancel any doorbell alert
       if (topic.substr(0, topic_gatekeeper.length()) == topic_gatekeeper)
@@ -432,6 +434,7 @@ class nh_mini_matrix : public CNHmqtt_irc
       float celsius;
       char txt[100];
       
+      response[0] = '\0';
       
       if ((msgbuf[0] == 'T') && (len >18))
       {
@@ -459,7 +462,7 @@ class nh_mini_matrix : public CNHmqtt_irc
           log->dbg(txt);
           log->dbg("Out of range temperature - not logging"); 
         }
-        else          
+        else
           message_send(topic_temperature, txt);
       }
     }

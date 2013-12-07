@@ -34,6 +34,8 @@
 #include <time.h>
 #include <string.h>
 
+using namespace std;
+
 bool CNHmqtt::debug_mode = false;
 bool CNHmqtt::daemonized = false; 
 
@@ -197,7 +199,8 @@ class GateKeeper : public CNHmqtt_irc
 
   void process_irc_message(irc_msg msg)
   {
-         
+    log->dbg("Got IRC message: " + (string)msg);
+
   }
 
   int db_connect()

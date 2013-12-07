@@ -189,7 +189,7 @@ bool CEMailProcess::process()
 /* returns false when the head of the header section is reached, true otherwise */
 bool CEMailProcess::header_line(string msgdata,  map<string, string> &headers)
 {
-  unsigned int sep;
+  size_t sep;
   string field;
   string body;
   
@@ -223,7 +223,7 @@ bool CEMailProcess::header_line(string msgdata,  map<string, string> &headers)
 
 string CEMailProcess::get_boundary(string line)
 {
-  unsigned int pos;
+  size_t pos;
   string boundary;
   
   // Sanity check - if we think we've already found more than 10 
@@ -310,7 +310,7 @@ unsigned int CEMailProcess::get_msg_word_count(string msg_body, string &msg_body
 {
   vector<string> msg_lines;
   string msg_line;
-  unsigned int pos;
+  size_t pos;
   unsigned int word_count = 0;
   bool get_wc;  
   unsigned int i;
