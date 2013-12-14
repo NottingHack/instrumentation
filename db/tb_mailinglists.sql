@@ -1,0 +1,36 @@
+drop table if exists mailinglists;
+
+create table if not exists mailinglists
+(
+  id                            varchar(10) not null,
+  web_id                        varchar(5) not null,
+  name                          text not null,
+  date_created                  text not null,
+  email_type_option             int not null,
+  use_awesomebar                int not null,
+  default_from_name             text not null,
+  default_from_email            text not null,
+  default_subject               text not null,
+  default_language              text not null,
+  list_rating                   float not null,
+  subscribe_url_short           text not null,
+  subscribe_url_long            text not null,
+  beamer_address                text not null,
+  visibility                    text not null,
+  member_count                  int not null,
+  unsubscribe_count             int not null,
+  cleaned_count                 int not null,
+  member_count_since_send       int not null,
+  unsubscribe_count_since_send  int not null,
+  cleaned_count_since_send      int not null,
+  campaign_count                int not null,
+  grouping_count                int not null,
+  group_count                   int not null,
+  merge_var_count               int not null,
+  avg_sub_rate                  int not null,
+  avg_unsub_rate                int not null,
+  target_sub_rate               int not null,
+  open_rate                     double not null,
+  click_rate                    double not null,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;

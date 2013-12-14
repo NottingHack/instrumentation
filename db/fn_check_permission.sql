@@ -38,8 +38,5 @@ BEGIN
 END //
 DELIMITER ;
 
-GRANT EXECUTE ON FUNCTION fn_check_permission TO 'gk'@'localhost'
-
-
 
  

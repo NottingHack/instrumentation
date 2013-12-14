@@ -79,7 +79,7 @@ if (isset($argv[1]))
 }
 else
 {
-  echo "\nNo file specified. Load all SPs? (yes/no): ";
+  echo "\nNo file specified. Load all SPs / Functions? (yes/no): ";
   $input = fgets(STDIN);
   if ($input == "yes\n")
   {
@@ -128,15 +128,15 @@ function load_file($file, $aConfig, $oDB)
 
 function is_sp($filename)
 {
-  if (preg_match ("/sp_+[^\.]+.sql/", $filename) == 1)
+  if (preg_match ("/(sp|fn)_+[^\.]+.sql$/", $filename) == 1)
     return TRUE;
   else
-    return FALSE; 
+    return FALSE;
 }
 
 function is_table($filename)
 {
-  if (preg_match ("/tb_+[^\.]+.sql/", $filename) == 1)
+  if (preg_match ("/tb_+[^\.]+.sql$/", $filename) == 1)
     return TRUE;
   else
     return FALSE; 
