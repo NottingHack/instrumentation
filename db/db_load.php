@@ -10,6 +10,7 @@
  */ 
 
 $config_file = "database.conf";
+$base_path = __DIR__ . "/";
 
 $aConfig = parse_ini_file($config_file, true);
 if (!$aConfig)
@@ -47,18 +48,39 @@ if (isset($argv[1]))
       if (fgets(STDIN) != "yes\n")
         exit();
     }
-    $aFileList = scandir("./");
+    // Load tables
+    $path = $base_path . "schema/";
+    $aFileList = scandir($path);
     foreach($aFileList as $file) 
     {
-      if (is_sp($file) || is_table($file))
-        load_file($file, $aConfig, $oDB);
+      if (is_table($file))
+        load_file($path . $file, $aConfig, $oDB);
+    }    
+    
+    // Load SPs
+    $path = $base_path . "sp/";
+    $aFileList = scandir($path);
+    foreach($aFileList as $file) 
+    {
+      if (is_sp($file))
+        load_file($path . $file, $aConfig, $oDB);
     }    
   }
   else if (is_table($filename))
   {
-    $table_name = str_ireplace("tb_" , "", $filename);
-    $table_name = str_ireplace(".sql", "", $table_name);
-    
+    if (file_exists(realpath($filename)))
+      $filenamepath = realpath($filename);
+    else if (file_exists(realpath($base_path . "schema/" . $filename)))
+      $filenamepath = realpath($base_path . "schema/" . $filename);
+    else
+    {
+      echo "Not found!\n";
+      exit();
+    }
+
+    $table_name = basename($filenamepath, ".sql");
+    $table_name = str_ireplace("tb_" , "", $table_name);
+
     if (table_exists($oDB, $aConfig, $table_name))
     {
       echo "\nWARNING: table [$table_name] in [$mysql_dbase] exists!\n";
@@ -66,11 +88,15 @@ if (isset($argv[1]))
       if (fgets(STDIN) != "yes\n")
         exit();
     }
-    load_file($filename, $aConfig, $oDB);
+
+    load_file($filenamepath, $aConfig, $oDB);
   } 
   else if (is_sp($filename))
   {
+    if (file_exists($filename))
     load_file($filename, $aConfig, $oDB);
+    else
+      load_file($base_path . "sp/" . $filename, $aConfig, $oDB);
   } else
   {
     // Not an SP, not a table. What is it?
@@ -83,11 +109,12 @@ else
   $input = fgets(STDIN);
   if ($input == "yes\n")
   {
-    $aFileList = scandir("./");
+    $path = $base_path . "sp/";
+    $aFileList = scandir($path);
     foreach($aFileList as $file) 
     {
       if (is_sp($file))
-        load_file($file, $aConfig, $oDB);
+        load_file($path . $file, $aConfig, $oDB);
     }
   }
 }
@@ -111,7 +138,7 @@ function load_file($file, $aConfig, $oDB)
   // Now grant execute permission to the runtime account
   if (is_sp($file))
   {
-    $spname = str_ireplace(".sql", "", $file);
+    $spname = basename($file, ".sql");
     $query = "GRANT EXECUTE ON PROCEDURE $spname TO '$mysql_runtime_user'@'localhost'";
     if ($oDB->query($query) === TRUE)
       echo "OK";

@@ -160,14 +160,14 @@ dblib: $(BUILD_DIR)gen_dblib
 $(BUILD_DIR)gen_dblib: db/lib/gen_dblib.c
 	gcc -Wall -o $(BUILD_DIR)gen_dblib db/lib/gen_dblib.c
 
-db/lib/CNHDBAccess.cpp: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.cpp $(wildcard db/sp_*.sql)
-	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/sp_*.sql)
+db/lib/CNHDBAccess.cpp: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.cpp $(wildcard db/sp/sp_*.sql)
+	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/sp/sp_*.sql)
 
-db/lib/CNHDBAccess.h: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.h $(wildcard db/sp_*.sql)
-	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/sp_*.sql)
+db/lib/CNHDBAccess.h: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.h $(wildcard db/sp/sp_*.sql)
+	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/sp/sp_*.sql)
 
-db/lib/CNHDBAccess.php: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.php $(wildcard db/sp_*.sql)
-	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/sp_*.sql)
+db/lib/CNHDBAccess.php: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.php $(wildcard db/sp/sp_*.sql)
+	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/sp/sp_*.sql)
 
 $(BUILD_DIR)CNHDBAccess.o: db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h 
 	$(CC) $(CFLAGS) -c db/lib/CNHDBAccess.cpp -o $(BUILD_DIR)CNHDBAccess.o
