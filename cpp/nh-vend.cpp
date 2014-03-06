@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Daniel Swann <hs@dswann.co.uk>
+ * Copyright (c) 2014, Daniel Swann <hs@dswann.co.uk>
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -162,25 +162,7 @@ void nh_vend::receive_thread()
   perror("Done.");
   return;
 }
-/*
-int nh_vend::vend_message_send(string msg, struct sockaddr_in *addr)
-{
-  char dbgbuf[400];
 
-  if (msg.length() > 0)
-  {
-    sprintf(dbgbuf, "%s:%d > [%s]", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port), msg.c_str());
-    log->dbg(dbgbuf);
-    if (sendto(sck, msg.c_str(), msg.length(), 0, (struct sockaddr *)addr, sizeof(struct sockaddr_in)) == -1)
-    {
-      log->dbg("Send failed!");
-      return -1;
-    }
-  }
-
-  return 0;
-}
-*/
 void nh_vend::process_message(vm_msg* vmmsg)
 {
   char rfid_serial[20];
@@ -202,6 +184,20 @@ void nh_vend::process_message(vm_msg* vmmsg)
 
   unsigned int len = vmmsg->msg.length();
   const char *msgbuf = vmmsg->msg.c_str();
+
+  // PING
+  if (!strncmp(msgbuf, "PING", 4))
+  {
+    sprintf(msg_response, "PONG"); 
+    vmmsg->send(msg_response);
+  }
+
+  // DeBUG -request from vending machine for debug level
+  if (!strncmp(msgbuf, "DBUG", 4))
+  {
+    sprintf(msg_response, "DBUG:%d", debug_level); 
+    vmmsg->send(msg_response);
+  }
 
   // expected message format:
   // XXXX:YYYY...
@@ -410,24 +406,10 @@ void nh_vend::process_message(vm_msg* vmmsg)
       message_send(temperature_topic, dbgbuf);
   }
 
-  // DeBUG -request from vending machine for debug level
-  if (!strncmp(msgbuf, "DBUG", 4))
-  {
-    sprintf(msg_response, "DBUG:%d", debug_level); 
-    vmmsg->send(msg_response);
-  }
-
   // CASH - Cash sale
   if (!strncmp(msgbuf, "CASH", 4))
   {
     log->dbg("TODO: Record cash sale");
-  }
-
-  // PING
-  if (!strncmp(msgbuf, "PING", 4))
-  {
-    sprintf(msg_response, "PONG"); 
-    vmmsg->send(msg_response);
   }
 
 }

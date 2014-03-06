@@ -68,7 +68,7 @@ int CNHDBAccess::dbConnect()
   mysql_options(&mysql, MYSQL_OPT_RECONNECT, &reconnect);
   
   
-  if (!mysql_real_connect(&mysql,server.c_str(),username.c_str(),password.c_str(),database.c_str(),0,0,0))
+  if (!mysql_real_connect(&mysql,server.c_str(),username.c_str(),password.c_str(),database.c_str(),0,0,CLIENT_MULTI_RESULTS))
   {
     log->dbg("DB", "Error connecting to MySQL:" + (string)mysql_error(&mysql));
     connected = false;
@@ -203,13 +203,16 @@ int CNHDBAccess::exec_sp (string sp_name, int param_dir[], int param_type[], voi
         goto exec_sp_exit_fail;
       }
       else
-        mysql_stmt_next_result(stmt);
+      {
+        while (!mysql_next_result(&mysql))
+          log->dbg("Cleared additional result set...");
+      }
     }
   }
   
   /* TODO: check for any additional result sets (just clear them if present) */
   
-  mysql_stmt_close(stmt);   
+  mysql_stmt_close(stmt);
   
   // If there aren't ant output parameters for the SP, then return success now
   count = 0;

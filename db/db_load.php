@@ -64,7 +64,10 @@ if (isset($argv[1]))
     {
       if (is_sp($file))
         load_file($path . $file, $aConfig, $oDB);
-    }    
+    }
+
+    // Load sample data
+    load_file($base_path . "test_data.sql", $aConfig, $oDB);
   }
   else if (is_table($filename))
   {

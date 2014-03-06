@@ -55,15 +55,6 @@ class nh_vend;
       struct sockaddr_in remote_addr;
     };
 
-
-
-
-
-
-
-
-
-
 class nh_vend : public CNHmqtt
 {
   private:
