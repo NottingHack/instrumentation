@@ -451,8 +451,7 @@ vm_msg_udp::vm_msg_udp(nh_vend *nhv, dbrow row, std::string msg, int sck, struct
 
 void vm_msg_udp::send(std::string msg)
 {
-  nhvend->dbg("vm_msg_udp> " + msg);
-  msg += "\n";
+  nhvend->dbg("vm_msg_udp> [" + msg + "]");
   if (sendto(sock, msg.c_str(), msg.length(), 0, (struct sockaddr *)&remote_addr, sizeof(struct sockaddr_in)) == -1)
     nhvend->dbg("vm_msg_udp> Send failed!");
 }
