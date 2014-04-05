@@ -36,6 +36,7 @@ call sp_transaction_log(2, 50, 'VEND', 'COMPLETE', '[Packet of Crisps] vended fr
 -- Record a payment
 call sp_transaction_log(2, -50, 'MANUAL', 'COMPLETE', 'Payment', 1, @tran_id, @err);
 
-
+-- Tools
+insert into tools values (1, '', 'laser', 'FREE', 'RESTRICTED', null, 300);
 
 
