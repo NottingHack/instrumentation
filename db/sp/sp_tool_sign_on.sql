@@ -27,7 +27,7 @@ BEGIN
     -- Check tool name is actaully known
     select count(*)
     into cnt
-    from tools t
+    from tl_tools t
     where t.tool_name = p_tool_name;
     
     if (cnt = 0) then
@@ -45,7 +45,7 @@ BEGIN
     into 
       tool_id,
       tool_restrictions
-    from tools t
+    from tl_tools t
     where t.tool_name = p_tool_name;
     
     -- Check RFID serial is known
@@ -94,7 +94,7 @@ BEGIN
     -- Tool is restricted, so check member has been inducted
     select count(*)
     into cnt
-    from member_tool mt
+    from tl_members_tools mt
     where mt.member_id = member_id
       and mt.tool_id   = tool_id;
     
@@ -117,14 +117,14 @@ BEGIN
   
   -- Add use entry
   if (p_access_result = 1) then
-    insert into tool_usage (member_id, tool_id, usage_start, usage_status )
-                    values (member_id, tool_id, sysdate()  , 'IN_PROGRESS');
+    insert into tl_tool_usages (member_id, tool_id, usage_start, usage_status )
+                        values (member_id, tool_id, sysdate()  , 'IN_PROGRESS');
   end if;
   
   -- Update tool status to in use
-  update tools 
+  update tl_tools 
   set tool_status = 'IN_USE'
-  where tools.tool_id = tool_id;
+  where tl_tools.tool_id = tool_id;
   
   
   

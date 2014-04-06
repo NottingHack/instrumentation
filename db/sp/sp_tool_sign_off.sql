@@ -17,8 +17,8 @@ BEGIN
 
   declare tool_use_cur cursor for 
     select tu.usage_id
-    from tool_usage tu
-    inner join tools t on t.tool_id = tu.tool_id
+    from tl_tool_usages tu
+    inner join tl_tools t on t.tool_id = tu.tool_id
     where tu.usage_status = 'IN_PROGRESS'
       and t.tool_name = p_tool_name;
   
@@ -31,7 +31,7 @@ BEGIN
     -- Check tool name is actaully known
     select count(*)
     into cnt
-    from tools t
+    from tl_tools t
     where t.tool_name = p_tool_name;
     
     if (cnt = 0) then
@@ -47,12 +47,12 @@ BEGIN
       t.tool_status
     into 
       tool_status
-    from tools t
+    from tl_tools t
     where t.tool_name = p_tool_name;  
     
     -- Set the tool's status back to free if applicable
     if (tool_status = 'IN_USE') then
-      update tools
+      update tl_tools
       set tool_status = 'FREE'
       where tool_id = tool_id;
     end if;  

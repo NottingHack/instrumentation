@@ -1,6 +1,6 @@
-drop table if exists tool_usage;
+drop table if exists tl_tool_usages;
 
-create table tool_usage 
+create table tl_tool_usages 
 (
   usage_id            int not null auto_increment,
   member_id           int,

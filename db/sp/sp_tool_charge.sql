@@ -60,8 +60,8 @@ BEGIN
     tool_pph, 
     tool_name,
     tool_status
-  from tool_usage tu
-  inner join tools t on tu.tool_id = t.tool_id
+  from tl_tool_usages tu
+  inner join tl_tools t on tu.tool_id = t.tool_id
   where tu.usage_id = p_usage_id;
   
   if (usage_status != 'IN_PROGRESS') then
@@ -73,7 +73,7 @@ BEGIN
   set new_usage_duration = timestampdiff(SECOND, usage_start, p_usage_end);
   
   -- Update the usage row passed in to be complete
-  update tool_usage
+  update tl_tool_usages
   set 
     usage_duration    = new_usage_duration,
     usage_active_time = p_usage_active_time,
@@ -87,7 +87,7 @@ BEGIN
     set p_msg = 'No charge for tool';
   
     -- Mark as charged so if a rate ever is set, it doesn't get charged then
-    update tool_usage
+    update tl_tool_usages
     set usage_status = 'CHARGED'
     where usage_id = p_usage_id;
     leave main;
@@ -96,7 +96,7 @@ BEGIN
   -- Sum the amount of time waiting to be charged
   select sum(tu.usage_duration)
   into  acc_usage_duration
-  from tool_usage tu
+  from tl_tool_usages tu
   where tu.member_id = member_id
     and tu.tool_id = tool_id
     and tu.usage_status = 'COMPLETE';
@@ -107,7 +107,7 @@ BEGIN
   else
     set zero_rate = new_usage_duration - acc_usage_duration;
     
-    update tool_usage
+    update tl_tool_usages
     set usage_status = 'CHARGED'
     where member_id = member_id
       and tool_id = tool_id;

@@ -1,6 +1,6 @@
-drop table if exists tools;
+drop table if exists tl_tools;
 
-create table tools 
+create table tl_tools 
 (
   tool_id           int not null auto_increment,
   tool_address      varchar(255),
