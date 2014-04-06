@@ -40,3 +40,9 @@ call sp_transaction_log(2, -50, 'MANUAL', 'COMPLETE', 'Payment', 1, @tran_id, @e
 insert into tools values (1, '', 'laser', 'FREE', 'RESTRICTED', null, 300);
 
 
+-- Usage - add 2mins of pledged time
+insert into tool_usage values (1, 1, 1, sysdate(), -120, 0, 'COMPLETE');
+-- add 30 seconds of use
+insert into tool_usage values (2, 1, 1, sysdate(), 30, 0, 'COMPLETE');
+
+insert into member_tool values (1, 1, 1, 1, sysdate(), 'USER');

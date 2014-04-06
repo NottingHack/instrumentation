@@ -60,9 +60,7 @@ class nh_tools : public CNHmqtt_irc
     void process_message(string topic, string message)
     {
       std::vector<string> split_topic;
-      
-      
-      
+
       // E.g. "nh/tools/laser/RFID"
       
       // Look for a message to the _tool_topic
@@ -92,6 +90,15 @@ class nh_tools : public CNHmqtt_irc
             else
               message_send(_tool_topic + tool_name + "/DENY", msg);
           }
+        } else if (tool_message == "COMPLETE")
+        {
+          if (_db->sp_tool_sign_off(tool_name, atoi(tool_message.c_str()), msg))
+          {
+            log->dbg("sp_tool_sign_off failed...");
+          } else if (msg.length() > 0)
+          {
+            log->dbg("sp_tool_sign_off: " + msg);
+          }         
         }
       }
         
@@ -128,8 +135,6 @@ class nh_tools : public CNHmqtt_irc
       tokens.push_back(text.substr(start));
     }    
 };
-
-
 
 int main(int argc, char *argv[])
 {
