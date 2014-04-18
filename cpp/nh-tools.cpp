@@ -76,7 +76,7 @@ class nh_tools : public CNHmqtt_irc
         }
         
         tool_name    = split_topic[0];
-        tool_message = split_topic[1];        
+        tool_message = split_topic[1];
 
         if (tool_message == "RFID")
         {
@@ -98,10 +98,23 @@ class nh_tools : public CNHmqtt_irc
           } else if (msg.length() > 0)
           {
             log->dbg("sp_tool_sign_off: " + msg);
-          }         
+          }
+        } else if (tool_message == "RESET")
+        {
+          // Device has either just been powered up, or has reconnected and isn't in use - so make sure it's signed off
+          if ((message == "BOOT") || (message == "IDLE"))
+          {
+            if (_db->sp_tool_sign_off(tool_name, atoi(tool_message.c_str()), msg))
+            {
+              log->dbg("sp_tool_sign_off failed...");
+            } else if (msg.length() > 0)
+            {
+              log->dbg("sp_tool_sign_off: " + msg);
+            }
+          }
         }
       }
-        
+
       CNHmqtt_irc::process_message(topic, message);
     }
  
