@@ -33,7 +33,7 @@ BEGIN
 
   select 
     t.name as sensor, 
-    concat(cast(t.temperature as char(5)), "C") as temp
+    cast(t.temperature as char(5)) as temp
   from temperature t
   where t.name is not null;
   
