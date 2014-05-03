@@ -27,6 +27,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+ * For Tools access control (e.g. laser cutter) at Nottingham Hackspace
+ */
+
+
 #include "CNHmqtt_irc.h"
 #include "CNHDBAccess.h"
 
@@ -78,7 +83,7 @@ class nh_tools : public CNHmqtt_irc
         tool_name    = split_topic[0];
         tool_message = split_topic[1];
 
-        if (tool_message == "RFID")
+        if (tool_message == "AUTH")
         {
           if (_db->sp_tool_sign_on(tool_name, message, access_result, msg))
           {
