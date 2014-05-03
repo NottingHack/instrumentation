@@ -13,7 +13,7 @@ CC_OUT = -o $(BUILD_DIR)$(notdir $@)
 
 BIN_OUT = bin/
 
-ALL_BIN = nh-test nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tts
+ALL_BIN = nh-test nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tts nh-tools
 ALL_BINS := $(addprefix $(BIN_OUT),$(ALL_BIN))
 
 CFLAGS = -Wall -Wextra -c -g
@@ -49,6 +49,9 @@ $(BIN_OUT)nh-irccat: $(BUILD_DIR)nh-irccat.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BA
 
 $(BIN_OUT)GateKeeper: $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
 	g++ -lmysqlclient -lmosquitto -lrt -o $(BIN_OUT)GateKeeper $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
+
+$(BIN_OUT)nh-tools: $(BUILD_DIR)nh-tools.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lmysqlclient -lmosquitto -lrt -o $(BIN_OUT)nh-tools $(BUILD_DIR)nh-tools.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 $(BIN_OUT)nh-monitor: $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
 	g++ -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-monitor $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
@@ -120,6 +123,9 @@ $(BUILD_DIR)nh-irccat.o: $(SRC_DIR)nh-irccat.cpp $(SRC_DIR)nh-irccat.h
 
 $(BUILD_DIR)GateKeeper.o: $(SRC_DIR)GateKeeper.cpp db/lib/CNHDBAccess.h
 	$(CC) $(CFLAGS) -c $(SRC_DIR)GateKeeper.cpp $(CC_OUT)
+
+$(BUILD_DIR)nh-tools.o: $(SRC_DIR)nh-tools.cpp db/lib/CNHDBAccess.h
+	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-tools.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-monitor.o: $(SRC_DIR)nh-monitor.cpp db/lib/CNHDBAccess.h
 	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-monitor.cpp $(CC_OUT)
