@@ -56,21 +56,21 @@ class nh_tools : public CNHmqtt_irc
       _tool_topic = get_str_option("tools", "_tool_topic", "nh/tools/"); // tool name is appended to this, e.g. laser's topic is nh/tools/laser/
       _db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
     }
-    
+
     ~nh_tools()
     {
       delete _db;
     }
-    
+
     void process_message(string topic, string message)
     {
       std::vector<string> split_topic;
 
       // E.g. "nh/tools/laser/RFID"
-      
+
       // Look for a message to the _tool_topic
       if (topic.substr(0, _tool_topic.length()) == _tool_topic)
-      {        
+      {
         string tool_name, tool_message, msg;
         int access_result = 0;
         split(split_topic, topic.substr(_tool_topic.length(), string::npos), '/');
@@ -79,7 +79,7 @@ class nh_tools : public CNHmqtt_irc
           log->dbg("invalid topic");
           return;
         }
-        
+
         tool_name    = split_topic[0];
         tool_message = split_topic[1];
 
@@ -117,6 +117,41 @@ class nh_tools : public CNHmqtt_irc
               log->dbg("sp_tool_sign_off: " + msg);
             }
           }
+        }
+        else if (tool_message == "INDUCT")
+        {
+          // Induct button has been pushed, and a new card presented
+          string card_inductor;
+          string card_inductee;
+          string err;
+          size_t pos;
+          int ret=1;
+          
+          pos = message.find_first_of(":");
+          if (pos == string::npos)
+          {
+            log->dbg("Invalid induct message");
+          } else
+          {
+            card_inductor = message.substr(0, pos);
+            card_inductee = message.substr(pos+1, string::npos);
+
+            log->dbg("card_inductor=" + card_inductor + ", card_inductee=" + card_inductee);
+            if (_db->sp_tool_induct(tool_name, card_inductor, card_inductee, ret, err))
+            {
+              log->dbg("sp_tool_induct failed...");
+              ret = 1;
+            } else if (msg.length() > 0)
+            {
+              log->dbg("sp_tool_induct: " + msg);
+            }
+
+            if (ret)
+              message_send(_tool_topic + tool_name + "/IFAL", err); // Induct FAiLed
+            else
+              message_send(_tool_topic + tool_name + "/ISUC", err); // Induct SUCcess
+          }
+
         }
       }
 
