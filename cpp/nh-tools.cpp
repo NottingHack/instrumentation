@@ -65,6 +65,8 @@ class nh_tools : public CNHmqtt_irc
     void process_message(string topic, string message)
     {
       std::vector<string> split_topic;
+      int member_id = 0;
+      string disp_msg;
 
       // E.g. "nh/tools/laser/RFID"
 
@@ -85,15 +87,21 @@ class nh_tools : public CNHmqtt_irc
 
         if (tool_message == "AUTH")
         {
-          if (_db->sp_tool_sign_on(tool_name, message, access_result, msg))
+          if (_db->sp_tool_sign_on(tool_name, message, access_result, msg, member_id))
           {
             message_send(_tool_topic + tool_name + "/DENY", "Failure.");
           } else
           {
             if (access_result)
-              message_send(_tool_topic + tool_name + "/GRANT", msg);
+            {
+              // Access granted
+              _db->sp_tool_pledged_remain(tool_name, member_id, disp_msg);
+              message_send(_tool_topic + tool_name + "/GRANT", msg + disp_msg);
+            }
             else
+            {
               message_send(_tool_topic + tool_name + "/DENY", msg);
+            }
           }
         } else if (tool_message == "COMPLETE")
         {

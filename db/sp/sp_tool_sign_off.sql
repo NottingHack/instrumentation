@@ -54,7 +54,7 @@ BEGIN
     if (tool_status = 'IN_USE') then
       update tl_tools
       set tool_status = 'FREE'
-      where tool_id = tool_id;
+      where tl_tools.tool_id = tool_id;
     end if;  
     
     open tool_use_cur;
