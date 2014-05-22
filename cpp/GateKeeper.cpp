@@ -100,7 +100,7 @@ class GateKeeper : public CNHmqtt_irc
           
           if (last_seen.length() > 1)
           {
-            message_send(entry_announce + "/known", message + " " + handle + " (last seen " + last_seen + " ago)");
+            message_send(entry_announce + "/known", "Door opened by: " + handle + " (last seen " + last_seen + " ago)");
           }
           else
           {
