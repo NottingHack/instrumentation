@@ -39,7 +39,7 @@ BEGIN
       and tl.tool_name = p_tool_name;
 
    if (seconds_remain > 0) then
-     set p_msg = concat(p_msg, 'remain: ', sec_to_time(seconds_remain));
+     set p_msg = concat(p_msg, 'Remain  ', sec_to_time(seconds_remain));
    end if;
 
 
