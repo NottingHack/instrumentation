@@ -79,7 +79,7 @@ BEGIN
     usage_active_time = p_usage_active_time,
     usage_status      = 'COMPLETE'
   where
-    usage_id = p_usage_id;   
+    tl_tool_usages.usage_id = p_usage_id;   
   
  
   -- If there is no charge for using the tool, do nothing
@@ -89,7 +89,7 @@ BEGIN
     -- Mark as charged so if a rate ever is set, it doesn't get charged then
     update tl_tool_usages
     set usage_status = 'CHARGED'
-    where usage_id = p_usage_id;
+    where tl_tool_usages.usage_id = p_usage_id;
     leave main;
   end if;
     
@@ -109,8 +109,8 @@ BEGIN
     
     update tl_tool_usages
     set usage_status = 'CHARGED'
-    where member_id = member_id
-      and tool_id = tool_id;
+    where tl_tool_usages.member_id = member_id
+      and tl_tool_usages.tool_id = tool_id;
   end if;
   
   -- Set full rate time
