@@ -13,7 +13,7 @@ CC_OUT = -o $(BUILD_DIR)$(notdir $@)
 
 BIN_OUT = bin/
 
-ALL_BIN = nh-test nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tts nh-tools
+ALL_BIN = nh-test nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tools
 ALL_BINS := $(addprefix $(BIN_OUT),$(ALL_BIN))
 
 CFLAGS = -Wall -Wextra -c -g
@@ -25,9 +25,6 @@ all: $(ALL_BINS) db/lib/CNHDBAccess.php
 
 $(BIN_OUT)nh-test: $(BUILD_DIR)nh-test.o $(OBJS_BASE)
 	g++ -lmosquitto -o $(BIN_OUT)nh-test $(BUILD_DIR)nh-test.o $(OBJS_BASE)
-
-$(BIN_OUT)nh-tts: $(BUILD_DIR)nh-tts.o $(OBJS_BASE)
-	g++ -lmosquitto -lpthread -o $(BIN_OUT)nh-tts $(BUILD_DIR)nh-tts.o $(OBJS_BASE)
 
 $(BIN_OUT)nh-vend: $(BUILD_DIR)nh-vend.o $(OBJS_BASE) $(OBJS_DBLIB)
 	g++ -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-vend $(BUILD_DIR)nh-vend.o $(OBJS_BASE) $(OBJS_DBLIB)
@@ -96,9 +93,6 @@ $(BUILD_DIR)CNHmqtt_irc.o: $(SRC_DIR)CNHmqtt_irc.cpp $(SRC_DIR)CNHmqtt_irc.h
 
 $(BUILD_DIR)nh-test.o: $(SRC_DIR)nh-test.cpp $(SRC_DIR)nh-test.h
 	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-test.cpp $(CC_OUT)
-
-$(BUILD_DIR)nh-tts.o: $(SRC_DIR)nh-tts.cpp $(SRC_DIR)nh-tts.h
-	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-tts.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-vend.o: $(SRC_DIR)nh-vend.cpp $(SRC_DIR)nh-vend.h
 	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-vend.cpp $(CC_OUT)

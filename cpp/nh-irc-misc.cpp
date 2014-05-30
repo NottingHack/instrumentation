@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2012, Daniel Swann <hs@dswann.co.uk>
+ * Copyright (c) 2014, Daniel Swann <hs@dswann.co.uk>
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -83,7 +83,6 @@ class nh_irc_misc : public CNHmqtt_irc
 //     msg.reply("!alert - Flash light next to matrix display");  Comming soon....
        msg.reply("!status - Best guess if the space is open");   
        msg.reply("!temp - Latest Temperature readings"); 
-       msg.reply("!say <message> - Speak <message> on Gatekeepers text-to-speach system");
        msg.reply("Temperature graphs: http://cacti.nottinghack.org.uk/graph_view.php"); 
 
      }
@@ -99,12 +98,7 @@ class nh_irc_misc : public CNHmqtt_irc
         db->sp_temperature_check(temperature);
         msg.reply(temperature);      
      }        
-     
-     if (sMsg.substr(0, 5) == "!say ")
-     {
-       tts_msg = sMsg.substr(5, string::npos);
-       message_send(tts_topic, tts_msg);
-     }
+
    }
       
    bool setup()
