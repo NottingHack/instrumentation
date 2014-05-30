@@ -130,7 +130,7 @@ BEGIN
   
   -- log full rate use
   if (full_rate != 0) then
-    set amount = full_rate * (tool_pph/3600);
+    set amount = -1*(full_rate * (tool_pph/3600));
     set tran_desc = concat('[', sec_to_time(full_rate), '] of [', tool_name, '] use @ £', format((tool_pph)/100, 2), ' p/h');  
   
     call sp_transaction_log(member_id, amount, 'TOOL', 'COMPLETE', tran_desc, null, tran_id, p_msg);
