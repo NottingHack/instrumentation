@@ -83,6 +83,7 @@ class nh_irc_misc : public CNHmqtt_irc
 //     msg.reply("!alert - Flash light next to matrix display");  Comming soon....
        msg.reply("!status - Best guess if the space is open");   
        msg.reply("!temp - Latest Temperature readings"); 
+       msg.reply("!tools - Show current status of all access contolled tools");
        msg.reply("Temperature graphs: http://cacti.nottinghack.org.uk/graph_view.php"); 
 
      }
@@ -97,10 +98,43 @@ class nh_irc_misc : public CNHmqtt_irc
      {
         db->sp_temperature_check(temperature);
         msg.reply(temperature);      
-     }        
+     }
+
+     if (msg=="!tools")
+     {
+       dbrows tool_list;
+       string tools_msg;
+
+       db->sp_tool_get_status(-1, &tool_list);
+       for (dbrows::const_iterator iterator = tool_list.begin(), end = tool_list.end(); iterator != end; ++iterator)
+       {
+         dbrow row = *iterator;
+         tools_msg = row["tool_name"].asStr() + " - ";
+
+         if (row["tool_status"].asStr() == "FREE")
+         {
+           tools_msg += "Free; last used: " + row["usage_end"].asStr();
+         }
+         else if (row["tool_status"].asStr() == "IN_USE")
+         {
+           tools_msg += "In use since: " + row["usage_start"].asStr();
+         }
+         else if (row["tool_status"].asStr() == "DISABLED")
+         {
+           tools_msg += "Out of sevice";
+           if (!(row["tool_status_text"].isNull()))
+             tools_msg += ": " + row["tool_status_text"].asStr();
+         }
+         else
+         {
+           tools_msg += "Status unknown!";
+         }
+         msg.reply(tools_msg);
+       }
+     } //end if (msg=="!tools")
 
    }
-      
+
    bool setup()
    {
      if (!init()) // connect to mosquitto, daemonize, etc
