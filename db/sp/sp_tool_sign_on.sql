@@ -18,6 +18,9 @@ BEGIN
   declare tool_restrictions varchar(20);
   declare tool_status varchar(20);
   declare access_level varchar(1);
+  declare tool_pph int;
+  declare credit_limit int;
+  declare balance int;
 
   set p_access_result = 0;
   set p_msg = '';
@@ -42,11 +45,13 @@ BEGIN
     select 
       t.tool_id,
       t.tool_restrictions,
-      t.tool_status
+      t.tool_status,
+      t.tool_pph
     into 
       tool_id,
       tool_restrictions,
-      tool_status
+      tool_status,
+      tool_pph
     from tl_tools t
     where t.tool_name = p_tool_name;
 
@@ -70,11 +75,15 @@ BEGIN
     select 
       m.username,
       m.member_id,
-      m.member_status
+      m.member_status,
+      m.balance,
+      m.credit_limit
     into 
       username,
       p_member_id,
-      member_status
+      member_status,
+      balance,
+      credit_limit
     from members m
     inner join rfid_tags r on r.member_id = m.member_id
     where r.rfid_serial = p_rfid_serial
@@ -90,6 +99,28 @@ BEGIN
     if (tool_status = 'DISABLED') then
       set p_msg = 'Out of service';
       leave main;
+    end if;
+    
+    -- If a charge applies for using the tool, check the member has some credit
+    if (tool_pph > 0) then
+
+      -- First check balance vs credit limit
+      if (balance <= -1*credit_limit) then
+        -- Member is over their credit limit, but they may still have pledged time to
+        -- use up, so check for that
+        if 
+          (
+            select ifnull(sum(tu.usage_duration), 0) -- get the total pledged time remaining (e.g. -60 here means 1min of pledged time left)
+            from tl_tool_usages tu
+            where tu.member_id = p_member_id
+              and tu.tool_id = tool_id
+              and tu.usage_status = 'COMPLETE' 
+          ) >= 0 then
+          -- Over credit limit, and no pledged time remaing.
+            set p_msg = 'Out of credit';
+            leave main;
+          end if;
+      end if;
     end if;
 
     -- If the tool isn't restircted, grant access now
