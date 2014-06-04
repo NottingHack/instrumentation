@@ -83,7 +83,7 @@ class nh_irc_misc : public CNHmqtt_irc
 //     msg.reply("!alert - Flash light next to matrix display");  Comming soon....
        msg.reply("!status - Best guess if the space is open");   
        msg.reply("!temp - Latest Temperature readings"); 
-       msg.reply("!tools - Show current status of all access contolled tools");
+       msg.reply("!tools - Show current status of all access controlled tools");
        msg.reply("Temperature graphs: http://cacti.nottinghack.org.uk/graph_view.php"); 
 
      }
