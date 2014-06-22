@@ -23,17 +23,9 @@ BEGIN
     ifnull(convert (lst.usage_start , char(40)), '<unknown>') as usage_start,
     ifnull(convert (timestampadd (SECOND, lst.usage_duration, lst.usage_start), char(40)), '<unknown>') as usage_end
   from tl_tools t
-  left outer join 
-  (
-    select 
-      tu.tool_id,
-      tu.usage_start,
-      tu.usage_duration
-    from tl_tool_usages tu
-    where not exists (select null from tl_tool_usages tu2 where tu2.tool_id = tu.tool_id and tu2.usage_start > tu.usage_start)
-  ) as lst on lst.tool_id = t.tool_id
+  left outer join tl_tool_usages lst on lst.usage_id = (select max(tu.usage_id) from tl_tool_usages tu where tu.tool_id = t.tool_id)
   where t.tool_id = p_tool_id or p_tool_id = -1;
-
+  
   end main;
 
 
