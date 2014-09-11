@@ -13,6 +13,8 @@ CREATE FUNCTION fn_check_permission
     permission_desc varchar(200) 
 )
 returns int
+DETERMINISTIC
+READS SQL DATA
 SQL SECURITY DEFINER
 BEGIN
   declare c int;
