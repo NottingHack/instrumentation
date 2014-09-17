@@ -6,18 +6,13 @@ qx.Class.define("custom.wVendLog",
   {
     this.base(arguments, "Vend Log");
 
-    // hide the window buttons
-  //  this.setShowClose(false);
-  //  this.setShowMaximize(false);
-  //  this.setShowMinimize(false);
-
     // adjust size
     this.setWidth(880);
     this.setHeight(300);
 
     // add the layout
     var layout = new qx.ui.layout.Grid(0, 0);
-    layout.setRowFlex(1, 1);
+    layout.setRowFlex(0, 1);
     layout.setColumnFlex(1, 1, 1);
     this.setLayout(layout);
     this.setContentPadding(0);

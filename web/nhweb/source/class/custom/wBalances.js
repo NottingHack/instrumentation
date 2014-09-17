@@ -7,7 +7,7 @@ qx.Class.define("custom.wBalances",
     this.base(arguments, "Balances");
 
     // adjust size
-    this.setWidth(400);
+    this.setWidth(600);
     this.setHeight(300);
 
     // add the layout
@@ -23,6 +23,7 @@ qx.Class.define("custom.wBalances",
     var tableModel = new qx.ui.table.model.Simple();
     tableModel.setColumns(["member_id", "Handle", "Name", "Balance", "Credit Limit", "clim_int"]);
     tableModel.setData(rowData);
+    tableModel.setCaseSensitiveSorting(false);
 
     var balGrid = new qx.ui.table.Table(tableModel, {initiallyHiddenColumns: [0, 5]});
 
@@ -32,8 +33,8 @@ qx.Class.define("custom.wBalances",
       decorator: null
     });
     
-    balGrid.setColumnWidth(1, 100);
-    balGrid.setColumnWidth(2, 80);
+    balGrid.setColumnWidth(1, 150);
+    balGrid.setColumnWidth(2, 150);
     balGrid.setColumnWidth(3, 80);
             
     this.add(balGrid, {row: 0, column: 0, colSpan: 2});
@@ -43,20 +44,23 @@ qx.Class.define("custom.wBalances",
     this.add(trnButton, {row: 1, column: 0, colSpan: 1});
     trnButton.setToolTipText("View transactions");
     trnButton.addListener("execute", function() 
-    {    
-      var memberid = tableModel.getValue(0, balGrid.getFocusedRow());
-      var handle = tableModel.getValue(1, balGrid.getFocusedRow());
+    {
+      var current_row = balGrid.getFocusedRow();
+      var memberid = tableModel.getValue(0, current_row);
+      var handle = tableModel.getValue(1, current_row);
 
     
       var memtrn = new custom.wTransactions(memberid, handle);
       memtrn.moveTo(55, 35);
       //memtrn.setModal(true); 
+
       memtrn.addListener("beforeClose", function(e) 
       {
         // refresh grid 
         tableModel.setData(this.getRowData());
-          
-      }, this);
+        var pane = balGrid.getPaneScroller(0);
+        pane.setFocusedCell(4, current_row, true);
+      }, this); 
       memtrn.open();
     }, this);
 
@@ -71,19 +75,22 @@ qx.Class.define("custom.wBalances",
     limButton.setToolTipText("Set/amend credit limit");
     limButton.addListener("execute", function() 
     {
-      var memberid = tableModel.getValue(0, balGrid.getFocusedRow());
-      var current_lim = tableModel.getValue(4, balGrid.getFocusedRow());
+      var current_row = balGrid.getFocusedRow();
+      var memberid = tableModel.getValue(0, current_row);
+      var current_lim = tableModel.getValue(5, current_row);
 
-    
       var cLim = new custom.wSetCreditLimit(memberid, current_lim);
       cLim.moveTo(55, 35);
       cLim.setModal(true); 
-      cLim.addListener("beforeClose", function(e) 
+
+      cLim.addListener("close", function(e) 
       {
         // refresh grid 
         tableModel.setData(this.getRowData());
-          
+        var pane = balGrid.getPaneScroller(0);
+        pane.setFocusedCell(5, current_row, true);
       }, this);
+     
       cLim.open();
 
     }, this);
