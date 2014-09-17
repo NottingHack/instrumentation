@@ -30,6 +30,7 @@ qx.Class.define("custom.wMembers",
     var tableModel = new qx.ui.table.model.Simple();
     tableModel.setColumns(["member_id", "Member No.", "Full Name" , "Email", "Join date", "Handle", "Unlock text", "RFID count", "PIN count"]);
     tableModel.setData(rowData);
+    tableModel.setCaseSensitiveSorting(false);
 
     var memGrid = new qx.ui.table.Table(tableModel, {initiallyHiddenColumns: [0]});
 
