@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Vending machine stock</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script src="tidy-table.min.js"></script>
+    
+    <script>
+      $(document).ready(function() {
+        $.getJSON('data/vend_stock.json.php', function(res) {
+
+          // generate HTML table
+          $('#container')
+              .TidyTable({
+                  columnTitles : res.columns,
+                  columnValues : res.data
+              });
+        });
+      });
+    </script>
+    <link rel="stylesheet" type="text/css" href="tidy-table.min.css">
+  </head>
+  <body>
+
+    <div id="container"></div>
+
+  </body>
+</html>

@@ -76,6 +76,7 @@ web2: nh-web db/lib/CNHDBAccess.php web/vend.php web/db.php web/wikiauth.php
 	cp web/nhweb/build/index.html website/public/nhweb/index.html
 	rsync -r --exclude=. -r web/rpcservice website/public/
 	rsync -r --exclude=. -r web/status website/public/
+	rsync -r --exclude=. -r web/stats website/public/
 	cp web/vend.php website/public/
 	cp web/wikiauth.php website/public/wiki/
 	cp web/db.php website/
