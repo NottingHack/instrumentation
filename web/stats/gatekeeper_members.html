@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Snackspace monthly</title>
+    <title>Gatekeeper access and members</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
     <script src="tidy-table.min.js"></script>
     
     <script>
       $(document).ready(function() {
-        $.getJSON('data/snackspace_monthly.json.php', function(res) {
+        $.getJSON('data/gatekeeper_members.json.php', function(res) {
 
           // generate HTML table
           $('#container')
@@ -21,7 +21,7 @@
     <link rel="stylesheet" type="text/css" href="tidy-table.min.css">
   </head>
   <body>
-    Note 1: Only purchases made using RFID are counted in "Items vended" and "Vend value".<br />
+  
     <div id="container"></div>
 
   </body>

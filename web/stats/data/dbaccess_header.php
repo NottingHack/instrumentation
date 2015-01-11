@@ -1,7 +1,8 @@
 <?php
 
 header('Access-Control-Allow-Origin: *');
-header("Cache-Control: no-cache, must-revalidate");
+header("Cache-Control: max-age=43200"); // Stats don't change much and are expensive to generate, so say are valid for 12 hours
+header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + 43200)); 
 header("Content-type: application/json");
 
 include "../../../db.php";
