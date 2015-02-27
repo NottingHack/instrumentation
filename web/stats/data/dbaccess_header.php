@@ -38,4 +38,12 @@ function sql_to_tt_json($db, $sql, $params=null)
    
   return json_encode($output);
 }
+
+function sql_to_json($db, $sql)
+{
+  $stmt = $db->prepare($sql);
+  $stmt->execute();
+  $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+  return json_encode($rows);
+}
 ?>
