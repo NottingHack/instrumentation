@@ -178,7 +178,7 @@ class nh_irc : public CNHmqtt
 nh_irc *nh;
 bool _in_msg_loop;
 
-// On ctrl-c, disconnected from mqtt, which will trigger an IRC disconnect followed by exit
+// On ctrl-c / terminate request, disconnect from mqtt, which will trigger an IRC disconnect followed by process exit
 void signal_callback_handler(int signum)
 {
   if (_in_msg_loop)
@@ -192,7 +192,8 @@ int main(int argc, char *argv[])
   _in_msg_loop = false;
   nh = new nh_irc(argc, argv);
   
-  signal(SIGINT, signal_callback_handler);
+  signal(SIGINT , signal_callback_handler);
+  signal(SIGTERM, signal_callback_handler);
  
   nh_irc::daemonize();
   
