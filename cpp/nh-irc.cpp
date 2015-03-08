@@ -30,9 +30,11 @@
 #include "CNHmqtt.h"
 #include "irc.h"
 #include <stdio.h>
+#include <signal.h>
 
 bool CNHmqtt::debug_mode = false;
 bool CNHmqtt::daemonized = false; 
+
 
 class nh_irc : public CNHmqtt
 {
@@ -166,21 +168,45 @@ class nh_irc : public CNHmqtt
     CNHmqtt::process_message(topic, message);
   }
   
+  void mqtt_disconnect()
+  {
+    mosquitto_disconnect(_mosq);
+  }
+  
 };
+
+nh_irc *nh;
+bool _in_msg_loop;
+
+// On ctrl-c, disconnected from mqtt, which will trigger an IRC disconnect followed by exit
+void signal_callback_handler(int signum)
+{
+  if (_in_msg_loop)
+    nh->mqtt_disconnect(); // this will close the connection to mosquitto, and cause nh->message_loop() (in main) to return
+  else
+    exit(0);
+}
 
 int main(int argc, char *argv[])
 {
-  nh_irc nh = nh_irc(argc, argv);
+  _in_msg_loop = false;
+  nh = new nh_irc(argc, argv);
+  
+  signal(SIGINT, signal_callback_handler);
  
   nh_irc::daemonize();
   
-  while (nh.mosq_connect())
+  while (nh->mosq_connect())
     sleep(10);
     
-  while (nh.irc_connect())
+  while (nh->irc_connect())
     sleep(10);
-    
-  nh.message_loop();
   
+  _in_msg_loop = true;
+  nh->message_loop();
+  _in_msg_loop = false;
+
+  delete nh;
+
   return 0;
 }

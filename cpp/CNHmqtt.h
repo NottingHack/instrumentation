@@ -13,7 +13,7 @@ class CNHmqtt
 {
   public:
     CNHmqtt(int argc, char *argv[]);
-    ~CNHmqtt();
+    virtual ~CNHmqtt();
     std::string get_topic();
     struct mosquitto *_mosq; //needs to be public so can be accessed by static callback
     void dbg(std::string msg);
