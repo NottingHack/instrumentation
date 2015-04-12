@@ -26,6 +26,7 @@ BEGIN
   declare balance   int;
   declare climit    int;
   declare tran_id   int;
+  declare member_status int;
   
   set result = 0;
   set err = '';
@@ -51,12 +52,14 @@ BEGIN
       m.member_id,
       m.balance,
       m.credit_limit,
-      r.state
+      r.state,
+      m.member_status
     into
       member_id,
       balance,
       climit,
-      r_state
+      r_state,
+      member_status
     from members m 
     inner join rfid_tags r on r.member_id = m.member_id 
     where r.rfid_serial = rfid_serial
@@ -84,8 +87,17 @@ BEGIN
       set req_datetime = sysdate(), denied_reason = err, amount_scaled = amount 
       where vend_log.vend_tran_id = vend_tran_id;      
       leave main;
-    end if;    
+    end if;
     
+    -- Allow ex-members to make purchaes only if they are in credit
+    if ( ((balance - amount) < 0) and (member_status != 5) ) then -- member_status=5 is current member
+      set err = 'VR04 non-member'; -- almost certainly ex-member (status=6) 
+      update vend_log
+      set req_datetime = sysdate(), denied_reason = err, amount_scaled = amount 
+      where vend_log.vend_tran_id = vend_tran_id;
+      leave main;
+    end if;
+
     if (((balance - amount) < (-1*climit)) and (amount > 0)) then
       -- Insufficient credit 
       -- TODO: Check/sum pending transactions
