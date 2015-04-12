@@ -19,6 +19,7 @@ CREATE PROCEDURE sp_transaction_log
 SQL SECURITY DEFINER
 BEGIN
   declare member_exists int;
+  declare process_err varchar(100);
   set member_exists = 0;
   set err = '';
 
@@ -56,6 +57,9 @@ BEGIN
       update members m
       set m.balance = m.balance + amount
       where m.member_id = member_id;  
+    
+      call sp_process_transaction(tran_id, process_err);
+    
     end if;
 
     commit;

@@ -19,6 +19,7 @@ BEGIN
   declare ck_exists int;
   declare amount int;
   declare memberid int;
+  declare process_err varchar(100);
   set err = '';
   
   if ((tran_desc is not null) and (length(tran_desc)=0)) then
@@ -72,7 +73,9 @@ BEGIN
       
       update members m
       set m.balance = m.balance + amount
-      where m.member_id = memberid;  
+      where m.member_id = memberid;
+      
+      call sp_process_transaction(tran_id, process_err);
       
       commit;
     end;
