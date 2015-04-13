@@ -44,6 +44,9 @@ $aStatus['spacefed']['spacephone'] = false;
 $aStatus['feeds']['blog']['type'] = 'rss';
 $aStatus['feeds']['blog']['url'] = 'http://planet.nottinghack.org.uk/rss20.xml';
 
+$aStatus['feeds']['calendar']['type'] = 'ical';
+$aStatus['feeds']['calendar']['url'] = 'https://www.google.com/calendar/ical/info%40nottinghack.org.uk/public/basic.ics';
+
 
 $aStatus['sensors']['temperature'] = space_temps();
 echo json_encode($aStatus);
