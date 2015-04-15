@@ -8,5 +8,6 @@ create table access_log
   pin           varchar(50),
   access_result int, -- denied/granted
   member_id     int,
+  denied_reason varchar(100),
   primary key (access_id)
 );

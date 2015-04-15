@@ -92,8 +92,8 @@ BEGIN
     insert into access_log (rfid_serial, pin, access_result, member_id)
     values (rfid_serial, null, 20, member_id); -- granted
   else
-    insert into access_log (rfid_serial, pin, access_result, member_id)
-    values (rfid_serial, null, 10, member_id); -- denied
+    insert into access_log (rfid_serial, pin, access_result, member_id, denied_reason)
+    values (rfid_serial, null, 10, member_id, err); -- denied
   end if;
 
 END //
