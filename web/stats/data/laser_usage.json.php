@@ -7,7 +7,7 @@ $sql = <<<SQL
     year(tu.usage_start) as Year, 
     monthname(tu.usage_start) as Month, 
     sec_to_time(sum(tu.usage_duration)) as "Time (hh:mm:ss)",
-    (select count(*) from tl_members_tools mt where year(mt.mt_date_inducted)=year(tu.usage_start) and month(mt.mt_date_inducted)=month(tu.usage_start)) as "Members inducted"
+    (select count(*) from tl_members_tools mt where mt.tool_id=tu.tool_id and year(mt.mt_date_inducted)=year(tu.usage_start) and month(mt.mt_date_inducted)=month(tu.usage_start)) as "Members inducted"
   from tl_tool_usages tu
   where tu.tool_id = 1
     and tu.usage_duration > 0
