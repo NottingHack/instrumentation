@@ -170,10 +170,6 @@ using namespace std;
       /* Start thead that will poll for new bookings, and publish to MQTT (if enabled for tool)  *
        * Doing this in a seperate thread so http delays, etc, won't impact on tool sign on times */
       pthread_create(&calThread, NULL, &nh_tools::s_cal_thread, this);
-      
-      
-      
-      
     }
     
     /* split - taken from Alec Thomas's answer to http://stackoverflow.com/questions/236129/how-to-split-a-string-in-c */
@@ -202,7 +198,9 @@ using namespace std;
       dbrows tool_list;
       CURL *curl;
       string curl_read_buffer;
+      string booking_info;
       int res;
+      
       
       log->dbg("Entered cal_thread");
       
@@ -248,17 +246,11 @@ using namespace std;
           log->dbg("Got calendar data");
         }
         
+        // Extract the current/next bookings from the returned calendar (ical format) data
         process_ical_data(curl_read_buffer, event_now, event_next);
-        
-        if (event_now.start_time > 0)
-          log->dbg("Current booking: " + event_now.full_name);
-        else
-          log->dbg("Current booking: none");
 
-        if (event_next.start_time > 0)
-          log->dbg("Next booking   : " + event_next.full_name);
-        else
-          log->dbg("Next booking   : none");
+        booking_info = json_encode_booking_data(event_now, event_next);
+        message_send(_tool_topic + row["tool_name"].asStr() + "/BOOKINGS", booking_info);
 
       }
       
@@ -267,6 +259,61 @@ using namespace std;
       
       return;
     }
+    
+string nh_tools::json_encode_booking_data(evtdata event_now, evtdata event_next)
+{
+  struct tm *timeinfo;
+  char buf[100] = "";
+
+  json_object *jstr_now_display_time;
+  json_object *jstr_now_display_name;
+  json_object *jstr_next_display_time;
+  json_object *jstr_next_display_name;
+  
+  json_object *j_obj_root = json_object_new_object();
+  json_object *j_obj_now  = json_object_new_object();
+  json_object *j_obj_next = json_object_new_object();
+  
+
+  // Current booking details
+  if (event_now.start_time > 0)
+  {
+    jstr_now_display_time = json_object_new_string("now");
+    jstr_now_display_name = json_object_new_string(event_now.full_name.c_str());
+  } 
+  else
+  {
+    jstr_now_display_time = json_object_new_string("now");
+    jstr_now_display_name = json_object_new_string("none");
+  }
+  json_object_object_add(j_obj_now, "display_time", jstr_now_display_time);
+  json_object_object_add(j_obj_now, "display_name", jstr_now_display_name);
+  
+  
+  // Next booking details
+  if (event_next.start_time > 0)
+  {
+    timeinfo = localtime (&event_next.start_time);
+    strftime (buf, sizeof(buf), "%R", timeinfo); // HH:MM  
+    jstr_next_display_time = json_object_new_string(buf);
+    jstr_next_display_name = json_object_new_string(event_next.full_name.c_str()); 
+  }
+  else
+  {
+    jstr_next_display_time = json_object_new_string("next");
+    jstr_next_display_name = json_object_new_string("none");
+  }
+  json_object_object_add(j_obj_next, "display_time", jstr_next_display_time);
+  json_object_object_add(j_obj_next, "display_name", jstr_next_display_name);  
+  
+  
+  json_object_object_add(j_obj_root, "now",  j_obj_now);
+  json_object_object_add(j_obj_root, "next", j_obj_next);
+  
+  string json_encoded = json_object_to_json_string(j_obj_root);
+  
+  return json_encoded;
+}
     
 // static callback used by cURL
 size_t nh_tools::s_curl_write(char *data, size_t size, size_t nmemb, void *p)
@@ -310,7 +357,7 @@ int nh_tools::process_ical_data(string ical_data, evtdata &evt_now, evtdata &evt
       continue;
     }
 
-    // Possibly TODO: extract data from JSON encoded DESCRIPTION: type (normal/induct?), booked (time booked?) and member_id (!)
+    // Possibly TODO: extract data from JSON encoded DESCRIPTION: type (normal/induct?), booked (time booking made) and member_id (!)
 
     // get start time
     icalproperty *prop_start = icalcomponent_get_first_property(component, ICAL_DTSTART_PROPERTY);
@@ -346,8 +393,7 @@ int nh_tools::process_ical_data(string ical_data, evtdata &evt_now, evtdata &evt
 
     component = icalcomponent_get_next_component(root, ICAL_VEVENT_COMPONENT);
   }
-  
-  
+
   icalcomponent_free(root);
   
   // Sort events in descening order by start datetime
@@ -376,7 +422,6 @@ int nh_tools::process_ical_data(string ical_data, evtdata &evt_now, evtdata &evt
     if (event_buffer[j].start_time < current_time)
       break;
   }
-
 
   if (event_next_idx >= 0)
     evt_next = event_buffer[event_next_idx];
