@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2014, Daniel Swann <hs@dswann.co.uk>
+ * Copyright (c) 2015, Daniel Swann <hs@dswann.co.uk>
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -32,37 +32,22 @@
  */
 
 
-#include "CNHmqtt_irc.h"
-#include "CNHDBAccess.h"
-
-#include <stdio.h>
-#include <time.h>
-#include <string.h>
-#include <vector>
+#include "nh-tools.h"
 
 using namespace std;
 
-bool CNHmqtt::debug_mode = false;
-bool CNHmqtt::daemonized = false; 
-
-class nh_tools : public CNHmqtt_irc
-{
-  public:
-    string _tool_topic;
-    CNHDBAccess *_db;
-
-    nh_tools(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
+    nh_tools::nh_tools(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
     {
       _tool_topic = get_str_option("tools", "_tool_topic", "nh/tools/"); // tool name is appended to this, e.g. laser's topic is nh/tools/laser/
       _db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
     }
 
-    ~nh_tools()
+    nh_tools::~nh_tools()
     {
       delete _db;
     }
 
-    void process_message(string topic, string message)
+    void nh_tools::process_message(string topic, string message)
     {
       std::vector<string> split_topic;
       int member_id = 0;
@@ -167,24 +152,32 @@ class nh_tools : public CNHmqtt_irc
     }
  
 
-    void process_irc_message(irc_msg msg)
+    void nh_tools::process_irc_message(irc_msg msg)
     {
       log->dbg("Got IRC message: " + (string)msg);
     }
 
-    int db_connect()
+    int nh_tools::db_connect()
     {
       _db->dbConnect();
       return 0;
     }
     
-    void setup()
+    void nh_tools::setup()
     {
       subscribe(_tool_topic + "#");
+      
+      /* Start thead that will poll for new bookings, and publish to MQTT (if enabled for tool)  *
+       * Doing this in a seperate thread so http delays, etc, won't impact on tool sign on times */
+      pthread_create(&calThread, NULL, &nh_tools::s_cal_thread, this);
+      
+      
+      
+      
     }
     
     /* split - taken from Alec Thomas's answer to http://stackoverflow.com/questions/236129/how-to-split-a-string-in-c */
-    void split(vector<string> &tokens, const string &text, char sep) 
+    void nh_tools::split(vector<string> &tokens, const string &text, char sep) 
     {
       int start = 0;
       size_t end = 0;
@@ -194,11 +187,220 @@ class nh_tools : public CNHmqtt_irc
         start = end + 1;
       }
       tokens.push_back(text.substr(start));
+    }
+    
+    void *nh_tools::s_cal_thread(void *arg)
+    {
+        nh_tools *tools;
+        tools = (nh_tools*) arg;  
+        tools->cal_thread();
+        return NULL;
+    }
+    
+    void nh_tools::cal_thread()
+    {
+      dbrows tool_list;
+      CURL *curl;
+      string curl_read_buffer;
+      int res;
+      
+      log->dbg("Entered cal_thread");
+      
+      if (_db->dbConnect())
+      {
+        log->dbg("Error - not connected to DB!");
+        return;
+      }
+      
+      // Init cURL
+      curl = curl_easy_init();
+      curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, _errorBuffer);
+      curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1); // On error (e.g. 404), we want curl_easy_perform to return an error
+      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &nh_tools::s_curl_write);
+      curl_easy_setopt(curl, CURLOPT_WRITEDATA, &curl_read_buffer);
+
+      // Get tools which should have bookings published
+      _db->sp_tool_get_calendars(-1, &tool_list); 
+      for (dbrows::const_iterator iterator = tool_list.begin(), end = tool_list.end(); iterator != end; ++iterator) 
+      {
+        string calendar_url;
+        dbrow row = *iterator;
+        evtdata event_now;
+        evtdata event_next;
+      
+        log->dbg("Processing tool: " + row["tool_id"].asStr() + "\t" + 
+             row["tool_address"].asStr() + "\t" +
+             row["tool_name"].asStr() + "\t" +
+             row["tool_calendar"].asStr() + "\t" +
+             row["tool_cal_poll_ival"].asStr());
+        
+        calendar_url = "http://www.google.com/calendar/ical/" + row["tool_calendar"].asStr() + "/public/basic.ics";
+        log->dbg("calendar = " + calendar_url);
+        curl_read_buffer = "";
+        curl_easy_setopt(curl, CURLOPT_URL, calendar_url.c_str());
+        res = curl_easy_perform(curl);
+        if (res != CURLE_OK)
+        {
+          log->dbg("cURL perform failed: " + (string)_errorBuffer);
+          continue;
+        } else
+        {
+          log->dbg("Got calendar data");
+        }
+        
+        process_ical_data(curl_read_buffer, event_now, event_next);
+        
+        if (event_now.start_time > 0)
+          log->dbg("Current booking: " + event_now.full_name);
+        else
+          log->dbg("Current booking: none");
+
+        if (event_next.start_time > 0)
+          log->dbg("Next booking   : " + event_next.full_name);
+        else
+          log->dbg("Next booking   : none");
+
+      }
+      
+      curl_easy_cleanup(curl);
+      
+      
+      return;
+    }
+    
+// static callback used by cURL
+size_t nh_tools::s_curl_write(char *data, size_t size, size_t nmemb, void *p)
+{
+  ((string*)p)->append(data, size * nmemb);
+  return size*nmemb;
+}
+
+int nh_tools::process_ical_data(string ical_data, evtdata &evt_now, evtdata &evt_next)
+{
+  vector<evtdata> event_buffer;
+  evtdata current_event;
+  time_t current_time;
+  int event_now_idx = -1;
+  int event_next_idx = -1;
+  
+  time(&current_time);
+  
+  icalcomponent *root = icalparser_parse_string(ical_data.c_str());
+  if (!root)
+  {
+    log->dbg("Failed to parse ical data!");
+    return -1;
+  }
+  
+  
+  // Search for the next, current and previous events.
+  icalcomponent *component = icalcomponent_get_first_component(root, ICAL_VEVENT_COMPONENT);
+  while (component)
+  {
+    // Get summary
+    icalproperty *prop_summary = icalcomponent_get_first_property(component, ICAL_SUMMARY_PROPERTY);
+    if (prop_summary) 
+    {
+      icalvalue *value = icalproperty_get_value(prop_summary);
+      current_event.full_name = icalvalue_as_ical_string(value);
+      //printf("Summary Value: %s\n", icalvalue_as_ical_string(value));
+    } else
+    {
+      log->dbg("Summary not found!");
+      continue;
+    }
+
+    // Possibly TODO: extract data from JSON encoded DESCRIPTION: type (normal/induct?), booked (time booked?) and member_id (!)
+
+    // get start time
+    icalproperty *prop_start = icalcomponent_get_first_property(component, ICAL_DTSTART_PROPERTY);
+    if (prop_start) 
+    {
+      icalvalue *v = icalproperty_get_value(prop_start);
+      struct icaltimetype  dt_start = icalvalue_get_datetime(v); 
+      
+      current_event.start_time = icaltime_as_timet(dt_start);
+
+    } else
+    {
+      log->dbg("No start time");
+      continue;
     }    
-};
+    
+    // get end time
+    icalproperty *prop_end = icalcomponent_get_first_property(component, ICAL_DTEND_PROPERTY);
+    if (prop_end) 
+    {
+      icalvalue *v = icalproperty_get_value(prop_end);
+      struct icaltimetype  dt_end = icalvalue_get_datetime(v); 
+      
+      current_event.end_time = icaltime_as_timet(dt_end);
+    } else
+    {
+      log->dbg("No end time");
+      continue;
+    }
+
+    // To have got this far, all the required data should have been found / extracted, so add to buffer
+    event_buffer.push_back(current_event);
+
+    component = icalcomponent_get_next_component(root, ICAL_VEVENT_COMPONENT);
+  }
+  
+  
+  icalcomponent_free(root);
+  
+  // Sort events in descening order by start datetime
+  sort (event_buffer.begin(), event_buffer.end(), event_by_start_time_sorter);
+
+  for (unsigned int j=0; j < event_buffer.size(); j++) 
+  {
+
+    // Check if this is the current booking
+    if (
+         (event_buffer[j].start_time <= current_time) &&
+         (event_buffer[j].end_time   >= current_time)
+       )
+    {
+      event_now_idx = (int)j;
+    }
+    
+    
+    
+    // Get next booking. Note: event_buffer is sorted decending by start time, so
+    // event_next should end up holding the nearest event that's in the future.
+    if ((event_buffer[j].start_time > current_time) && ((int)j != event_now_idx))
+      event_next_idx = j;
+    
+    // Not interested in past bookings
+    if (event_buffer[j].start_time < current_time)
+      break;
+  }
+
+
+  if (event_next_idx >= 0)
+    evt_next = event_buffer[event_next_idx];
+  else
+    evt_next.start_time = 0;
+
+  if (event_now_idx >= 0)
+     evt_now = event_buffer[event_now_idx];
+  else
+    evt_now.start_time = 0;
+  return 0;
+}
+
+// Decending sort by start time
+bool nh_tools::event_by_start_time_sorter(evtdata const& i, evtdata const& j)
+{
+  return i.start_time > j.start_time;
+}
+
 
 int main(int argc, char *argv[])
 {
+  curl_global_init(CURL_GLOBAL_DEFAULT);
+  
   nh_tools nh = nh_tools(argc, argv);
    
   nh.db_connect();  
