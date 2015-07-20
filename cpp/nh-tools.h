@@ -40,6 +40,7 @@
 #include <string.h>
 #include <vector>
 #include <algorithm>
+#include <cerrno>
 #include <json/json.h>       // libjson0-dev
 #include <curl/curl.h>       // libcurl4-gnutls-dev
 #include <libical/ical.h>    // libical-dev 
@@ -91,9 +92,14 @@ class nh_tools : public CNHmqtt_irc
     
 private:
       pthread_t calThread;
-
-      //bool init_curl(CURL *&conn, char *url);
+      pthread_mutex_t _cal_mutex;
+      pthread_cond_t  _condition_var;
+      bool _do_poll;
+      
+      
+      
       string json_encode_booking_data(evtdata event_now, evtdata event_next);
+      void get_publish_cal_data();
       static bool event_by_start_time_sorter(evtdata const& i, evtdata const& j);
 };
 

@@ -39,7 +39,11 @@ using namespace std;
     nh_tools::nh_tools(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
     {
       _tool_topic = get_str_option("tools", "_tool_topic", "nh/tools/"); // tool name is appended to this, e.g. laser's topic is nh/tools/laser/
-      _db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
+      _db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);
+
+      pthread_mutex_init(&_cal_mutex, NULL);
+      pthread_cond_init(&_condition_var, NULL);
+      _do_poll = false;
     }
 
     nh_tools::~nh_tools()
@@ -146,6 +150,17 @@ using namespace std;
           }
 
         }
+        else if (tool_message == "BOOKINGS")
+        {
+          if (message == "POLL")
+          {
+            // Signal cal_thread to download & process the ical booking data from google
+            pthread_mutex_lock(&_cal_mutex);
+            _do_poll = true;
+            pthread_cond_signal(&_condition_var);
+            pthread_mutex_unlock(&_cal_mutex);
+          }
+        }
       }
 
       CNHmqtt_irc::process_message(topic, message);
@@ -192,8 +207,40 @@ using namespace std;
         tools->cal_thread();
         return NULL;
     }
-    
+
+
     void nh_tools::cal_thread()
+    {
+      int timeout = (15*60); 
+      struct timespec to;
+      int err;
+    
+      while (1)
+      {
+        
+        pthread_mutex_lock(&_cal_mutex); 
+        to.tv_sec = time(NULL) + timeout; 
+        to.tv_nsec = 0; 
+
+        while (_do_poll == FALSE) 
+        {  
+          err = pthread_cond_timedwait(&_condition_var, &_cal_mutex, &to); 
+          if (err == ETIMEDOUT) 
+          { 
+            log->dbg("Timeout");
+            _do_poll = TRUE;
+          }
+        }
+        _do_poll = FALSE;
+        pthread_mutex_unlock(&_cal_mutex);
+
+
+        get_publish_cal_data();
+      }
+    }
+    
+    
+    void nh_tools::get_publish_cal_data()
     {
       dbrows tool_list;
       CURL *curl;
@@ -264,7 +311,10 @@ string nh_tools::json_encode_booking_data(evtdata event_now, evtdata event_next)
 {
   struct tm *timeinfo;
   char buf[100] = "";
-
+  time_t current_time;  
+  
+  time(&current_time);
+  
   json_object *jstr_now_display_time;
   json_object *jstr_now_display_name;
   json_object *jstr_next_display_time;
@@ -291,7 +341,11 @@ string nh_tools::json_encode_booking_data(evtdata event_now, evtdata event_next)
   
   
   // Next booking details
-  if (event_next.start_time > 0)
+  if 
+    (
+      (event_next.start_time > 0) &&
+      ((event_next.start_time - current_time) < (60*60*20)) // To avoid confusion (as only the time, not date, is displayed), only 
+    )                                                       // show the next booking if it starts within the next 20 hrs.
   {
     timeinfo = localtime (&event_next.start_time);
     strftime (buf, sizeof(buf), "%R", timeinfo); // HH:MM  
@@ -395,7 +449,7 @@ int nh_tools::process_ical_data(string ical_data, evtdata &evt_now, evtdata &evt
   }
 
   icalcomponent_free(root);
-  
+
   // Sort events in descening order by start datetime
   sort (event_buffer.begin(), event_buffer.end(), event_by_start_time_sorter);
 
