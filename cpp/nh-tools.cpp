@@ -203,7 +203,7 @@ using namespace std;
     void *nh_tools::s_cal_thread(void *arg)
     {
         nh_tools *tools;
-        tools = (nh_tools*) arg;  
+        tools = (nh_tools*) arg;
         tools->cal_thread();
         return NULL;
     }
@@ -217,8 +217,9 @@ using namespace std;
     
       while (1)
       {
-        
         pthread_mutex_lock(&_cal_mutex); 
+        
+        // TODO: set timeout to be the closest of: 1. current event end time, 2. next event start time, 15 minutes (or whatever the poll interval is)
         to.tv_sec = time(NULL) + timeout; 
         to.tv_nsec = 0; 
 
@@ -234,12 +235,10 @@ using namespace std;
         _do_poll = FALSE;
         pthread_mutex_unlock(&_cal_mutex);
 
-
         get_publish_cal_data();
       }
     }
-    
-    
+
     void nh_tools::get_publish_cal_data()
     {
       dbrows tool_list;
@@ -256,13 +255,14 @@ using namespace std;
         log->dbg("Error - not connected to DB!");
         return;
       }
-      
+
       // Init cURL
       curl = curl_easy_init();
       curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, _errorBuffer);
       curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1); // On error (e.g. 404), we want curl_easy_perform to return an error
       curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &nh_tools::s_curl_write);
       curl_easy_setopt(curl, CURLOPT_WRITEDATA, &curl_read_buffer);
+      curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L);   // wait a maximum of 20 seconds before giving up
 
       // Get tools which should have bookings published
       _db->sp_tool_get_calendars(-1, &tool_list); 
@@ -272,13 +272,14 @@ using namespace std;
         dbrow row = *iterator;
         evtdata event_now;
         evtdata event_next;
-      
+        int tool_id = row["tool_id"].asInt();
+
         log->dbg("Processing tool: " + row["tool_id"].asStr() + "\t" + 
              row["tool_address"].asStr() + "\t" +
              row["tool_name"].asStr() + "\t" +
              row["tool_calendar"].asStr() + "\t" +
              row["tool_cal_poll_ival"].asStr());
-        
+
         calendar_url = "http://www.google.com/calendar/ical/" + row["tool_calendar"].asStr() + "/public/basic.ics";
         log->dbg("calendar = " + calendar_url);
         curl_read_buffer = "";
@@ -292,21 +293,23 @@ using namespace std;
         {
           log->dbg("Got calendar data");
         }
-        
+
         // Extract the current/next bookings from the returned calendar (ical format) data
-        process_ical_data(curl_read_buffer, event_now, event_next);
+        _bookings[tool_id].clear();
+        process_ical_data(curl_read_buffer, tool_id);
+
+        // Find the current/next booking for the tool
+        get_now_next_bookings(_bookings[tool_id], event_now, event_next);
 
         booking_info = json_encode_booking_data(event_now, event_next);
         message_send(_tool_topic + row["tool_name"].asStr() + "/BOOKINGS", booking_info);
-
       }
-      
+
       curl_easy_cleanup(curl);
-      
-      
+
       return;
     }
-    
+
 string nh_tools::json_encode_booking_data(evtdata event_now, evtdata event_next)
 {
   struct tm *timeinfo;
@@ -376,24 +379,18 @@ size_t nh_tools::s_curl_write(char *data, size_t size, size_t nmemb, void *p)
   return size*nmemb;
 }
 
-int nh_tools::process_ical_data(string ical_data, evtdata &evt_now, evtdata &evt_next)
+int nh_tools::process_ical_data(string ical_data, int tool_id)
 {
-  vector<evtdata> event_buffer;
   evtdata current_event;
-  time_t current_time;
-  int event_now_idx = -1;
-  int event_next_idx = -1;
-  
-  time(&current_time);
-  
+
+
   icalcomponent *root = icalparser_parse_string(ical_data.c_str());
   if (!root)
   {
     log->dbg("Failed to parse ical data!");
     return -1;
   }
-  
-  
+
   // Search for the next, current and previous events.
   icalcomponent *component = icalcomponent_get_first_component(root, ICAL_VEVENT_COMPONENT);
   while (component)
@@ -443,7 +440,7 @@ int nh_tools::process_ical_data(string ical_data, evtdata &evt_now, evtdata &evt
     }
 
     // To have got this far, all the required data should have been found / extracted, so add to buffer
-    event_buffer.push_back(current_event);
+    _bookings[tool_id].push_back(current_event);
 
     component = icalcomponent_get_next_component(root, ICAL_VEVENT_COMPONENT);
   }
@@ -451,41 +448,52 @@ int nh_tools::process_ical_data(string ical_data, evtdata &evt_now, evtdata &evt
   icalcomponent_free(root);
 
   // Sort events in descening order by start datetime
-  sort (event_buffer.begin(), event_buffer.end(), event_by_start_time_sorter);
+  sort (_bookings[tool_id].begin(), _bookings[tool_id].end(), event_by_start_time_sorter);
 
-  for (unsigned int j=0; j < event_buffer.size(); j++) 
+  return 0;
+}
+
+int nh_tools::get_now_next_bookings(vector<evtdata> const& tool_bookings, evtdata &evt_now, evtdata &evt_next)
+/* Get the current and next booking from tool_bookings. Assumes that <tool_bookings> has already
+ * been sorted by start time decending */
+{
+  time_t current_time;
+  int event_now_idx = -1;
+  int event_next_idx = -1;
+
+  time(&current_time);
+  
+  for (unsigned int j=0; j < tool_bookings.size(); j++) 
   {
-
     // Check if this is the current booking
     if (
-         (event_buffer[j].start_time <= current_time) &&
-         (event_buffer[j].end_time   >= current_time)
+         (tool_bookings[j].start_time <= current_time) &&
+         (tool_bookings[j].end_time   >= current_time)
        )
     {
       event_now_idx = (int)j;
     }
-    
-    
-    
+
     // Get next booking. Note: event_buffer is sorted decending by start time, so
     // event_next should end up holding the nearest event that's in the future.
-    if ((event_buffer[j].start_time > current_time) && ((int)j != event_now_idx))
+    if ((tool_bookings[j].start_time > current_time) && ((int)j != event_now_idx))
       event_next_idx = j;
-    
+
     // Not interested in past bookings
-    if (event_buffer[j].start_time < current_time)
+    if (tool_bookings[j].start_time < current_time)
       break;
   }
 
   if (event_next_idx >= 0)
-    evt_next = event_buffer[event_next_idx];
+    evt_next = tool_bookings[event_next_idx];
   else
     evt_next.start_time = 0;
 
   if (event_now_idx >= 0)
-     evt_now = event_buffer[event_now_idx];
+     evt_now = tool_bookings[event_now_idx];
   else
     evt_now.start_time = 0;
+
   return 0;
 }
 
@@ -502,7 +510,7 @@ int main(int argc, char *argv[])
   
   nh_tools nh = nh_tools(argc, argv);
    
-  nh.db_connect();  
+  nh.db_connect();
 
   nh.init();
   nh.setup();

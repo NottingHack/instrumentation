@@ -59,7 +59,7 @@ class nh_tools : public CNHmqtt_irc
     struct evtdata 
     {
       string full_name;
-      int    duration_min;
+  //  int    duration_min;
       time_t start_time;
       time_t end_time;
     };    
@@ -82,22 +82,18 @@ class nh_tools : public CNHmqtt_irc
     
     static void *s_cal_thread(void *arg);
     void cal_thread();
-    
-    static size_t s_curl_write(char *data, size_t size, size_t nmemb, void *p);
-    int process_ical_data(string ical_data, evtdata &evt_now, evtdata &evt_nexy);
-    
 
-      
-  
-    
+    static size_t s_curl_write(char *data, size_t size, size_t nmemb, void *p);
+    int process_ical_data(string ical_data, int tool_id);
+
 private:
       pthread_t calThread;
       pthread_mutex_t _cal_mutex;
       pthread_cond_t  _condition_var;
       bool _do_poll;
-      
-      
-      
+
+      map <int, vector<evtdata> > _bookings; // bookings - [tool_id][booking]
+      int get_now_next_bookings(vector<evtdata> const& tool_bookings, evtdata &evt_now, evtdata &evt_next);
       string json_encode_booking_data(evtdata event_now, evtdata event_next);
       void get_publish_cal_data();
       static bool event_by_start_time_sorter(evtdata const& i, evtdata const& j);
