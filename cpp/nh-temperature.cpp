@@ -33,6 +33,9 @@
 #include <string>
 #include <sstream>
 
+#define MAX_TEMP 60
+#define MIN_TEMP -30
+
 using namespace std;
 
 class nh_temperature : public CNHmqtt
@@ -61,11 +64,17 @@ public:
   {
     if (topic==temperature_topic)
     {
+      char buf[50];
       string address;
       float temp;
       string desc;
       ostringstream ssTemp;
 
+      if (message.length() < 17)
+      {
+        log->dbg("invalid message");
+        return;
+      }
 
       // break apart message into addres and temp
       address = message.substr(0,16);
@@ -73,6 +82,17 @@ public:
       std::istringstream b( message.substr(17, message.length() - 17) );
       b >> temp;
 
+      snprintf(buf, sizeof(buf), "temp: [%f]", temp);
+      log->dbg(buf);
+      
+      // Sanity check the temperature
+      if ((temp > MAX_TEMP) || (temp < MIN_TEMP))
+      {
+        snprintf(buf, sizeof(buf), "Ignoring excessive temperature: [%f]");
+        log->dbg(buf);
+        return;
+      }
+      
       db->sp_temperature_update(address, temp);
       
       // publish room name / temperature to mqtt
