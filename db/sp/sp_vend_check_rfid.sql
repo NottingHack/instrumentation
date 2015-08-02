@@ -54,8 +54,7 @@ BEGIN
       r_state
     from members m 
     inner join rfid_tags r on r.member_id = m.member_id 
-    where r.state = 10 -- STATE_ACTIVE
-      and r.rfid_serial = rfid_serial
+    where r.rfid_serial = rfid_serial
     order by state limit 1;
 
     if (r_state != 10) then -- STATE_ACTIVE
