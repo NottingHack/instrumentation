@@ -36,279 +36,324 @@
 
 using namespace std;
 
-    nh_tools::nh_tools(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
+nh_tools::nh_tools(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
+{
+  _tool_topic = get_str_option("tools", "_tool_topic", "nh/tools/"); // tool name is appended to this, e.g. laser's topic is nh/tools/laser/
+  _db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);
+
+  pthread_mutex_init(&_cal_mutex, NULL);
+  pthread_cond_init(&_condition_var, NULL);
+  _do_poll = false;
+}
+
+nh_tools::~nh_tools()
+{
+  delete _db;
+}
+
+void nh_tools::process_message(string topic, string message)
+{
+  std::vector<string> split_topic;
+  int member_id = 0;
+  string disp_msg;
+
+  // E.g. "nh/tools/laser/RFID"
+
+  // Look for a message to the _tool_topic
+  if (topic.substr(0, _tool_topic.length()) == _tool_topic)
+  {
+    string tool_name, tool_message, msg;
+    int access_result = 0;
+    split(split_topic, topic.substr(_tool_topic.length(), string::npos), '/');
+    if (split_topic.size() != 2)
     {
-      _tool_topic = get_str_option("tools", "_tool_topic", "nh/tools/"); // tool name is appended to this, e.g. laser's topic is nh/tools/laser/
-      _db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);
-
-      pthread_mutex_init(&_cal_mutex, NULL);
-      pthread_cond_init(&_condition_var, NULL);
-      _do_poll = false;
-    }
-
-    nh_tools::~nh_tools()
-    {
-      delete _db;
-    }
-
-    void nh_tools::process_message(string topic, string message)
-    {
-      std::vector<string> split_topic;
-      int member_id = 0;
-      string disp_msg;
-
-      // E.g. "nh/tools/laser/RFID"
-
-      // Look for a message to the _tool_topic
-      if (topic.substr(0, _tool_topic.length()) == _tool_topic)
-      {
-        string tool_name, tool_message, msg;
-        int access_result = 0;
-        split(split_topic, topic.substr(_tool_topic.length(), string::npos), '/');
-        if (split_topic.size() != 2)
-        {
-          log->dbg("invalid topic");
-          return;
-        }
-
-        tool_name    = split_topic[0];
-        tool_message = split_topic[1];
-
-        if (tool_message == "AUTH")
-        {
-          if (_db->sp_tool_sign_on(tool_name, message, access_result, msg, member_id))
-          {
-            message_send(_tool_topic + tool_name + "/DENY", "Failure.");
-          } else
-          {
-            if (access_result)
-            {
-              // Access granted
-              _db->sp_tool_pledged_remain(tool_name, member_id, disp_msg);
-              message_send(_tool_topic + tool_name + "/GRANT", msg + disp_msg);
-            }
-            else
-            {
-              message_send(_tool_topic + tool_name + "/DENY", msg);
-            }
-          }
-        } else if (tool_message == "COMPLETE")
-        {
-          if (_db->sp_tool_sign_off(tool_name, atoi(tool_message.c_str()), msg))
-          {
-            log->dbg("sp_tool_sign_off failed...");
-          } else if (msg.length() > 0)
-          {
-            log->dbg("sp_tool_sign_off: " + msg);
-          }
-        } else if (tool_message == "RESET")
-        {
-          // Device has either just been powered up, or has reconnected and isn't in use - so make sure it's signed off
-          if ((message == "BOOT") || (message == "IDLE"))
-          {
-            if (_db->sp_tool_sign_off(tool_name, atoi(tool_message.c_str()), msg))
-            {
-              log->dbg("sp_tool_sign_off failed...");
-            } else if (msg.length() > 0)
-            {
-              log->dbg("sp_tool_sign_off: " + msg);
-            }
-          }
-        }
-        else if (tool_message == "INDUCT")
-        {
-          // Induct button has been pushed, and a new card presented
-          string card_inductor;
-          string card_inductee;
-          string err;
-          size_t pos;
-          int ret=1;
-          
-          pos = message.find_first_of(":");
-          if (pos == string::npos)
-          {
-            log->dbg("Invalid induct message");
-          } else
-          {
-            card_inductor = message.substr(0, pos);
-            card_inductee = message.substr(pos+1, string::npos);
-
-            log->dbg("card_inductor=" + card_inductor + ", card_inductee=" + card_inductee);
-            if (_db->sp_tool_induct(tool_name, card_inductor, card_inductee, ret, err))
-            {
-              log->dbg("sp_tool_induct failed...");
-              ret = 1;
-            } else if (msg.length() > 0)
-            {
-              log->dbg("sp_tool_induct: " + msg);
-            }
-
-            if (ret)
-              message_send(_tool_topic + tool_name + "/IFAL", err); // Induct FAiLed
-            else
-              message_send(_tool_topic + tool_name + "/ISUC", err); // Induct SUCcess
-          }
-
-        }
-        else if (tool_message == "BOOKINGS")
-        {
-          if (message == "POLL")
-          {
-            // Signal cal_thread to download & process the ical booking data from google
-            pthread_mutex_lock(&_cal_mutex);
-            _do_poll = true;
-            pthread_cond_signal(&_condition_var);
-            pthread_mutex_unlock(&_cal_mutex);
-          }
-        }
-      }
-
-      CNHmqtt_irc::process_message(topic, message);
-    }
- 
-
-    void nh_tools::process_irc_message(irc_msg msg)
-    {
-      log->dbg("Got IRC message: " + (string)msg);
-    }
-
-    int nh_tools::db_connect()
-    {
-      _db->dbConnect();
-      return 0;
-    }
-    
-    void nh_tools::setup()
-    {
-      subscribe(_tool_topic + "#");
-      
-      /* Start thead that will poll for new bookings, and publish to MQTT (if enabled for tool)  *
-       * Doing this in a seperate thread so http delays, etc, won't impact on tool sign on times */
-      pthread_create(&calThread, NULL, &nh_tools::s_cal_thread, this);
-    }
-    
-    /* split - taken from Alec Thomas's answer to http://stackoverflow.com/questions/236129/how-to-split-a-string-in-c */
-    void nh_tools::split(vector<string> &tokens, const string &text, char sep) 
-    {
-      int start = 0;
-      size_t end = 0;
-      while ((end = text.find(sep, start)) != string::npos) 
-      {
-        tokens.push_back(text.substr(start, end - start));
-        start = end + 1;
-      }
-      tokens.push_back(text.substr(start));
-    }
-    
-    void *nh_tools::s_cal_thread(void *arg)
-    {
-        nh_tools *tools;
-        tools = (nh_tools*) arg;
-        tools->cal_thread();
-        return NULL;
-    }
-
-
-    void nh_tools::cal_thread()
-    {
-      int timeout = (15*60); 
-      struct timespec to;
-      int err;
-    
-      while (1)
-      {
-        pthread_mutex_lock(&_cal_mutex); 
-        
-        // TODO: set timeout to be the closest of: 1. current event end time, 2. next event start time, 15 minutes (or whatever the poll interval is)
-        to.tv_sec = time(NULL) + timeout; 
-        to.tv_nsec = 0; 
-
-        while (_do_poll == FALSE) 
-        {  
-          err = pthread_cond_timedwait(&_condition_var, &_cal_mutex, &to); 
-          if (err == ETIMEDOUT) 
-          { 
-            log->dbg("Timeout");
-            _do_poll = TRUE;
-          }
-        }
-        _do_poll = FALSE;
-        pthread_mutex_unlock(&_cal_mutex);
-
-        get_publish_cal_data();
-      }
-    }
-
-    void nh_tools::get_publish_cal_data()
-    {
-      dbrows tool_list;
-      CURL *curl;
-      string curl_read_buffer;
-      string booking_info;
-      int res;
-      
-      
-      log->dbg("Entered cal_thread");
-      
-      if (_db->dbConnect())
-      {
-        log->dbg("Error - not connected to DB!");
-        return;
-      }
-
-      // Init cURL
-      curl = curl_easy_init();
-      curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, _errorBuffer);
-      curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1); // On error (e.g. 404), we want curl_easy_perform to return an error
-      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &nh_tools::s_curl_write);
-      curl_easy_setopt(curl, CURLOPT_WRITEDATA, &curl_read_buffer);
-      curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L);   // wait a maximum of 20 seconds before giving up
-
-      // Get tools which should have bookings published
-      _db->sp_tool_get_calendars(-1, &tool_list); 
-      for (dbrows::const_iterator iterator = tool_list.begin(), end = tool_list.end(); iterator != end; ++iterator) 
-      {
-        string calendar_url;
-        dbrow row = *iterator;
-        evtdata event_now;
-        evtdata event_next;
-        int tool_id = row["tool_id"].asInt();
-
-        log->dbg("Processing tool: " + row["tool_id"].asStr() + "\t" + 
-             row["tool_address"].asStr() + "\t" +
-             row["tool_name"].asStr() + "\t" +
-             row["tool_calendar"].asStr() + "\t" +
-             row["tool_cal_poll_ival"].asStr());
-
-        calendar_url = "http://www.google.com/calendar/ical/" + row["tool_calendar"].asStr() + "/public/basic.ics";
-        log->dbg("calendar = " + calendar_url);
-        curl_read_buffer = "";
-        curl_easy_setopt(curl, CURLOPT_URL, calendar_url.c_str());
-        res = curl_easy_perform(curl);
-        if (res != CURLE_OK)
-        {
-          log->dbg("cURL perform failed: " + (string)_errorBuffer);
-          continue;
-        } else
-        {
-          log->dbg("Got calendar data");
-        }
-
-        // Extract the current/next bookings from the returned calendar (ical format) data
-        _bookings[tool_id].clear();
-        process_ical_data(curl_read_buffer, tool_id);
-
-        // Find the current/next booking for the tool
-        get_now_next_bookings(_bookings[tool_id], event_now, event_next);
-
-        booking_info = json_encode_booking_data(event_now, event_next);
-        message_send(_tool_topic + row["tool_name"].asStr() + "/BOOKINGS", booking_info);
-      }
-
-      curl_easy_cleanup(curl);
-
+      log->dbg("invalid topic");
       return;
     }
+
+    tool_name    = split_topic[0];
+    tool_message = split_topic[1];
+
+    if (tool_message == "AUTH")
+    {
+      if (_db->sp_tool_sign_on(tool_name, message, access_result, msg, member_id))
+      {
+        message_send(_tool_topic + tool_name + "/DENY", "Failure.");
+      } else
+      {
+        if (access_result)
+        {
+          // Access granted
+          _db->sp_tool_pledged_remain(tool_name, member_id, disp_msg);
+          message_send(_tool_topic + tool_name + "/GRANT", msg + disp_msg);
+        }
+        else
+        {
+          message_send(_tool_topic + tool_name + "/DENY", msg);
+        }
+      }
+    } else if (tool_message == "COMPLETE")
+    {
+      if (_db->sp_tool_sign_off(tool_name, atoi(tool_message.c_str()), msg))
+      {
+        log->dbg("sp_tool_sign_off failed...");
+      } else if (msg.length() > 0)
+      {
+        log->dbg("sp_tool_sign_off: " + msg);
+      }
+    } else if (tool_message == "RESET")
+    {
+      // Device has either just been powered up, or has reconnected and isn't in use - so make sure it's signed off
+      if ((message == "BOOT") || (message == "IDLE"))
+      {
+        if (_db->sp_tool_sign_off(tool_name, atoi(tool_message.c_str()), msg))
+        {
+          log->dbg("sp_tool_sign_off failed...");
+        } else if (msg.length() > 0)
+        {
+          log->dbg("sp_tool_sign_off: " + msg);
+        }
+      }
+    }
+    else if (tool_message == "INDUCT")
+    {
+      // Induct button has been pushed, and a new card presented
+      string card_inductor;
+      string card_inductee;
+      string err;
+      size_t pos;
+      int ret=1;
+      
+      pos = message.find_first_of(":");
+      if (pos == string::npos)
+      {
+        log->dbg("Invalid induct message");
+      } else
+      {
+        card_inductor = message.substr(0, pos);
+        card_inductee = message.substr(pos+1, string::npos);
+
+        log->dbg("card_inductor=" + card_inductor + ", card_inductee=" + card_inductee);
+        if (_db->sp_tool_induct(tool_name, card_inductor, card_inductee, ret, err))
+        {
+          log->dbg("sp_tool_induct failed...");
+          ret = 1;
+        } else if (msg.length() > 0)
+        {
+          log->dbg("sp_tool_induct: " + msg);
+        }
+
+        if (ret)
+          message_send(_tool_topic + tool_name + "/IFAL", err); // Induct FAiLed
+        else
+          message_send(_tool_topic + tool_name + "/ISUC", err); // Induct SUCcess
+      }
+
+    }
+    else if (tool_message == "BOOKINGS")
+    {
+      if (message == "POLL")
+      {
+        // Signal cal_thread to download & process the ical booking data from google
+        pthread_mutex_lock(&_cal_mutex);
+        _do_poll = true;
+        pthread_cond_signal(&_condition_var);
+        pthread_mutex_unlock(&_cal_mutex);
+      }
+    }
+  }
+
+  CNHmqtt_irc::process_message(topic, message);
+}
+
+
+void nh_tools::process_irc_message(irc_msg msg)
+{
+  log->dbg("Got IRC message: " + (string)msg);
+}
+
+int nh_tools::db_connect()
+{
+  _db->dbConnect();
+  return 0;
+}
+
+void nh_tools::setup()
+{
+  subscribe(_tool_topic + "#");
+  
+  _do_poll = true;
+  
+  /* Start thead that will poll for new bookings, and publish to MQTT (if enabled for tool)  *
+   * Doing this in a seperate thread so http delays, etc, won't impact on tool sign on times */
+  pthread_create(&calThread, NULL, &nh_tools::s_cal_thread, this);
+}
+
+/* split - taken from Alec Thomas's answer to http://stackoverflow.com/questions/236129/how-to-split-a-string-in-c */
+void nh_tools::split(vector<string> &tokens, const string &text, char sep) 
+{
+  int start = 0;
+  size_t end = 0;
+  while ((end = text.find(sep, start)) != string::npos) 
+  {
+    tokens.push_back(text.substr(start, end - start));
+    start = end + 1;
+  }
+  tokens.push_back(text.substr(start));
+}
+
+void *nh_tools::s_cal_thread(void *arg)
+{
+    nh_tools *tools;
+    tools = (nh_tools*) arg;
+    tools->cal_thread();
+    return NULL;
+}
+
+
+void nh_tools::cal_thread()
+{
+  int timeout = (15*60); 
+  struct timespec to;
+  int err;
+  time_t last_poll = 0;
+  time_t wait_until;
+  char buf[30] = "";
+  
+  while (1)
+  {
+    pthread_mutex_lock(&_cal_mutex); 
+
+    wait_until = _next_event;
+    if (wait_until > time(NULL) + timeout)
+      wait_until = time(NULL) + timeout + 1;
+
+    to.tv_sec = wait_until+2; 
+    to.tv_nsec = 0; 
+
+    if (_do_poll == FALSE)
+    {
+      strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime(&wait_until));
+      log->dbg("Waiting until: " + (string)buf);
+    }
+
+    while (_do_poll == FALSE) 
+    {  
+      err = pthread_cond_timedwait(&_condition_var, &_cal_mutex, &to); 
+      if (err == ETIMEDOUT) 
+      { 
+        log->dbg("Timeout reached");
+        break;
+      }
+    }
+
+    pthread_mutex_unlock(&_cal_mutex);
+
+
+    if ((_do_poll) || (time(NULL) - last_poll) > timeout)
+    {
+      get_cal_data();
+      last_poll = time(NULL);
+    }
+    
+    _next_event = time(NULL) + timeout; // publish_now_next_bookings should lower this, if there's change before the timeout 
+    publish_now_next_bookings(-1);
+    _do_poll = FALSE;
+  }
+}
+
+void nh_tools::get_cal_data()
+{
+  dbrows tool_list;
+  CURL *curl;
+  string curl_read_buffer;
+  int res;
+  
+  
+  log->dbg("Entered cal_thread");
+  
+  if (_db->dbConnect())
+  {
+    log->dbg("Error - not connected to DB!");
+    return;
+  }
+
+  // Init cURL
+  curl = curl_easy_init();
+  curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, _errorBuffer);
+  curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1); // On error (e.g. 404), we want curl_easy_perform to return an error
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &nh_tools::s_curl_write);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &curl_read_buffer);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L);   // wait a maximum of 20 seconds before giving up
+
+  // Get tools which should have bookings published
+  _db->sp_tool_get_calendars(-1, &tool_list); 
+  for (dbrows::const_iterator iterator = tool_list.begin(), end = tool_list.end(); iterator != end; ++iterator) 
+  {
+    string calendar_url;
+    dbrow row = *iterator;
+    int tool_id = row["tool_id"].asInt();
+
+    log->dbg("Processing tool: " + row["tool_id"].asStr() + "\t" + 
+         row["tool_address"].asStr() + "\t" +
+         row["tool_name"].asStr() + "\t" +
+         row["tool_calendar"].asStr() + "\t" +
+         row["tool_cal_poll_ival"].asStr());
+
+    calendar_url = "http://www.google.com/calendar/ical/" + row["tool_calendar"].asStr() + "/public/basic.ics";
+    //calendar_url = "http://localhost/basic.ics";
+    log->dbg("calendar = " + calendar_url);
+    curl_read_buffer = "";
+    curl_easy_setopt(curl, CURLOPT_URL, calendar_url.c_str());
+    res = curl_easy_perform(curl);
+    if (res != CURLE_OK)
+    {
+      log->dbg("cURL perform failed: " + (string)_errorBuffer);
+      continue;
+    } else
+    {
+      log->dbg("Got calendar data");
+    }
+
+    // Extract the booking information from the returned calendar (ical format) data
+    _bookings[tool_id].clear();
+    process_ical_data(curl_read_buffer, tool_id);
+  }
+
+  curl_easy_cleanup(curl);
+
+  return;
+}
+
+int nh_tools::publish_now_next_bookings(int tool_id)
+{
+  dbrows tool_list;
+  evtdata event_now;
+  evtdata event_next;
+  string booking_info;
+
+  _db->sp_tool_get_calendars(tool_id, &tool_list); 
+  for (dbrows::const_iterator iterator = tool_list.begin(), end = tool_list.end(); iterator != end; ++iterator)
+  {
+    dbrow row = *iterator;
+
+    // Find the current/next booking for the tool
+    get_now_next_bookings(_bookings[row["tool_id"].asInt()], event_now, event_next);
+
+    // Save the time of the nearest event that will require the display to be updated.
+    if ((event_now.end_time > time(NULL)) && (event_now.end_time < _next_event))
+      _next_event = event_now.end_time;
+    
+    if ((event_next.start_time > time(NULL)) && (event_next.start_time < _next_event))
+      _next_event = event_next.start_time;
+    
+
+    booking_info = json_encode_booking_data(event_now, event_next);
+    message_send(_tool_topic + row["tool_name"].asStr() + "/BOOKINGS", booking_info);
+  }
+  
+  return 0;
+}
 
 string nh_tools::json_encode_booking_data(evtdata event_now, evtdata event_next)
 {
@@ -468,7 +513,7 @@ int nh_tools::get_now_next_bookings(vector<evtdata> const& tool_bookings, evtdat
     // Check if this is the current booking
     if (
          (tool_bookings[j].start_time <= current_time) &&
-         (tool_bookings[j].end_time   >= current_time)
+         (current_time   <  tool_bookings[j].end_time)
        )
     {
       event_now_idx = (int)j;

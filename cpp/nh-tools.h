@@ -91,11 +91,14 @@ private:
       pthread_mutex_t _cal_mutex;
       pthread_cond_t  _condition_var;
       bool _do_poll;
+      time_t _next_event;
 
       map <int, vector<evtdata> > _bookings; // bookings - [tool_id][booking]
       int get_now_next_bookings(vector<evtdata> const& tool_bookings, evtdata &evt_now, evtdata &evt_next);
       string json_encode_booking_data(evtdata event_now, evtdata event_next);
-      void get_publish_cal_data();
+      void get_cal_data();
+      int publish_now_next_bookings(int tool_id);
+      
       static bool event_by_start_time_sorter(evtdata const& i, evtdata const& j);
 };
 
