@@ -88,7 +88,7 @@ public:
       // Sanity check the temperature
       if ((temp > MAX_TEMP) || (temp < MIN_TEMP))
       {
-        snprintf(buf, sizeof(buf), "Ignoring excessive temperature: [%f]");
+        snprintf(buf, sizeof(buf), "Ignoring excessive temperature: [%f]", temp);
         log->dbg(buf);
         return;
       }
