@@ -38,7 +38,10 @@ using namespace std;
 
 nh_tools::nh_tools(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
 {
-  _tool_topic = get_str_option("tools", "_tool_topic", "nh/tools/"); // tool name is appended to this, e.g. laser's topic is nh/tools/laser/
+  _tool_topic    = get_str_option("tools", "tool_topic"   , "nh/tools/"); // tool name is appended to this, e.g. laser's topic is nh/tools/laser/
+  _client_id     = get_str_option("tools", "client_id"    , "<NOT SET>");
+  _client_secret = get_str_option("tools", "client_secret", "<NOT SET>");
+
   _db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);
 
   pthread_mutex_init(&_cal_mutex, NULL);
@@ -271,6 +274,18 @@ void nh_tools::get_cal_data()
   
   
   log->dbg("Entered cal_thread");
+  
+  // TODO: Remove me
+  string auth_token;
+  if (google_get_auth_token(auth_token))
+  {
+    int tool_id = 1;
+    google_delete_channels(tool_id, auth_token);
+  }
+  
+  
+  return;
+  
   
   if (_db->dbConnect())
   {
@@ -548,6 +563,209 @@ bool nh_tools::event_by_start_time_sorter(evtdata const& i, evtdata const& j)
   return i.start_time > j.start_time;
 }
 
+/* Must only be used from the cal thread (it uses class buffer_errorBuffer) */
+bool nh_tools::google_get_auth_token(string& auth_token)
+{
+  string curl_read_buffer;
+  string post_fields;
+  string refresh_token;
+  string identity;
+  int res;
+  CURL *curl;
+
+  // Get refresh token from database
+  if (_db->sp_tool_get_google_info(1, identity, refresh_token))
+  {
+    log->dbg("sp_tool_get_google_info failed..");
+    return false;
+  }
+
+  // Init cURL
+  curl = curl_easy_init();
+  curl_easy_setopt(curl, CURLOPT_ERRORBUFFER  , _errorBuffer);
+  curl_easy_setopt(curl, CURLOPT_FAILONERROR  , 1); // On error (e.g. 404), we want curl_easy_perform to return an error
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &nh_tools::s_curl_write);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA    , &curl_read_buffer);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT      , 20L);   // wait a maximum of 20 seconds before giving up
+  
+  post_fields =  "client_id="     + http_escape(curl, _client_id)
+              + "&client_secret=" + http_escape(curl, _client_secret)
+              + "&refresh_token=" + http_escape(curl, refresh_token)
+              + "&grant_type=refresh_token";
+
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, post_fields.length());
+  curl_easy_setopt(curl, CURLOPT_COPYPOSTFIELDS, post_fields.c_str());
+  log->dbg("get_auth_token> post fields: [" + post_fields + "]");
+
+
+  string oauth_url = "https://accounts.google.com/o/oauth2/token";
+  
+  log->dbg("get_auth_token> Using URL: [" + oauth_url + "]");
+  curl_read_buffer = "";
+  curl_easy_setopt(curl, CURLOPT_URL, oauth_url.c_str());
+  res = curl_easy_perform(curl);
+  if (res != CURLE_OK)
+  {
+    log->dbg("get_auth_token> cURL perform failed: " + (string)_errorBuffer);
+    curl_easy_cleanup(curl);
+    return false;
+  } else
+  {
+    log->dbg("get_auth_token> Got data");
+  }
+
+  auth_token = extract_value(curl_read_buffer, "access_token");
+  curl_easy_cleanup(curl);
+ 
+  if (auth_token.length() > 2)
+    return true;
+  else
+    return false;
+}
+
+bool nh_tools::google_delete_channels(int tool_id, string auth_token)
+{
+  dbrows chan_list;
+
+  _db->sp_tool_get_google_channels(tool_id, &chan_list); 
+  for (dbrows::const_iterator iterator = chan_list.begin(), end = chan_list.end(); iterator != end; ++iterator) 
+  {
+    string calendar_url;
+    dbrow row = *iterator;
+
+    google_delete_channel(auth_token, row["channel_id"].asStr(), row["resource_id"].asStr());
+
+  }
+  
+  return true;
+}
+
+bool nh_tools::google_delete_channel(string auth_token, string channel_id, string resource_id)
+{
+  string curl_read_buffer;
+  string post_fields;
+  string refresh_token;
+  string identity;
+  int res;
+  CURL *curl;
+  struct curl_slist *list = NULL;
+
+  // Init cURL
+  curl = curl_easy_init();
+  curl_easy_setopt(curl, CURLOPT_ERRORBUFFER  , _errorBuffer);
+  curl_easy_setopt(curl, CURLOPT_FAILONERROR  , 1); // On error (e.g. 404), we want curl_easy_perform to return an error
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &nh_tools::s_curl_write);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA    , &curl_read_buffer);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT      , 20L);   // wait a maximum of 20 seconds before giving up
+  
+  // Setup post data
+  post_fields =  "id="         + http_escape(curl, channel_id)
+              + "&resourceId=" + http_escape(curl, resource_id);
+
+  post_fields = json_encode_id_resourse_id(channel_id, resource_id);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, post_fields.length());
+  curl_easy_setopt(curl, CURLOPT_COPYPOSTFIELDS, post_fields.c_str());
+
+  log->dbg("google_delete_channel> post fields: [" + post_fields + "]");
+
+  // setup http headers
+  string auth_header = "Authorization: Bearer " + auth_token;
+  list = curl_slist_append(list, auth_header.c_str());
+  list = curl_slist_append(list, "Content-Type: application/json");
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
+  
+  string stop_url = "https://www.googleapis.com/calendar/v3/channels/stop";
+  log->dbg("google_delete_channel> Using URL: [" + stop_url + "]");
+  
+  curl_read_buffer = "";
+  curl_easy_setopt(curl, CURLOPT_URL, stop_url.c_str());
+  res = curl_easy_perform(curl);
+  if (res != CURLE_OK)
+  {
+    log->dbg("google_delete_channel> cURL perform failed: " + (string)_errorBuffer);
+    curl_slist_free_all(list);
+    curl_easy_cleanup(curl);
+    return false;
+  } else
+  {
+    log->dbg("google_delete_channel> Got data: [" + curl_read_buffer + "]");
+  }
+
+  curl_slist_free_all(list); // free header list
+  curl_easy_cleanup(curl);
+ 
+  if (auth_token.length() > 2)
+    return true;
+  else
+    return false;
+}
+
+
+string nh_tools::json_encode_id_resourse_id(string channel_id, string resource_id)
+{
+  json_object *j_obj_root       = json_object_new_object();
+  json_object *jstr_id          = json_object_new_string(channel_id.c_str() );
+  json_object *jstr_resource_id = json_object_new_string(resource_id.c_str());
+
+  json_object_object_add(j_obj_root, "id"        , jstr_id);
+  json_object_object_add(j_obj_root, "resourceId", jstr_resource_id);
+
+  string json_encoded = json_object_to_json_string(j_obj_root);
+// TODO: free?
+  return json_encoded;
+}
+
+
+string nh_tools::extract_value(string json_in, string param)
+{
+  json_object *jobj = json_tokener_parse(json_in.c_str());
+  if (jobj == NULL)
+  {
+    log->dbg("extract_value> json_tokener_parse failed. JSON data: [" + json_in + "]");
+    return "";
+  }
+  
+  json_object *obj_param = json_object_object_get(jobj, param.c_str());
+  if (obj_param == NULL)
+  {
+    log->dbg("extract_value> json_object_object_get failed. JSON data: [" + json_in + "]");
+    json_object_put(jobj);
+    return "";
+  }
+  
+  const char *param_val = json_object_get_string(obj_param);
+  if (param_val == NULL)
+  {
+    log->dbg("extract_value> json_object_get_string failed. JSON data: [" + json_in + "]");
+    json_object_put(obj_param);
+    json_object_put(jobj);
+    return "";
+  }
+  
+  log->dbg("extract_value> got [" + param + "] = [" + (string)param_val + "]");
+  string result = (string)param_val;
+  
+  json_object_put(obj_param);
+  json_object_put(jobj);
+  return result;
+}
+
+string nh_tools::http_escape(CURL *curl, string parameter)
+{
+  string escaped_str;
+  char   *escaped_curl;
+
+  escaped_curl = curl_easy_escape(curl, parameter.c_str(), parameter.length());
+  if (escaped_curl == NULL)
+  {
+    log->dbg("curl_easy_escape failed");
+    return "";
+  }
+  
+  escaped_str = (string)escaped_curl;
+  curl_free(escaped_curl);
+  return escaped_str;
+}
 
 int main(int argc, char *argv[])
 {

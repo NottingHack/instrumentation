@@ -92,13 +92,20 @@ private:
       pthread_cond_t  _condition_var;
       bool _do_poll;
       time_t _next_event;
+      string _client_id;
+      string _client_secret;
 
       map <int, vector<evtdata> > _bookings; // bookings - [tool_id][booking]
       int get_now_next_bookings(vector<evtdata> const& tool_bookings, evtdata &evt_now, evtdata &evt_next);
       string json_encode_booking_data(evtdata event_now, evtdata event_next);
       void get_cal_data();
       int publish_now_next_bookings(int tool_id);
-      
+      bool google_get_auth_token(string& auth_token);
+      string http_escape(CURL *curl, string parameter);
+      string extract_value(string json_in, string param);
+      bool google_delete_channels(int tool_id, string auth_token);
+      bool google_delete_channel(string auth_token, string channel_id, string resource_id);
+      string json_encode_id_resourse_id(string channel_id, string resource_id);
       static bool event_by_start_time_sorter(evtdata const& i, evtdata const& j);
 };
 
