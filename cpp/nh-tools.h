@@ -45,6 +45,7 @@
 #include <curl/curl.h>       // libcurl4-gnutls-dev
 #include <libical/ical.h>    // libical-dev 
 #include <libical/icalss.h>
+#include <uuid/uuid.h>       // uuid-dev
 
 using namespace std;
 
@@ -105,7 +106,10 @@ private:
       string extract_value(string json_in, string param);
       bool google_delete_channels(int tool_id, string auth_token);
       bool google_delete_channel(string auth_token, string channel_id, string resource_id);
+      bool google_add_channel(int tool_id, string auth_token, string tool_calendar);
+      bool google_renew_channels();
       string json_encode_id_resourse_id(string channel_id, string resource_id);
+      string json_encode_for_add_chan(string channel_id, string resource_id, string url);
       static bool event_by_start_time_sorter(evtdata const& i, evtdata const& j);
 };
 

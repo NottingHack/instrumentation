@@ -48,7 +48,7 @@ $(BIN_OUT)GateKeeper: $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_
 	g++ -lmysqlclient -lmosquitto -lrt -o $(BIN_OUT)GateKeeper $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 $(BIN_OUT)nh-tools: $(BUILD_DIR)nh-tools.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lmysqlclient -lmosquitto -lrt -lcurl -lical -ljson -o $(BIN_OUT)nh-tools $(BUILD_DIR)nh-tools.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lmysqlclient -lmosquitto -lrt -lcurl -lical -ljson -luuid -o $(BIN_OUT)nh-tools $(BUILD_DIR)nh-tools.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 $(BIN_OUT)nh-monitor: $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
 	g++ -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-monitor $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)

@@ -18,7 +18,8 @@ BEGIN
     t.tool_address,
     t.tool_name,
     t.tool_calendar,
-    t.tool_cal_poll_ival
+    t.tool_cal_poll_ival,
+    t.tool_calendar
   from tl_tools t
   where (t.tool_id = p_tool_id or p_tool_id = -1)
     and (t.tool_calendar is not null and length(trim(t.tool_calendar) > 10))
