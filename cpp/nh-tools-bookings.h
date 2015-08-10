@@ -67,39 +67,55 @@ class nh_tools_bookings
       time_t end_time;
     };
 
+    enum cal_msg 
+    {
+      CAL_MSG_NOTHING,
+      CAL_MSG_POLL,
+      CAL_MSG_EXIT
+    };
+
     char _errorBuffer[CURL_ERROR_SIZE];
     CLogging *_log;
+
     pthread_t calThread;
-    pthread_mutex_t _cal_mutex;
-    pthread_cond_t  _condition_var;
-    bool _do_poll;
+    pthread_t chanThread;
+    pthread_mutex_t _cal_mutex, _chanel_mutex;
+    pthread_cond_t  _cal_condition_var, _channel_condition_var;
+    
+    
+    
+    cal_msg _cal_thread_msg;
+    bool _exit_notification_thread;
     time_t _next_event;
     std::string _client_id;
     std::string _client_secret;
     int _tool_id;
     std::string _tool_topic;
     bool _setup_done;
+    std::string _tool_name;
     void dbg(std::string msg);
 
     static void *s_cal_thread(void *arg);
+    static void *s_notification_channel_thread(void *arg);
     static size_t s_curl_write(char *data, size_t size, size_t nmemb, void *p);
 
-    int process_ical_data(std::string ical_data, int tool_id);
+    int process_ical_data(std::string ical_data);
     CNHDBAccess *_db;
     void cal_thread();
+    void notification_channels_thread();
     ToolsCallbackInterface *_cb;
-    std::map <int, std::vector<evtdata> > _bookings; // bookings - [tool_id][booking]
+    std::vector<evtdata> _bookings;
     int get_now_next_bookings(std::vector<evtdata> const& tool_bookings, evtdata &evt_now, evtdata &evt_next);
     std::string json_encode_booking_data(evtdata event_now, evtdata event_next);
     void get_cal_data();
-    int publish_now_next_bookings(int tool_id);
+    int publish_now_next_bookings();
     bool google_get_auth_token(std::string& auth_token);
     std::string http_escape(CURL *curl, std::string parameter);
     std::string extract_value(std::string json_in, std::string param);
     bool google_delete_channels(int tool_id, std::string auth_token);
     bool google_delete_channel(std::string auth_token, std::string channel_id, std::string resource_id);
-    bool google_add_channel(int tool_id, std::string auth_token, std::string tool_calendar);
-    bool google_renew_channels();
+    bool google_add_channel(int tool_id, std::string auth_token, std::string tool_calendar, time_t& expiration_time);
+    bool google_renew_channel(time_t& expiration_time);
     std::string json_encode_id_resourse_id(std::string channel_id, std::string resource_id);
     std::string json_encode_for_add_chan(std::string channel_id, std::string resource_id, std::string url);
     static bool event_by_start_time_sorter(evtdata const& i, evtdata const& j);

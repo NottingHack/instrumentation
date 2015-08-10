@@ -50,26 +50,60 @@ nh_tools_bookings::nh_tools_bookings(CLogging *log, string db_server, string db_
   _db = new CNHDBAccess(db_server, db_username, db_password, db_name, log);
 
   pthread_mutex_init(&_cal_mutex, NULL);
-  pthread_cond_init(&_condition_var, NULL);
-  _do_poll = false;
+  pthread_mutex_init(&_chanel_mutex, NULL);
+  pthread_cond_init(&_cal_condition_var, NULL);
+  pthread_cond_init(&_channel_condition_var, NULL);
+  _cal_thread_msg = CAL_MSG_NOTHING;
+  _exit_notification_thread = false;
 }
 
 nh_tools_bookings::~nh_tools_bookings()
 {
   delete _db;
+
+  if (_setup_done)
+  {
+    // Signal chanThread to stop
+    pthread_mutex_lock(&_chanel_mutex);
+    _exit_notification_thread = true;
+    pthread_cond_signal(&_channel_condition_var);
+    pthread_mutex_unlock(&_chanel_mutex);
+
+    // Signal calThread to stop
+    pthread_mutex_lock(&_cal_mutex);
+    _cal_thread_msg = CAL_MSG_EXIT;;
+    pthread_cond_signal(&_cal_condition_var);
+    pthread_mutex_unlock(&_cal_mutex);
+
+    // Join both threads
+    dbg("Join chanThread");
+    pthread_join(chanThread, NULL);
+
+    dbg("Join calThread");
+    pthread_join(calThread, NULL);
+
+    dbg("Done - Bookings exit...");
+  }
 }
 
-
-
 void nh_tools_bookings::setup(int tool_id)
+/* Connect to database, start the thread that will poll for new bookings, then return */
 {
-  //subscribe(_tool_topic + "#");
-  _db->dbConnect();
-  _tool_id = tool_id;
-  _do_poll = true;
+  if (_setup_done)
+    return;
+
+  if (_db->dbConnect())
+    return;
   
-   /* Start thead that will poll for new bookings, and publish to MQTT (if enabled for tool)  *
-    * Doing this in a seperate thread so http delays, etc, won't impact on tool sign on times */
+  _tool_id = tool_id;
+  _cal_thread_msg = CAL_MSG_POLL;
+  
+  /* Start thead that will setup the push notification channel, and renew it when/as nessesary */
+  pthread_create(&chanThread, NULL, &nh_tools_bookings::s_notification_channel_thread, this); 
+  
+  
+ /* Start thead that will poll for new bookings, and publish to MQTT (if enabled for tool)  *
+  * Doing this in a seperate thread so http delays, etc, won't impact on tool sign on times */
   pthread_create(&calThread, NULL, &nh_tools_bookings::s_cal_thread, this);
   _setup_done = true;
 }
@@ -84,19 +118,85 @@ void nh_tools_bookings::poll()
   
   // Signal cal_thread to download & process the ical booking data from google
   pthread_mutex_lock(&_cal_mutex);
-  _do_poll = true;
-  pthread_cond_signal(&_condition_var);
+  _cal_thread_msg = CAL_MSG_POLL;
+  pthread_cond_signal(&_cal_condition_var);
   pthread_mutex_unlock(&_cal_mutex);
 }
 
+void *nh_tools_bookings::s_notification_channel_thread(void *arg)
+{
+  nh_tools_bookings *tools;
+  tools = (nh_tools_bookings*) arg;
+  tools->notification_channels_thread();
+  return NULL;
+}
 
+
+void nh_tools_bookings::notification_channels_thread()
+{
+  time_t expiration_time = 0;
+  time_t wait_until = 0;
+  struct timespec to;
+  char buf[50];
+  int err;
+
+  dbg("Entered notification_channels_thread");
+
+  expiration_time = time(NULL)+65; // register push notification channel 5 seconds after first starting
+
+  while (1)
+  {
+    pthread_mutex_lock(&_chanel_mutex);
+
+    wait_until = expiration_time-60;
+    to.tv_sec =  wait_until;
+    to.tv_nsec = 0; 
+
+    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime(&wait_until));
+    dbg("notification_channels_thread> Waiting until: " + (string)buf);
+
+
+    while (_exit_notification_thread == false) 
+    {
+      err = pthread_cond_timedwait(&_channel_condition_var, &_chanel_mutex, &to);
+      if (err == ETIMEDOUT) 
+      {
+        dbg("Timeout reached");
+        break;
+      }
+    }
+
+    pthread_mutex_unlock(&_chanel_mutex);
+    
+    if (_exit_notification_thread)
+    {
+      dbg("exiting chanThread");
+      return;
+    }
+    else
+    {
+      if (google_renew_channel(expiration_time))
+      {
+        strftime(buf, sizeof(buf), "Channel expiration time: %Y-%m-%d %H:%M:%S", localtime(&expiration_time));
+        dbg("notification_channels_thread> " + (string)buf);
+      } else
+      {
+        // failed to renew channel - try again in 15 minutes
+        expiration_time = time(NULL) + (60*15);
+      }
+    }
+  }
+ 
+  
+  return;
+}
 
 void *nh_tools_bookings::s_cal_thread(void *arg)
 {
-    nh_tools_bookings *tools;
-    tools = (nh_tools_bookings*) arg;
-    tools->cal_thread();
-    return NULL;
+  nh_tools_bookings *tools;
+  tools = (nh_tools_bookings*) arg;
+  tools->cal_thread();
+  return NULL;
 }
 
 
@@ -108,6 +208,8 @@ void nh_tools_bookings::cal_thread()
   time_t last_poll = 0;
   time_t wait_until;
   char buf[30] = "";
+
+  dbg("Entered cal_thread");
   
   while (1)
   {
@@ -120,34 +222,39 @@ void nh_tools_bookings::cal_thread()
     to.tv_sec = wait_until+2; 
     to.tv_nsec = 0; 
 
-    if (_do_poll == FALSE)
+    if (_cal_thread_msg == CAL_MSG_NOTHING)
     {
       strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime(&wait_until));
-      dbg("Waiting until: " + (string)buf);
+      dbg("cal_thread> Waiting until: " + (string)buf);
     }
 
-    while (_do_poll == FALSE) 
+    while (_cal_thread_msg == CAL_MSG_NOTHING) 
     {  
-      err = pthread_cond_timedwait(&_condition_var, &_cal_mutex, &to); 
+      err = pthread_cond_timedwait(&_cal_condition_var, &_cal_mutex, &to); 
       if (err == ETIMEDOUT) 
       {  
-        dbg("Timeout reached");
+        dbg("cal_thread> Timeout reached");
         break;
       }
     }
 
     pthread_mutex_unlock(&_cal_mutex);
 
+    if (_cal_thread_msg == CAL_MSG_EXIT)
+    {
+      dbg("exiting cal_thread");
+      return;
+    }
 
-    if ((_do_poll) || (time(NULL) - last_poll) > timeout)
+    if ((_cal_thread_msg == CAL_MSG_POLL) || (time(NULL) - last_poll) > timeout)
     {
       get_cal_data();
       last_poll = time(NULL);
     }
-    
+
     _next_event = time(NULL) + timeout; // publish_now_next_bookings should lower this, if there's change before the timeout 
-    publish_now_next_bookings(-1);
-    _do_poll = FALSE;
+    publish_now_next_bookings();
+    _cal_thread_msg = CAL_MSG_NOTHING;
   }
 }
 
@@ -157,109 +264,81 @@ void nh_tools_bookings::get_cal_data()
   CURL *curl;
   string curl_read_buffer;
   int res;
-  
-  
-  dbg("Entered cal_thread");
-  google_renew_channels();
-  return; // TODO: Remove me
-  
-  // TODO: Remove me
-  /*
-  string auth_token;
-  if (google_get_auth_token(auth_token))
-  {
-    int tool_id = 1;
-    google_delete_channels(tool_id, auth_token);
-    google_add_channel(tool_id, auth_token);
-  }
-  */
-  
-  return; // TODO: Remove me
-  
-  
-  if (_db->dbConnect())
-  {
-    dbg("Error - not connected to DB!");
-    return;
-  }
+
+  dbg("Entered get_cal_data");
 
   // Init cURL
   curl = curl_easy_init();
+  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1); // Get "*** longjmp causes uninitialized stack frame ***:" without this.
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, _errorBuffer);
   curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1); // On error (e.g. 404), we want curl_easy_perform to return an error
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &nh_tools_bookings::s_curl_write);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &curl_read_buffer);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L);   // wait a maximum of 20 seconds before giving up
 
-  // Get tools which should have bookings published
-  _db->sp_tool_get_calendars(-1, &tool_list); 
-  for (dbrows::const_iterator iterator = tool_list.begin(), end = tool_list.end(); iterator != end; ++iterator) 
+  // Get tool details - only expecting one row
+  _db->sp_tool_get_calendars(_tool_id, &tool_list);
+  if (tool_list.size() != 1)
   {
-    string calendar_url;
-    dbrow row = *iterator;
-    int tool_id = row["tool_id"].asInt();
-
-    dbg("Processing tool: " + row["tool_id"].asStr() + "\t" + 
-         row["tool_address"].asStr() + "\t" +
-         row["tool_name"].asStr() + "\t" +
-         row["tool_calendar"].asStr() + "\t" +
-         row["tool_cal_poll_ival"].asStr());
-
-    calendar_url = "http://www.google.com/calendar/ical/" + row["tool_calendar"].asStr() + "/public/basic.ics";
-    //calendar_url = "http://localhost/basic.ics";
-    dbg("calendar = " + calendar_url);
-    curl_read_buffer = "";
-    curl_easy_setopt(curl, CURLOPT_URL, calendar_url.c_str());
-    res = curl_easy_perform(curl);
-    if (res != CURLE_OK)
-    {
-      dbg("cURL perform failed: " + (string)_errorBuffer);
-      continue;
-    } else
-    {
-      dbg("Got calendar data");
-    }
-
-    // Extract the booking information from the returned calendar (ical format) data
-    _bookings[tool_id].clear();
-    process_ical_data(curl_read_buffer, tool_id);
+    dbg("Unexpected number of tools returned: " + CNHmqtt_irc::itos(tool_list.size()));
+    return;
   }
+  
+  dbrows::const_iterator iterator = tool_list.begin();
+  dbrow row = *iterator;
+
+  string calendar_url = "http://www.google.com/calendar/ical/" + row["tool_calendar"].asStr() + "/public/basic.ics";;
+  dbg("calendar = " + calendar_url);
+
+  dbg("Processing tool: " + 
+      row["tool_id"].asStr()       + "\t" + 
+      row["tool_address"].asStr()  + "\t" +
+      row["tool_name"].asStr()     + "\t" +
+      row["tool_calendar"].asStr() + "\t" +
+      row["tool_cal_poll_ival"].asStr());
+
+  _tool_name = row["tool_name"].asStr();
+  curl_read_buffer = "";
+  curl_easy_setopt(curl, CURLOPT_URL, calendar_url.c_str());
+  res = curl_easy_perform(curl);
+  if (res != CURLE_OK)
+  {
+    dbg("cURL perform failed: " + (string)_errorBuffer);
+  } else
+  {
+    dbg("Got calendar data");
+  }
+
+  // Extract the booking information from the returned calendar (ical format) data
+  _bookings.clear();
+  process_ical_data(curl_read_buffer);
 
   curl_easy_cleanup(curl);
 
   return;
 }
 
-int nh_tools_bookings::publish_now_next_bookings(int tool_id)
+int nh_tools_bookings::publish_now_next_bookings()
 {
   dbrows tool_list;
   evtdata event_now;
   evtdata event_next;
   string booking_info;
 
-  _db->sp_tool_get_calendars(tool_id, &tool_list); 
-  for (dbrows::const_iterator iterator = tool_list.begin(), end = tool_list.end(); iterator != end; ++iterator)
-  {
-    dbrow row = *iterator;
+  // Find the current/next booking for the tool
+  get_now_next_bookings(_bookings, event_now, event_next);
 
-    // Find the current/next booking for the tool
-    get_now_next_bookings(_bookings[row["tool_id"].asInt()], event_now, event_next);
+  // Save the time of the nearest event that will require the display to be updated.
+  if ((event_now.end_time > time(NULL)) && (event_now.end_time < _next_event))
+    _next_event = event_now.end_time;
 
-    // Save the time of the nearest event that will require the display to be updated.
-    if ((event_now.end_time > time(NULL)) && (event_now.end_time < _next_event))
-      _next_event = event_now.end_time;
-    
-    if ((event_next.start_time > time(NULL)) && (event_next.start_time < _next_event))
-      _next_event = event_next.start_time;
-    
+  if ((event_next.start_time > time(NULL)) && (event_next.start_time < _next_event))
+    _next_event = event_next.start_time;
 
-    booking_info = json_encode_booking_data(event_now, event_next);
-    
-//    message_send(_tool_topic + row["tool_name"].asStr() + "/BOOKINGS", booking_info);
-    _cb->cbiSendMessage(_tool_topic + row["tool_name"].asStr() + "/BOOKINGS", booking_info);
-    
-  }
-  
+
+  booking_info = json_encode_booking_data(event_now, event_next);
+  _cb->cbiSendMessage(_tool_topic + _tool_name + "/BOOKINGS", booking_info);
+
   return 0;
 }
 
@@ -332,7 +411,7 @@ size_t nh_tools_bookings::s_curl_write(char *data, size_t size, size_t nmemb, vo
   return size*nmemb;
 }
 
-int nh_tools_bookings::process_ical_data(string ical_data, int tool_id)
+int nh_tools_bookings::process_ical_data(string ical_data)
 {
   evtdata current_event;
 
@@ -393,7 +472,7 @@ int nh_tools_bookings::process_ical_data(string ical_data, int tool_id)
     }
 
     // To have got this far, all the required data should have been found / extracted, so add to buffer
-    _bookings[tool_id].push_back(current_event);
+    _bookings.push_back(current_event);
 
     component = icalcomponent_get_next_component(root, ICAL_VEVENT_COMPONENT);
   }
@@ -401,7 +480,7 @@ int nh_tools_bookings::process_ical_data(string ical_data, int tool_id)
   icalcomponent_free(root);
 
   // Sort events in descening order by start datetime
-  sort (_bookings[tool_id].begin(), _bookings[tool_id].end(), event_by_start_time_sorter);
+  sort (_bookings.begin(), _bookings.end(), event_by_start_time_sorter);
 
   return 0;
 }
@@ -475,6 +554,7 @@ bool nh_tools_bookings::google_get_auth_token(string& auth_token)
 
   // Init cURL
   curl = curl_easy_init();
+  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1); // Get "*** longjmp causes uninitialized stack frame ***:" without this.
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER  , _errorBuffer);
   curl_easy_setopt(curl, CURLOPT_FAILONERROR  , 1); // On error (e.g. 404), we want curl_easy_perform to return an error
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &nh_tools_bookings::s_curl_write);
@@ -516,31 +596,34 @@ bool nh_tools_bookings::google_get_auth_token(string& auth_token)
     return false;
 }
 
-bool nh_tools_bookings::google_renew_channels()
+bool nh_tools_bookings::google_renew_channel(time_t& expiration_time)
 {
   string auth_token;
-  dbrows tool_list;
-  
+  dbrows tool_details;
+
   // get auth_token
   if (!google_get_auth_token(auth_token))
   {
-    dbg("Failed to get auth token, unable to renew push notification channels");
+    dbg("google_renew_channel> Failed to get auth token, unable to renew push notification channels");
     return false;
   }
 
-  _db->sp_tool_get_calendars(-1, &tool_list); 
-  for (dbrows::const_iterator iterator = tool_list.begin(), end = tool_list.end(); iterator != end; ++iterator)
+  _db->sp_tool_get_calendars(_tool_id, &tool_details); 
+  if (tool_details.size() != 1)
   {
-    dbrow row = *iterator;  
-    int tool_id = row["tool_id"].asInt();
-    
-    // Delete any push notification channels that may have previously been set up
-    google_delete_channels(tool_id, auth_token);
-    
-    // Set up new channel
-    google_add_channel(tool_id, auth_token, row["tool_calendar"].asStr());
+    dbg("google_renew_channel> Unexpected number of tools returned: " + CNHmqtt_irc::itos(tool_details.size()));
+    return false;
   }
-  
+
+  dbrows::const_iterator iterator = tool_details.begin();
+  dbrow row = *iterator;
+
+  // Delete any push notification channels that may have previously been set up
+  google_delete_channels(_tool_id, auth_token);
+
+  // Set up new channel
+  google_add_channel(_tool_id, auth_token, row["tool_calendar"].asStr(), expiration_time);
+
   return true;
 }
 
@@ -557,7 +640,7 @@ bool nh_tools_bookings::google_delete_channels(int tool_id, string auth_token)
     google_delete_channel(auth_token, row["channel_id"].asStr(), row["resource_id"].asStr());
 
   }
-  
+
   return true;
 }
 
@@ -573,6 +656,7 @@ bool nh_tools_bookings::google_delete_channel(string auth_token, string channel_
 
   // Init cURL
   curl = curl_easy_init();
+  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1); // Get "*** longjmp causes uninitialized stack frame ***:" without this.
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER  , _errorBuffer);
   curl_easy_setopt(curl, CURLOPT_FAILONERROR  , 1);     // On error (e.g. 404), we want curl_easy_perform to return an error
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &nh_tools_bookings::s_curl_write);
@@ -629,7 +713,7 @@ bool nh_tools_bookings::google_delete_channel(string auth_token, string channel_
 
 
 
-bool nh_tools_bookings::google_add_channel(int tool_id, string auth_token, string tool_calendar)
+bool nh_tools_bookings::google_add_channel(int tool_id, string auth_token, string tool_calendar, time_t& expiration_time)
 {
   string curl_read_buffer;
   string post_fields;
@@ -638,11 +722,11 @@ bool nh_tools_bookings::google_add_channel(int tool_id, string auth_token, strin
   int res;
   CURL *curl;
   struct curl_slist *list = NULL;
-
-  //string tool_calendar = "3gq3oi2rgf3831geiv63nldk8s@group.calendar.google.com"; // TODO: get this from DB
+  expiration_time = 0;
 
   // Init cURL
   curl = curl_easy_init();
+  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1); // Get "*** longjmp causes uninitialized stack frame ***:" without this.
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER  , _errorBuffer);
   curl_easy_setopt(curl, CURLOPT_FAILONERROR  , 1); // On error (e.g. 404), we want curl_easy_perform to return an error
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &nh_tools_bookings::s_curl_write);
@@ -681,17 +765,16 @@ bool nh_tools_bookings::google_add_channel(int tool_id, string auth_token, strin
     curl_slist_free_all(list);
     curl_easy_cleanup(curl);
     return false;
-  } else
-  {
-    dbg("google_add_channel> Got data: [" + curl_read_buffer + "]");
-    string resource_id    = extract_value(curl_read_buffer, "resourceId");
-    string expiration_s   = extract_value(curl_read_buffer, "expiration");
-
-    long long int expiration_i = atoll(expiration_s.c_str());
-    expiration_i /= 1000;  // Expiration time is a Unix timestamp (in ms), convert to seconds
-    _db->sp_tool_set_google_channel(tool_id, resource_id, channel_token, channel_id, expiration_i);
-
   }
+
+  dbg("google_add_channel> Got data: [" + curl_read_buffer + "]");
+  string resource_id    = extract_value(curl_read_buffer, "resourceId");
+  string expiration_s   = extract_value(curl_read_buffer, "expiration");
+
+  long long int expiration_i = atoll(expiration_s.c_str());
+  expiration_i /= 1000;  // Expiration time is a Unix timestamp (in ms), convert to seconds
+  _db->sp_tool_set_google_channel(tool_id, resource_id, channel_token, channel_id, expiration_i);
+  expiration_time = expiration_i;
 
   curl_slist_free_all(list); // free header list
   curl_easy_cleanup(curl);
@@ -709,7 +792,8 @@ string nh_tools_bookings::json_encode_id_resourse_id(string channel_id, string r
   json_object_object_add(j_obj_root, "resourceId", jstr_resource_id);
 
   string json_encoded = json_object_to_json_string(j_obj_root);
-// TODO: free?
+  json_object_put(j_obj_root);
+  
   return json_encoded;
   
 }
@@ -729,7 +813,9 @@ string nh_tools_bookings::json_encode_for_add_chan(string channel_id, string tok
   json_object_object_add(j_obj_root, "token"  , jstr_token);
 
   string json_encoded = json_object_to_json_string(j_obj_root);
-// TODO: free?
+
+  json_object_put(j_obj_root);  
+  
   return json_encoded;
 }
 
@@ -787,6 +873,5 @@ string nh_tools_bookings::http_escape(CURL *curl, string parameter)
 
 void nh_tools_bookings::dbg(std::string msg)
 {
-  _log->dbg("bookings", msg);  
+  _log->dbg("bookings-" + CNHmqtt_irc::itos(_tool_id) , msg);  
 }
-
