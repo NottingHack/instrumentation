@@ -29,6 +29,55 @@
 
 /*
  * For Tools access control (e.g. laser cutter) at Nottingham Hackspace
+ * 
+ * This module deals with downloading booking information from the google
+ * calendars linked to each tool, and publishing over MQTT for display on 
+ * a now/next LED display(s) (only one so far).
+ * 
+ * There should be one instance of this nh_tools_bookings class per tool that 
+ * has now/next publishing switched on (i.e. tl_tools.tool_cal_poll_ival > 0).
+ * 
+ * There are two additional threads created when setup() is first called:
+ * 
+ *  calThread   - This downloads the ICAL formatted calendar for the tool
+ *                from google, determines the current and next booking, 
+ *                then pusblishes this information (JSON encoded) over
+ *                MQTT.
+ *                It will download the calendar:
+ *                  - when first started
+ *                  - when poll() is called, which it should be when a push
+ *                    notfication of calendar change is received from google.
+ *                    The nh_tools class deals with calling poll() at the
+ *                    appropriate time.
+ *                  - If it's been more than tl_tools.tool_cal_poll_ival seconds
+ *                    since the last download (this should be >= 15 minutes)
+ *                It will also send an MQTT message with the now/next data when 
+ *                the display needs to be updated (e.g. current booking ends, new
+ *                one starts, whatever. The display has no concept of wall time).
+ * 
+ * chanThread -   This thread is responsible for setting up the push notification 
+ *                channel so we get a notification when a new booking is made.
+ *                More info on this service can be found at:
+ *                  https://developers.google.com/google-apps/calendar/v3/push 
+ *                Note that this thread has nothing to do with receiving/processing
+ *                the push notfications, it only registers us to receive them (and 
+ *                keeps us registered).
+ * 
+ *                Before this will work, a few things need to be in place:
+ *                  - The google magic needs to be set up and fully working in HMS
+ *                  - client_id & client_secret need to be set in nh-tool.conf
+ *                  - The URL that google will call needs to be registered with google:
+ *                    https://developers.google.com/google-apps/calendar/v3/push#registering
+ *                  - That URL needs to be set as the push_url in nh-tools.conf (TODO)
+ *                  (how google calling that URL results in a call to poll() is outside the
+ *                  scope of this module).
+ * 
+ *                Once the push notfication channel has been set up, the thread will wait
+ *                until shortly before the channel expiry time, then renew it (i.e. it
+ *                could/should be waiting for days).
+ *                As there isn't (currently) a way to directly renew a channel, it deletes 
+ *                the old one(s), then sets up a new push channel.
+ *
  */
 
 
@@ -56,8 +105,8 @@ class nh_tools_bookings
                       std::string client_id, std::string client_secret, std::string tool_topic, ToolsCallbackInterface *cb);
     ~nh_tools_bookings();
 
-    void setup(int tool_id);
-    void poll();
+    void setup(int tool_id);  // Call once with the tool_id id to publish bookings for
+    void poll();              // Trigger a poll for new bookings, then publish the results
 
   private:
     struct evtdata 
@@ -81,9 +130,7 @@ class nh_tools_bookings
     pthread_t chanThread;
     pthread_mutex_t _cal_mutex, _chanel_mutex;
     pthread_cond_t  _cal_condition_var, _channel_condition_var;
-    
-    
-    
+
     cal_msg _cal_thread_msg;
     bool _exit_notification_thread;
     time_t _next_event;

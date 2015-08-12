@@ -29,6 +29,8 @@
 
 /*
  * For Tools access control (e.g. laser cutter) at Nottingham Hackspace
+ * 
+ * See description of this module in nh-tools-bookings.h
  */
 
 
@@ -81,27 +83,27 @@ nh_tools_bookings::~nh_tools_bookings()
 
     dbg("Join calThread");
     pthread_join(calThread, NULL);
-
-    dbg("Done - Bookings exit...");
   }
+  dbg("Done - Bookings exit...");
 }
 
 void nh_tools_bookings::setup(int tool_id)
-/* Connect to database, start the thread that will poll for new bookings, then return */
+/* Connect to database, start the threads that will poll for new bookings and maintain
+ * the push notification channel (renewing when nessesary), then return */
 {
   if (_setup_done)
     return;
 
   if (_db->dbConnect())
     return;
-  
+
   _tool_id = tool_id;
-  _cal_thread_msg = CAL_MSG_POLL;
-  
+  _cal_thread_msg = CAL_MSG_POLL; // Want the calendar thread to poll for an update as soon as it starts
+
   /* Start thead that will setup the push notification channel, and renew it when/as nessesary */
   pthread_create(&chanThread, NULL, &nh_tools_bookings::s_notification_channel_thread, this); 
-  
-  
+
+
  /* Start thead that will poll for new bookings, and publish to MQTT (if enabled for tool)  *
   * Doing this in a seperate thread so http delays, etc, won't impact on tool sign on times */
   pthread_create(&calThread, NULL, &nh_tools_bookings::s_cal_thread, this);
@@ -109,13 +111,16 @@ void nh_tools_bookings::setup(int tool_id)
 }
 
 void nh_tools_bookings::poll()
+/* Signal the calendar thread to re-download/process/publish calendar data.
+ * This function should be called when a push notification for the tool is 
+ * recieved, and the display first starting up */
 {
   if (!_setup_done)
   {
     dbg("Poll() called before setup done!");
     return;
   }
-  
+
   // Signal cal_thread to download & process the ical booking data from google
   pthread_mutex_lock(&_cal_mutex);
   _cal_thread_msg = CAL_MSG_POLL;
@@ -124,6 +129,7 @@ void nh_tools_bookings::poll()
 }
 
 void *nh_tools_bookings::s_notification_channel_thread(void *arg)
+/* Static function passed to pthread_create that just launches the notification_channel_thread */
 {
   nh_tools_bookings *tools;
   tools = (nh_tools_bookings*) arg;
@@ -133,6 +139,8 @@ void *nh_tools_bookings::s_notification_channel_thread(void *arg)
 
 
 void nh_tools_bookings::notification_channels_thread()
+/* Thread which is responsible for setting the push notification channel, then 
+ * renewing it as approaches its expiry */
 {
   time_t expiration_time = 0;
   time_t wait_until = 0;
@@ -148,7 +156,7 @@ void nh_tools_bookings::notification_channels_thread()
   {
     pthread_mutex_lock(&_chanel_mutex);
 
-    wait_until = expiration_time-60;
+    wait_until = expiration_time-60; // renew 60 seconds before expiry.
     to.tv_sec =  wait_until;
     to.tv_nsec = 0; 
 
@@ -161,7 +169,7 @@ void nh_tools_bookings::notification_channels_thread()
       err = pthread_cond_timedwait(&_channel_condition_var, &_chanel_mutex, &to);
       if (err == ETIMEDOUT) 
       {
-        dbg("Timeout reached");
+        dbg("notification_channels_thread> Timeout reached");
         break;
       }
     }
@@ -175,7 +183,7 @@ void nh_tools_bookings::notification_channels_thread()
     }
     else
     {
-      if (google_renew_channel(expiration_time))
+      if (google_renew_channel(expiration_time)) // Actually do the work to renew the channel...
       {
         strftime(buf, sizeof(buf), "Channel expiration time: %Y-%m-%d %H:%M:%S", localtime(&expiration_time));
         dbg("notification_channels_thread> " + (string)buf);
@@ -186,12 +194,12 @@ void nh_tools_bookings::notification_channels_thread()
       }
     }
   }
- 
-  
+
   return;
 }
 
 void *nh_tools_bookings::s_cal_thread(void *arg)
+/* Static function passed to pthread_create that just launches the cal_thread */
 {
   nh_tools_bookings *tools;
   tools = (nh_tools_bookings*) arg;
@@ -201,6 +209,10 @@ void *nh_tools_bookings::s_cal_thread(void *arg)
 
 
 void nh_tools_bookings::cal_thread()
+/* Main cal_thread entry point. This thread polls google for updated calendar data
+ * either every 15minutes, or when signalled to by the poll() function.
+ * It also publishes the now/next bookings using mqtt either after a poll, or when
+ * it changes (i.e. current booking finishes, etc). */
 {
   int timeout = (15*60); 
   struct timespec to;
@@ -248,17 +260,18 @@ void nh_tools_bookings::cal_thread()
 
     if ((_cal_thread_msg == CAL_MSG_POLL) || (time(NULL) - last_poll) > timeout)
     {
-      get_cal_data();
+      get_cal_data();           // Get the ICAL file from google & process it
       last_poll = time(NULL);
     }
 
     _next_event = time(NULL) + timeout; // publish_now_next_bookings should lower this, if there's change before the timeout 
-    publish_now_next_bookings();
+    publish_now_next_bookings(); // using the downloaded & processed ICAL data, publish now & next data over MQTT
     _cal_thread_msg = CAL_MSG_NOTHING;
   }
 }
 
 void nh_tools_bookings::get_cal_data()
+/* Get ICAL file from google, then process */
 {
   dbrows tool_list;
   CURL *curl;
@@ -283,11 +296,11 @@ void nh_tools_bookings::get_cal_data()
     dbg("Unexpected number of tools returned: " + CNHmqtt_irc::itos(tool_list.size()));
     return;
   }
-  
+
   dbrows::const_iterator iterator = tool_list.begin();
   dbrow row = *iterator;
 
-  string calendar_url = "http://www.google.com/calendar/ical/" + row["tool_calendar"].asStr() + "/public/basic.ics";;
+  string calendar_url = "http://www.google.com/calendar/ical/" + row["tool_calendar"].asStr() + "/public/basic.ics";
   dbg("calendar = " + calendar_url);
 
   dbg("Processing tool: " + 
@@ -311,7 +324,7 @@ void nh_tools_bookings::get_cal_data()
 
   // Extract the booking information from the returned calendar (ical format) data
   _bookings.clear();
-  process_ical_data(curl_read_buffer);
+  process_ical_data(curl_read_buffer); // Decode ICAL data and store events in _bookings
 
   curl_easy_cleanup(curl);
 
@@ -319,6 +332,8 @@ void nh_tools_bookings::get_cal_data()
 }
 
 int nh_tools_bookings::publish_now_next_bookings()
+/* Using the sorted (furthest first) list of bookings in _bookings, push the current and 
+ * next booking (for just "none" if there isn't one */
 {
   dbrows tool_list;
   evtdata event_now;
@@ -337,28 +352,34 @@ int nh_tools_bookings::publish_now_next_bookings()
 
 
   booking_info = json_encode_booking_data(event_now, event_next);
+
+  // Use the callback function passes in when consturcted to send the now/next
+  // booking data over MQTT.
   _cb->cbiSendMessage(_tool_topic + _tool_name + "/BOOKINGS", booking_info);
 
   return 0;
 }
 
 string nh_tools_bookings::json_encode_booking_data(evtdata event_now, evtdata event_next)
+/* JSON encode the now/next booking data. Generated string should look somthing like:
+ * { "now": { "display_time": "now", "display_name": "none" }, "next": { "display_time": "12:00", "display_name": "admin user" } 
+ */
 {
   struct tm *timeinfo;
   char buf[100] = "";
   time_t current_time;  
-  
+
   time(&current_time);
-  
+
   json_object *jstr_now_display_time;
   json_object *jstr_now_display_name;
   json_object *jstr_next_display_time;
   json_object *jstr_next_display_name;
-  
+
   json_object *j_obj_root = json_object_new_object();
   json_object *j_obj_now  = json_object_new_object();
   json_object *j_obj_next = json_object_new_object();
-  
+
 
   // Current booking details
   if (event_now.start_time > 0)
@@ -373,8 +394,8 @@ string nh_tools_bookings::json_encode_booking_data(evtdata event_now, evtdata ev
   }
   json_object_object_add(j_obj_now, "display_time", jstr_now_display_time);
   json_object_object_add(j_obj_now, "display_name", jstr_now_display_name);
-  
-  
+
+
   // Next booking details
   if 
     (
@@ -383,7 +404,7 @@ string nh_tools_bookings::json_encode_booking_data(evtdata event_now, evtdata ev
     )                                                       // show the next booking if it starts within the next 20 hrs.
   {
     timeinfo = localtime (&event_next.start_time);
-    strftime (buf, sizeof(buf), "%R", timeinfo); // HH:MM  
+    strftime (buf, sizeof(buf), "%R", timeinfo); // HH:MM
     jstr_next_display_time = json_object_new_string(buf);
     jstr_next_display_name = json_object_new_string(event_next.full_name.c_str()); 
   }
@@ -394,24 +415,25 @@ string nh_tools_bookings::json_encode_booking_data(evtdata event_now, evtdata ev
   }
   json_object_object_add(j_obj_next, "display_time", jstr_next_display_time);
   json_object_object_add(j_obj_next, "display_name", jstr_next_display_name);  
-  
-  
+
+
   json_object_object_add(j_obj_root, "now",  j_obj_now);
   json_object_object_add(j_obj_root, "next", j_obj_next);
-  
+
   string json_encoded = json_object_to_json_string(j_obj_root);
-  
+
   return json_encoded;
 }
-    
-// static callback used by cURL
+
 size_t nh_tools_bookings::s_curl_write(char *data, size_t size, size_t nmemb, void *p)
+/* static callback used by cURL when data is recieved. */
 {
   ((string*)p)->append(data, size * nmemb);
   return size*nmemb;
 }
 
 int nh_tools_bookings::process_ical_data(string ical_data)
+/* Decode the ICAL data passed in, extract the bookings/events and add to _bookings */
 {
   evtdata current_event;
 
@@ -448,22 +470,22 @@ int nh_tools_bookings::process_ical_data(string ical_data)
     {
       icalvalue *v = icalproperty_get_value(prop_start);
       struct icaltimetype  dt_start = icalvalue_get_datetime(v); 
-      
+
       current_event.start_time = icaltime_as_timet(dt_start);
 
     } else
     {
       dbg("No start time");
       continue;
-    }    
-    
+    }
+
     // get end time
     icalproperty *prop_end = icalcomponent_get_first_property(component, ICAL_DTEND_PROPERTY);
     if (prop_end) 
     {
       icalvalue *v = icalproperty_get_value(prop_end);
       struct icaltimetype  dt_end = icalvalue_get_datetime(v); 
-      
+
       current_event.end_time = icaltime_as_timet(dt_end);
     } else
     {
@@ -529,14 +551,17 @@ int nh_tools_bookings::get_now_next_bookings(vector<evtdata> const& tool_booking
   return 0;
 }
 
-// Decending sort by start time
+
 bool nh_tools_bookings::event_by_start_time_sorter(evtdata const& i, evtdata const& j)
+/* Decending sort by start time */
 {
   return i.start_time > j.start_time;
 }
 
-/* Must only be used from the cal thread (it uses class buffer_errorBuffer) */
 bool nh_tools_bookings::google_get_auth_token(string& auth_token)
+/* Using the refresh token in the database and the client id+secret in the
+ * config file, get the auth token.
+ * Must only be used from the cal thread (it uses class buffer_errorBuffer) */
 {
   string curl_read_buffer;
   string post_fields;
@@ -560,7 +585,7 @@ bool nh_tools_bookings::google_get_auth_token(string& auth_token)
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &nh_tools_bookings::s_curl_write);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA    , &curl_read_buffer);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT      , 20L);   // wait a maximum of 20 seconds before giving up
-  
+
   post_fields =  "client_id="     + http_escape(curl, _client_id)
               + "&client_secret=" + http_escape(curl, _client_secret)
               + "&refresh_token=" + http_escape(curl, refresh_token)
@@ -572,7 +597,7 @@ bool nh_tools_bookings::google_get_auth_token(string& auth_token)
 
 
   string oauth_url = "https://accounts.google.com/o/oauth2/token";
-  
+
   dbg("get_auth_token> Using URL: [" + oauth_url + "]");
   curl_read_buffer = "";
   curl_easy_setopt(curl, CURLOPT_URL, oauth_url.c_str());
@@ -597,6 +622,9 @@ bool nh_tools_bookings::google_get_auth_token(string& auth_token)
 }
 
 bool nh_tools_bookings::google_renew_channel(time_t& expiration_time)
+/* Renew the push notification channel (get auth token, delete any current 
+ * channels, set up new ones, and put the new expiry time in expiration_time.
+ */
 {
   string auth_token;
   dbrows tool_details;
@@ -618,7 +646,8 @@ bool nh_tools_bookings::google_renew_channel(time_t& expiration_time)
   dbrows::const_iterator iterator = tool_details.begin();
   dbrow row = *iterator;
 
-  // Delete any push notification channels that may have previously been set up
+  // Delete any push notification channels that may have previously been set up 
+  // (Ideally there should be at most one, unless things havn't gone so well).
   google_delete_channels(_tool_id, auth_token);
 
   // Set up new channel
@@ -628,6 +657,7 @@ bool nh_tools_bookings::google_renew_channel(time_t& expiration_time)
 }
 
 bool nh_tools_bookings::google_delete_channels(int tool_id, string auth_token)
+/* Delete all recorded push notification channels for tool_id */
 {
   dbrows chan_list;
 
@@ -714,6 +744,7 @@ bool nh_tools_bookings::google_delete_channel(string auth_token, string channel_
 
 
 bool nh_tools_bookings::google_add_channel(int tool_id, string auth_token, string tool_calendar, time_t& expiration_time)
+/* set up push notfication channel for the google calendar linked to tool_id */
 {
   string curl_read_buffer;
   string post_fields;
@@ -752,10 +783,10 @@ bool nh_tools_bookings::google_add_channel(int tool_id, string auth_token, strin
   list = curl_slist_append(list, auth_header.c_str());
   list = curl_slist_append(list, "Content-Type: application/json");
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
-  
+
   string watch_url = "https://www.googleapis.com/calendar/v3/calendars/" + tool_calendar + "/events/watch";
   dbg("google_add_channel> Using URL: [" + watch_url + "]");
-  
+
   curl_read_buffer = "";
   curl_easy_setopt(curl, CURLOPT_URL, watch_url.c_str());
   res = curl_easy_perform(curl);
@@ -778,11 +809,14 @@ bool nh_tools_bookings::google_add_channel(int tool_id, string auth_token, strin
 
   curl_slist_free_all(list); // free header list
   curl_easy_cleanup(curl);
- 
+
   return true;
 }
 
 string nh_tools_bookings::json_encode_id_resourse_id(string channel_id, string resource_id)
+/* JSON encode the post data used to delete a notification channel. should look something like:
+ *  {"id": "521aebbc-3f9c-11e5-9eaf-3c970e884252", "resourceId": "x8j_XzxxxxxxxxxxxxxxxxxxxxM" }
+ */
 {
   json_object *j_obj_root       = json_object_new_object();
   json_object *jstr_id          = json_object_new_string(channel_id.c_str() );
@@ -793,13 +827,16 @@ string nh_tools_bookings::json_encode_id_resourse_id(string channel_id, string r
 
   string json_encoded = json_object_to_json_string(j_obj_root);
   json_object_put(j_obj_root);
-  
+
+
   return json_encoded;
-  
+
 }
 
-
 string nh_tools_bookings::json_encode_for_add_chan(string channel_id, string token, string url)
+/* JSON encode the post data used to add a notification channel. should look something like:
+ *  { "id": "cf32051e-4135-11e5-97d6-3c970e884252", "type": "web_hook", "address": "https:\/\/lspace.nottinghack.org.uk\/temp\/google.php", "token": "1" }
+ */
 {
   json_object *j_obj_root = json_object_new_object();
   json_object *jstr_id    = json_object_new_string(channel_id.c_str() );
@@ -815,12 +852,18 @@ string nh_tools_bookings::json_encode_for_add_chan(string channel_id, string tok
   string json_encoded = json_object_to_json_string(j_obj_root);
 
   json_object_put(j_obj_root);  
-  
+
   return json_encoded;
 }
 
 
 string nh_tools_bookings::extract_value(string json_in, string param)
+/* Extract a value/string from a JSON formatting string. e.g. for JSON string:
+ *
+ * {"access_token" : "yxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxA","token_type" : "Bearer","expires_in" : 3600}
+ * 
+ * param = "token_type" would return "Bearer"
+ */
 {
   json_object *jobj = json_tokener_parse(json_in.c_str());
   if (jobj == NULL)
@@ -828,7 +871,7 @@ string nh_tools_bookings::extract_value(string json_in, string param)
     dbg("extract_value> json_tokener_parse failed. JSON data: [" + json_in + "]");
     return "";
   }
-  
+
   json_object *obj_param = json_object_object_get(jobj, param.c_str());
   if (obj_param == NULL)
   {
@@ -836,7 +879,7 @@ string nh_tools_bookings::extract_value(string json_in, string param)
     json_object_put(jobj);
     return "";
   }
-  
+
   const char *param_val = json_object_get_string(obj_param);
   if (param_val == NULL)
   {
@@ -845,16 +888,18 @@ string nh_tools_bookings::extract_value(string json_in, string param)
     json_object_put(jobj);
     return "";
   }
-  
+
   dbg("extract_value> got [" + param + "] = [" + (string)param_val + "]");
   string result = (string)param_val;
-  
+
   json_object_put(obj_param);
   json_object_put(jobj);
+
   return result;
 }
 
 string nh_tools_bookings::http_escape(CURL *curl, string parameter)
+/* Escape string <parameter> in a way suitable to be used in a URL */
 {
   string escaped_str;
   char   *escaped_curl;
@@ -872,6 +917,9 @@ string nh_tools_bookings::http_escape(CURL *curl, string parameter)
 }
 
 void nh_tools_bookings::dbg(std::string msg)
+/* Debuging output using _log object passed in when contructed. All log entries 
+ * are prefixed with "[bookings-<tool id>".
+ */
 {
   _log->dbg("bookings-" + CNHmqtt_irc::itos(_tool_id) , msg);  
 }

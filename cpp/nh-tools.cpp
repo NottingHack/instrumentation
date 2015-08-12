@@ -183,8 +183,6 @@ int nh_tools::db_connect()
 
 int nh_tools::cbiSendMessage(string topic, string message)
 {
-  
-  // log->dbg("cbiSendMessage> topic=[" + topic + "], message=[" + message + "]"); 
   message_send(topic, message);
 
   return 0;
