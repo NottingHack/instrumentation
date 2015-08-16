@@ -42,8 +42,6 @@
 #include <string.h>
 
 
-using namespace std;
-
 bool CNHmqtt::debug_mode = false;
 bool CNHmqtt::daemonized = false; 
 
@@ -54,25 +52,29 @@ class nh_tools : public CNHmqtt_irc, public ToolsCallbackInterface
     nh_tools(int argc, char *argv[]);
     ~nh_tools();
 
-    void process_message(string topic, string message);
+    void process_message(std::string topic, std::string message);
     void process_irc_message(irc_msg msg);
-    int cbiSendMessage(string topic, string message);
+    int cbiSendMessage(std::string topic, std::string message);
     int db_connect();
     void setup();
 
     /* split - taken from Alec Thomas's answer to http://stackoverflow.com/questions/236129/how-to-split-a-string-in-c */
-    void split(vector<string> &tokens, const string &text, char sep);
+    void split(std::vector<std::string> &tokens, const std::string &text, char sep);
 
   private:
     CNHDBAccess *_db;
-    string _client_id;
-    string _client_secret;
+    std::string _client_id;
+    std::string _client_secret;
 
-    string _tool_topic;
-    string _db_server;
-    string _db_username;
-    string _db_password;
-    string _db_name;
+    std::string _tool_topic;
+    std::string _db_server;
+    std::string _db_username;
+    std::string _db_password;
+    std::string _db_name;
+    std::string _push_url;
+    bool _setup_done;
+    
+    std::map<std::string,nh_tools_bookings*> _bookings;
 
-    nh_tools_bookings *_bookings;
+    // nh_tools_bookings *_bookings;
 };

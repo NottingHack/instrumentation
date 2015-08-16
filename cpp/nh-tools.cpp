@@ -41,6 +41,7 @@ nh_tools::nh_tools(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
   _tool_topic    = get_str_option("tools", "tool_topic"   , "nh/tools/"); // tool name is appended to this, e.g. laser's topic is nh/tools/laser/
   _client_id     = get_str_option("tools", "client_id"    , "<NOT SET>");
   _client_secret = get_str_option("tools", "client_secret", "<NOT SET>");
+  _push_url      = get_str_option("tools", "push_url"     , "https://lspace.nottinghack.org.uk/temp/google.php");
 
   _db_server   = get_str_option("mysql", "server"  , "localhost");
   _db_username = get_str_option("mysql", "username", "gatekeeper");
@@ -48,14 +49,17 @@ nh_tools::nh_tools(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
   _db_name     = get_str_option("mysql", "database", "gk");
 
   _db = new CNHDBAccess(_db_server, _db_username, _db_password, _db_name, log);
-  _bookings = new nh_tools_bookings(log, _db_server, _db_username, _db_password, _db_name,_client_id, _client_secret, _tool_topic, this);
-  
+
+  _setup_done = false;
 }
 
 nh_tools::~nh_tools()
 {
   delete _db;
-  delete _bookings;
+
+  for (std::map<string,nh_tools_bookings*>::iterator it = _bookings.begin(); it != _bookings.end(); ++it)
+    delete it->second;
+  _bookings.clear();
 }
 
 void nh_tools::process_message(string topic, string message)
@@ -160,9 +164,8 @@ void nh_tools::process_message(string topic, string message)
     else if (tool_message == "BOOKINGS")
     {
       if (message == "POLL")
-      {
-        _bookings->poll(); // TODO: by tool_id
-      }
+        if (_bookings.count(tool_name) == 1)
+          _bookings[tool_name]->poll();
     }
   }
 
@@ -190,13 +193,24 @@ int nh_tools::cbiSendMessage(string topic, string message)
 
 void nh_tools::setup()
 {
+  if (_setup_done)
+    return;
+
   subscribe(_tool_topic + "#");
-  
-  
-  // TODO
-  int tool_id = 1;
-  _bookings->setup(tool_id);
-  
+
+  // For each tool that has booking notifications enabled, create an nh_tools_bookings object
+  // to manage the sending of booking info periodically over MQTT.
+  dbrows tool_list;
+  _db->sp_tool_get_calendars(-1, &tool_list); 
+  for (dbrows::const_iterator iterator = tool_list.begin(), end = tool_list.end(); iterator != end; ++iterator)
+  {
+    dbrow row = *iterator;
+    log->dbg("Creating booking object for tool [" + row["tool_name"].asStr() + "], id = [" +  row["tool_id"].asStr() + "]");
+    _bookings[row["tool_name"].asStr()] = new nh_tools_bookings(log, _db_server, _db_username, _db_password, _db_name,_client_id, _client_secret, _tool_topic, _push_url, this);
+    _bookings[row["tool_name"].asStr()]->setup(row["tool_id"].asInt());
+  }
+
+  _setup_done = true;
 }
 
 /* split - taken from Alec Thomas's answer to http://stackoverflow.com/questions/236129/how-to-split-a-string-in-c */
@@ -217,13 +231,14 @@ void nh_tools::split(vector<string> &tokens, const string &text, char sep)
 int main(int argc, char *argv[])
 {
   curl_global_init(CURL_GLOBAL_DEFAULT);
-  
+
   nh_tools nh = nh_tools(argc, argv);
-   
+
   nh.db_connect();
 
   nh.init();
   nh.setup();
-  nh.message_loop(); 
+  nh.message_loop();
+
   return 0;  
 }

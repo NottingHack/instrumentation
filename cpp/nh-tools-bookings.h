@@ -102,7 +102,7 @@ class nh_tools_bookings
 {
   public:
     nh_tools_bookings(CLogging *log, std::string db_server, std::string db_username, std::string db_password, std::string db_name,
-                      std::string client_id, std::string client_secret, std::string tool_topic, ToolsCallbackInterface *cb);
+                      std::string client_id, std::string client_secret, std::string tool_topic, std::string push_url, ToolsCallbackInterface *cb);
     ~nh_tools_bookings();
 
     void setup(int tool_id);  // Call once with the tool_id id to publish bookings for
@@ -140,6 +140,9 @@ class nh_tools_bookings
     std::string _tool_topic;
     bool _setup_done;
     std::string _tool_name;
+    std::string _push_url;
+    bool _got_valid_booking_data;
+
     void dbg(std::string msg);
 
     static void *s_cal_thread(void *arg);
@@ -154,6 +157,8 @@ class nh_tools_bookings
     std::vector<evtdata> _bookings;
     int get_now_next_bookings(std::vector<evtdata> const& tool_bookings, evtdata &evt_now, evtdata &evt_next);
     std::string json_encode_booking_data(evtdata event_now, evtdata event_next);
+    std::string get_json_encoded_booking_data(evtdata event_now, evtdata event_next);
+    std::string json_encode_booking_data(std::string now_time, std::string now_description, std::string next_time, std::string next_description);
     void get_cal_data();
     int publish_now_next_bookings();
     bool google_get_auth_token(std::string& auth_token);

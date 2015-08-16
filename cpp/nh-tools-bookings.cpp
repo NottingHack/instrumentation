@@ -39,7 +39,7 @@
 using namespace std;
 
 nh_tools_bookings::nh_tools_bookings(CLogging *log, string db_server, string db_username, string db_password, string db_name,
-                                     string client_id, string client_secret, string tool_topic, ToolsCallbackInterface *cb)
+                                     string client_id, string client_secret, string tool_topic, string push_url, ToolsCallbackInterface *cb)
 {
   _log           = log;
   _client_id     = client_id;
@@ -47,8 +47,10 @@ nh_tools_bookings::nh_tools_bookings(CLogging *log, string db_server, string db_
   _cb            = cb;
   _tool_id       = -1;
   _tool_topic    = tool_topic;
+  _push_url      = push_url;
   _setup_done    = false;
-  
+  _got_valid_booking_data = false;
+
   _db = new CNHDBAccess(db_server, db_username, db_password, db_name, log);
 
   pthread_mutex_init(&_cal_mutex, NULL);
@@ -73,7 +75,7 @@ nh_tools_bookings::~nh_tools_bookings()
 
     // Signal calThread to stop
     pthread_mutex_lock(&_cal_mutex);
-    _cal_thread_msg = CAL_MSG_EXIT;;
+    _cal_thread_msg = CAL_MSG_EXIT;
     pthread_cond_signal(&_cal_condition_var);
     pthread_mutex_unlock(&_cal_mutex);
 
@@ -118,6 +120,12 @@ void nh_tools_bookings::poll()
   if (!_setup_done)
   {
     dbg("Poll() called before setup done!");
+    return;
+  }
+
+  if (_cal_thread_msg == CAL_MSG_EXIT)
+  {
+    dbg("Poll() called with pending exit. Ignoring.");
     return;
   }
 
@@ -220,9 +228,10 @@ void nh_tools_bookings::cal_thread()
   time_t last_poll = 0;
   time_t wait_until;
   char buf[30] = "";
+  cal_msg msg;
 
   dbg("Entered cal_thread");
-  
+
   while (1)
   {
     pthread_mutex_lock(&_cal_mutex); 
@@ -249,16 +258,19 @@ void nh_tools_bookings::cal_thread()
         break;
       }
     }
+    msg = _cal_thread_msg;
+    if (_cal_thread_msg != CAL_MSG_EXIT)
+      _cal_thread_msg = CAL_MSG_NOTHING;
 
     pthread_mutex_unlock(&_cal_mutex);
 
-    if (_cal_thread_msg == CAL_MSG_EXIT)
+    if (msg == CAL_MSG_EXIT)
     {
       dbg("exiting cal_thread");
       return;
     }
 
-    if ((_cal_thread_msg == CAL_MSG_POLL) || (time(NULL) - last_poll) > timeout)
+    if ((msg == CAL_MSG_POLL) || (time(NULL) - last_poll) > timeout)
     {
       get_cal_data();           // Get the ICAL file from google & process it
       last_poll = time(NULL);
@@ -266,7 +278,6 @@ void nh_tools_bookings::cal_thread()
 
     _next_event = time(NULL) + timeout; // publish_now_next_bookings should lower this, if there's change before the timeout 
     publish_now_next_bookings(); // using the downloaded & processed ICAL data, publish now & next data over MQTT
-    _cal_thread_msg = CAL_MSG_NOTHING;
   }
 }
 
@@ -279,6 +290,7 @@ void nh_tools_bookings::get_cal_data()
   int res;
 
   dbg("Entered get_cal_data");
+  _got_valid_booking_data = false;
 
   // Init cURL
   curl = curl_easy_init();
@@ -320,14 +332,14 @@ void nh_tools_bookings::get_cal_data()
   } else
   {
     dbg("Got calendar data");
+
+    // Extract the booking information from the returned calendar (ical format) data
+    _bookings.clear();
+    if (process_ical_data(curl_read_buffer) == 0) // Decode ICAL data and store events in _bookings
+      _got_valid_booking_data = true;
   }
 
-  // Extract the booking information from the returned calendar (ical format) data
-  _bookings.clear();
-  process_ical_data(curl_read_buffer); // Decode ICAL data and store events in _bookings
-
   curl_easy_cleanup(curl);
-
   return;
 }
 
@@ -351,7 +363,11 @@ int nh_tools_bookings::publish_now_next_bookings()
     _next_event = event_next.start_time;
 
 
-  booking_info = json_encode_booking_data(event_now, event_next);
+  booking_info = get_json_encoded_booking_data(event_now, event_next);
+
+
+  if (!_got_valid_booking_data)
+    booking_info = json_encode_booking_data("now", "<Unable to get booking information>", "Next", "");
 
   // Use the callback function passes in when consturcted to send the now/next
   // booking data over MQTT.
@@ -360,41 +376,32 @@ int nh_tools_bookings::publish_now_next_bookings()
   return 0;
 }
 
-string nh_tools_bookings::json_encode_booking_data(evtdata event_now, evtdata event_next)
-/* JSON encode the now/next booking data. Generated string should look somthing like:
- * { "now": { "display_time": "now", "display_name": "none" }, "next": { "display_time": "12:00", "display_name": "admin user" } 
- */
+string nh_tools_bookings::get_json_encoded_booking_data(evtdata event_now, evtdata event_next)
+/* JSON encode the now/next booking data */
 {
+  string now_time;
+  string now_description;
+  string next_time;
+  string next_description;
+
   struct tm *timeinfo;
   char buf[100] = "";
   time_t current_time;  
 
   time(&current_time);
 
-  json_object *jstr_now_display_time;
-  json_object *jstr_now_display_name;
-  json_object *jstr_next_display_time;
-  json_object *jstr_next_display_name;
-
-  json_object *j_obj_root = json_object_new_object();
-  json_object *j_obj_now  = json_object_new_object();
-  json_object *j_obj_next = json_object_new_object();
-
 
   // Current booking details
   if (event_now.start_time > 0)
   {
-    jstr_now_display_time = json_object_new_string("now");
-    jstr_now_display_name = json_object_new_string(event_now.full_name.c_str());
+    now_time = "now";
+    now_description = event_now.full_name;
   } 
   else
   {
-    jstr_now_display_time = json_object_new_string("now");
-    jstr_now_display_name = json_object_new_string("none");
+    now_time        = "now";
+    now_description = "none";
   }
-  json_object_object_add(j_obj_now, "display_time", jstr_now_display_time);
-  json_object_object_add(j_obj_now, "display_name", jstr_now_display_name);
-
 
   // Next booking details
   if 
@@ -405,22 +412,53 @@ string nh_tools_bookings::json_encode_booking_data(evtdata event_now, evtdata ev
   {
     timeinfo = localtime (&event_next.start_time);
     strftime (buf, sizeof(buf), "%R", timeinfo); // HH:MM
-    jstr_next_display_time = json_object_new_string(buf);
-    jstr_next_display_name = json_object_new_string(event_next.full_name.c_str()); 
+    next_time = buf;
+    next_description = event_next.full_name; 
   }
   else
   {
-    jstr_next_display_time = json_object_new_string("next");
-    jstr_next_display_name = json_object_new_string("none");
+    next_time = "next";
+    next_description = "none";
   }
+
+  return json_encode_booking_data(now_time, now_description, next_time, next_description);
+}
+
+
+string nh_tools_bookings::json_encode_booking_data(string now_time, string now_description, string next_time, string next_description)
+/* JSON encode the now/next booking data. Generated string should look somthing like:
+ * { "now": { "display_time": "now", "display_name": "none" }, "next": { "display_time": "12:00", "display_name": "admin user" } 
+ */
+{
+  json_object *jstr_now_display_time;
+  json_object *jstr_now_display_name;
+  json_object *jstr_next_display_time;
+  json_object *jstr_next_display_name;
+
+  json_object *j_obj_root = json_object_new_object();
+  json_object *j_obj_now  = json_object_new_object();
+  json_object *j_obj_next = json_object_new_object();
+
+  jstr_now_display_time = json_object_new_string(now_time.c_str());
+  jstr_now_display_name = json_object_new_string(now_description.c_str());
+  
+  json_object_object_add(j_obj_now, "display_time", jstr_now_display_time);
+  json_object_object_add(j_obj_now, "display_name", jstr_now_display_name);
+
+
+  // Next booking details
+  jstr_next_display_time = json_object_new_string(next_time.c_str());
+  jstr_next_display_name = json_object_new_string(next_description.c_str());
+
   json_object_object_add(j_obj_next, "display_time", jstr_next_display_time);
-  json_object_object_add(j_obj_next, "display_name", jstr_next_display_name);  
+  json_object_object_add(j_obj_next, "display_name", jstr_next_display_name);
 
 
   json_object_object_add(j_obj_root, "now",  j_obj_now);
   json_object_object_add(j_obj_root, "next", j_obj_next);
 
   string json_encoded = json_object_to_json_string(j_obj_root);
+  json_object_put(j_obj_root);
 
   return json_encoded;
 }
@@ -773,7 +811,7 @@ bool nh_tools_bookings::google_add_channel(int tool_id, string auth_token, strin
   // Setup post data
   string channel_token = CNHmqtt_irc::itos(tool_id);
   string channel_id = (string)uuid_str;
-  post_fields = json_encode_for_add_chan(channel_id, channel_token, "https://lspace.nottinghack.org.uk/temp/google.php");
+  post_fields = json_encode_for_add_chan(channel_id, channel_token, _push_url);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, post_fields.length());
   curl_easy_setopt(curl, CURLOPT_COPYPOSTFIELDS, post_fields.c_str());
   dbg("google_add_channel> post fields: [" + post_fields + "]");
@@ -828,9 +866,7 @@ string nh_tools_bookings::json_encode_id_resourse_id(string channel_id, string r
   string json_encoded = json_object_to_json_string(j_obj_root);
   json_object_put(j_obj_root);
 
-
   return json_encoded;
-
 }
 
 string nh_tools_bookings::json_encode_for_add_chan(string channel_id, string token, string url)
