@@ -367,7 +367,7 @@ int nh_tools_bookings::publish_now_next_bookings()
 
 
   if (!_got_valid_booking_data)
-    booking_info = json_encode_booking_data("now", "<Unable to get booking information>", "Next", "");
+    booking_info = json_encode_booking_data("Now", "<Unable to get booking information>", "Next", "");
 
   // Use the callback function passes in when consturcted to send the now/next
   // booking data over MQTT.
