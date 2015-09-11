@@ -102,7 +102,7 @@ class nh_tools_bookings
 {
   public:
     nh_tools_bookings(CLogging *log, std::string db_server, std::string db_username, std::string db_password, std::string db_name,
-                      std::string client_id, std::string client_secret, std::string tool_topic, std::string push_url, ToolsCallbackInterface *cb);
+                      std::string client_id, std::string client_secret, std::string bookings_topic, std::string push_url, ToolsCallbackInterface *cb);
     ~nh_tools_bookings();
 
     void setup(int tool_id);  // Call once with the tool_id id to publish bookings for
@@ -137,7 +137,7 @@ class nh_tools_bookings
     std::string _client_id;
     std::string _client_secret;
     int _tool_id;
-    std::string _tool_topic;
+    std::string _bookings_topic;
     bool _setup_done;
     std::string _tool_name;
     std::string _push_url;

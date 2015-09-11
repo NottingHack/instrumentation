@@ -67,6 +67,7 @@ class nh_tools : public CNHmqtt_irc, public ToolsCallbackInterface
     std::string _client_secret;
 
     std::string _tool_topic;
+    std::string _bookings_topic;
     std::string _db_server;
     std::string _db_username;
     std::string _db_password;

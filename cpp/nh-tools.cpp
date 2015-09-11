@@ -38,10 +38,11 @@ using namespace std;
 
 nh_tools::nh_tools(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
 {
-  _tool_topic    = get_str_option("tools", "tool_topic"   , "nh/tools/"); // tool name is appended to this, e.g. laser's topic is nh/tools/laser/
-  _client_id     = get_str_option("tools", "client_id"    , "<NOT SET>");
-  _client_secret = get_str_option("tools", "client_secret", "<NOT SET>");
-  _push_url      = get_str_option("tools", "push_url"     , "https://lspace.nottinghack.org.uk/temp/google.php");
+  _tool_topic     = get_str_option("tools", "tool_topic"   , "nh/tools/"); // tool name is appended to this, e.g. laser's topic is nh/tools/laser/
+  _client_id      = get_str_option("tools", "client_id"    , "<NOT SET>");
+  _client_secret  = get_str_option("tools", "client_secret", "<NOT SET>");
+  _bookings_topic = get_str_option("tools", "bookings_topic", "nh/bookings/");
+  _push_url       = get_str_option("tools", "push_url"     , "https://lspace.nottinghack.org.uk/temp/google.php");
 
   _db_server   = get_str_option("mysql", "server"  , "localhost");
   _db_username = get_str_option("mysql", "username", "gatekeeper");
@@ -167,6 +168,19 @@ void nh_tools::process_message(string topic, string message)
         if (_bookings.count(tool_name) == 1)
           _bookings[tool_name]->poll();
     }
+  } // End of _tools_topic processing
+  
+  else if (topic == _bookings_topic + "poll")
+  {
+    // Message to the tools booking/poll topic. Get the tool name from the message
+    // payload, then send update now/next booking data for that tool
+    if (message.length() > 0)
+    {
+      if (_bookings.count(message) == 1)
+        _bookings[message]->poll();
+      else
+        log->dbg("Unknown tool: " + message);
+    }
   }
 
   CNHmqtt_irc::process_message(topic, message);
@@ -197,6 +211,7 @@ void nh_tools::setup()
     return;
 
   subscribe(_tool_topic + "#");
+  subscribe(_bookings_topic + "poll");
 
   // For each tool that has booking notifications enabled, create an nh_tools_bookings object
   // to manage the sending of booking info periodically over MQTT.
@@ -206,7 +221,7 @@ void nh_tools::setup()
   {
     dbrow row = *iterator;
     log->dbg("Creating booking object for tool [" + row["tool_name"].asStr() + "], id = [" +  row["tool_id"].asStr() + "]");
-    _bookings[row["tool_name"].asStr()] = new nh_tools_bookings(log, _db_server, _db_username, _db_password, _db_name,_client_id, _client_secret, _tool_topic, _push_url, this);
+    _bookings[row["tool_name"].asStr()] = new nh_tools_bookings(log, _db_server, _db_username, _db_password, _db_name,_client_id, _client_secret, _bookings_topic, _push_url, this);
     _bookings[row["tool_name"].asStr()]->setup(row["tool_id"].asInt());
   }
 

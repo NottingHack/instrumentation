@@ -39,16 +39,16 @@
 using namespace std;
 
 nh_tools_bookings::nh_tools_bookings(CLogging *log, string db_server, string db_username, string db_password, string db_name,
-                                     string client_id, string client_secret, string tool_topic, string push_url, ToolsCallbackInterface *cb)
+                                     string client_id, string client_secret, string bookings_topic, string push_url, ToolsCallbackInterface *cb)
 {
-  _log           = log;
-  _client_id     = client_id;
-  _client_secret = client_secret;
-  _cb            = cb;
-  _tool_id       = -1;
-  _tool_topic    = tool_topic;
-  _push_url      = push_url;
-  _setup_done    = false;
+  _log            = log;
+  _client_id      = client_id;
+  _client_secret  = client_secret;
+  _cb             = cb;
+  _tool_id        = -1;
+  _bookings_topic = bookings_topic;
+  _push_url       = push_url;
+  _setup_done     = false;
   _got_valid_booking_data = false;
 
   _db = new CNHDBAccess(db_server, db_username, db_password, db_name, log);
@@ -371,7 +371,7 @@ int nh_tools_bookings::publish_now_next_bookings()
 
   // Use the callback function passes in when consturcted to send the now/next
   // booking data over MQTT.
-  _cb->cbiSendMessage(_tool_topic + _tool_name + "/BOOKINGS", booking_info);
+  _cb->cbiSendMessage(_bookings_topic + _tool_name + "/nownext", booking_info);
 
   return 0;
 }
@@ -804,7 +804,7 @@ bool nh_tools_bookings::google_add_channel(int tool_id, string auth_token, strin
   
   // Generate channel_id
   uuid_t uuid;
-  uuid_generate_time_safe(uuid);
+  uuid_generate(uuid);
   char uuid_str[37];
   uuid_unparse_lower(uuid, uuid_str);
   
