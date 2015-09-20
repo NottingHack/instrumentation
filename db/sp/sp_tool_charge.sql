@@ -49,7 +49,7 @@ BEGIN
     tu.tool_id, 
     tu.usage_start, 
     tu.usage_status,
-    t.tool_pph, 
+    ifnull(t.tool_pph, 0),
     t.tool_name,
     t.tool_status
   into 
