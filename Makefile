@@ -13,8 +13,10 @@ CC_OUT = -o $(BUILD_DIR)$(notdir $@)
 
 BIN_OUT = bin/
 
-ALL_BIN = nh-test nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tools
+ALL_BIN = nh-test nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tools nh-slack
 ALL_BINS := $(addprefix $(BIN_OUT),$(ALL_BIN))
+
+SLACK_INC=-I./SlackRtm/libwebsockets/build/lib/Headers -I./SlackRtm/include
 
 CFLAGS = -Wall -Wextra -c -g
 LFLAGS = -Wall -g
@@ -55,6 +57,9 @@ $(BIN_OUT)nh-monitor: $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 $(BIN_OUT)nh-irc: $(BUILD_DIR)nh-irc.o $(BUILD_DIR)irc.o $(OBJS_BASE)
 	g++ -lmosquitto -lrt -lpthread -o $(BIN_OUT)nh-irc $(BUILD_DIR)nh-irc.o $(BUILD_DIR)irc.o $(OBJS_BASE)
+
+$(BIN_OUT)nh-slack: $(BUILD_DIR)nh-slack.o $(BUILD_DIR)irc.o $(OBJS_BASE) SlackRtm/lib/libslackrtm.a
+	g++ -lmosquitto -lrt -lpthread -lssl -lcrypto -lz -ljson -lcurl -o $(BIN_OUT)nh-slack $(BUILD_DIR)nh-slack.o $(BUILD_DIR)irc.o SlackRtm/lib/libslackrtm.a $(OBJS_BASE)
 
 $(BIN_OUT)nh-mail: $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o $(OBJS_DBLIB)
 	g++ -lmysqlclient -lmosquitto -o $(BIN_OUT)nh-mail $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o $(OBJS_DBLIB)
@@ -130,6 +135,9 @@ $(BUILD_DIR)nh-monitor.o: $(SRC_DIR)nh-monitor.cpp db/lib/CNHDBAccess.h
 
 $(BUILD_DIR)nh-irc.o: $(SRC_DIR)nh-irc.cpp
 	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-irc.cpp $(CC_OUT)
+
+$(BUILD_DIR)nh-slack.o: $(SRC_DIR)nh-slack.cpp
+	$(CC) $(CFLAGS) $(SLACK_INC) -c $(SRC_DIR)nh-slack.cpp $(CC_OUT)
 
 $(BUILD_DIR)irc.o: $(SRC_DIR)irc.cpp $(SRC_DIR)irc.h
 	$(CC) $(CFLAGS) -c $(SRC_DIR)irc.cpp  $(CC_OUT)
