@@ -58,6 +58,9 @@ $(BIN_OUT)nh-monitor: $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
 $(BIN_OUT)nh-irc: $(BUILD_DIR)nh-irc.o $(BUILD_DIR)irc.o $(OBJS_BASE)
 	g++ -lmosquitto -lrt -lpthread -o $(BIN_OUT)nh-irc $(BUILD_DIR)nh-irc.o $(BUILD_DIR)irc.o $(OBJS_BASE)
 
+SlackRtm/lib/libslackrtm.a: $(wildcard SlackRtm/cpp/*)
+	cd SlackRtm ; make
+
 $(BIN_OUT)nh-slack: $(BUILD_DIR)nh-slack.o $(BUILD_DIR)irc.o $(OBJS_BASE) SlackRtm/lib/libslackrtm.a
 	g++ -lmosquitto -lrt -lpthread -lssl -lcrypto -lz -ljson -lcurl -o $(BIN_OUT)nh-slack $(BUILD_DIR)nh-slack.o $(BUILD_DIR)irc.o SlackRtm/lib/libslackrtm.a $(OBJS_BASE)
 
@@ -136,7 +139,7 @@ $(BUILD_DIR)nh-monitor.o: $(SRC_DIR)nh-monitor.cpp db/lib/CNHDBAccess.h
 $(BUILD_DIR)nh-irc.o: $(SRC_DIR)nh-irc.cpp
 	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-irc.cpp $(CC_OUT)
 
-$(BUILD_DIR)nh-slack.o: $(SRC_DIR)nh-slack.cpp
+$(BUILD_DIR)nh-slack.o: $(SRC_DIR)nh-slack.cpp SlackRtm/lib/libslackrtm.a
 	$(CC) $(CFLAGS) $(SLACK_INC) -c $(SRC_DIR)nh-slack.cpp $(CC_OUT)
 
 $(BUILD_DIR)irc.o: $(SRC_DIR)irc.cpp $(SRC_DIR)irc.h

@@ -30,6 +30,8 @@ class irc
     int join(string room);
     int send(string room, string message);
     int send(string message);
+    int send_privmsg(string room, string message);
+    int send_privmsg(string message);
     int addCallback(string trigger, int (*ircCallback)(string, string, string, void*), void *obj);
     void wait();
     int state;

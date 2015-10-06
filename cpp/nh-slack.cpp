@@ -55,9 +55,9 @@ class nh_slack : public CNHmqtt, public SlackRTMCallbackInterface
     {
       slack_server  = get_str_option("slack", "apiurl",  "https://slack.com/api/");
       slack_token   = get_str_option("slack", "token",   "xoxb-11832276226-HiO5bl2qSGxdqAhqM5tca90E");
-      slack_mqtt_tx = get_str_option("slack", "mqtt_tx", "slack/tx");
-      slack_mqtt_rx = get_str_option("slack", "mqtt_rx", "slack/rx");
-      slack_channel = get_str_option("slack", "channel", "general");
+      slack_mqtt_tx = get_str_option("slack", "mqtt_tx", "nh/slack/tx");
+      slack_mqtt_rx = get_str_option("slack", "mqtt_rx", "nh/slack/rx");
+      slack_channel = get_str_option("slack", "channel", "irc");
       _rtm = new CSlackRTM(slack_token, slack_server, this);
     }
     
@@ -75,11 +75,9 @@ class nh_slack : public CNHmqtt, public SlackRTMCallbackInterface
       }
       
       log->dbg("Connecting to slack...");
-   //   irccon = new irc(irc_server, irc_port, irc_nick, irc_nickserv_password, log);
       
       _rtm->go();
 
-      log->dbg("Connected to slack.");
       subscribe(slack_mqtt_tx);
       subscribe(slack_mqtt_tx + "/#");
       return 0;
@@ -88,7 +86,7 @@ class nh_slack : public CNHmqtt, public SlackRTMCallbackInterface
 
   void process_message(string topic, string message)
   {
-    string nick_chan;
+    string chan;
     
     if ((slack_mqtt_tx.length() <= topic.length()) && (slack_mqtt_tx == topic.substr(0, slack_mqtt_tx.length())))
     {
@@ -100,16 +98,15 @@ class nh_slack : public CNHmqtt, public SlackRTMCallbackInterface
       }
     
       // remove leading nh/irc/tx/
-      nick_chan = topic.substr(slack_mqtt_tx.length()+1);
-      if (nick_chan.length() < 2) 
+      chan = topic.substr(slack_mqtt_tx.length()+1);
+      if (chan.length() < 2) 
       {
         log->dbg("Ignoring <2 char nick/chan");
         return;
       }
-      
 
-      // Msg specific channel (for future use if the bot can ever join more than one...)
-//      irccon->send("#" + nick_chan,  message);
+      // Msg specific channel
+      _rtm->send(chan, message);
     }
 
     CNHmqtt::process_message(topic, message);
