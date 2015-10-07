@@ -62,12 +62,13 @@ irc::~irc()
       pthread_join(rThread, NULL);
     rThread = -1;
     
-    // Interupt the activity monitoring thread
-    kill(getpid(), SIGUSR1);
-    
     if (aThread > 0)
+    {
+      // Interupt the activity monitoring thread
+      pthread_kill(aThread, SIGUSR1);
       pthread_join(aThread, NULL);
-    aThread = -1;    
+      aThread = -1;
+    }
   }
 }
     
@@ -210,8 +211,8 @@ void irc::activityThread()
       
       state = DISCONNECTED;
       log->dbg("Ping timout...");
-    }    
-    sleep (30);   
+    }
+    sleep (30);
   }
 }
 
@@ -471,6 +472,34 @@ int irc::send(string room, string message)
     if (write(tx))
     {
       lastError = "Failed to send: [" + tx + "]";
+      return -1;
+    }  
+  return 0;
+}
+
+int irc::send_privmsg(string message)
+{
+  if (channels.size() > 0)
+    return send_privmsg(channels[0], message);
+  else 
+    return -1;
+}
+
+int irc::send_privmsg(string room, string message)
+/* Send "PRIVMSG" (i.e. general chat msg) instead of "NOTICE" */
+{
+    string tx;
+
+    if (state != irc::CONNECTED)
+    {
+      log->dbg("irc::send_privmsg: Not connected!");
+      return -1;
+    } 
+    tx = "PRIVMSG " + room + " :" + message + "\r\n";
+    
+    if (write(tx))
+    {
+      lastError = "Failed to send(2): [" + tx + "]";
       return -1;
     }  
   return 0;

@@ -45,18 +45,20 @@ class nh_irc : public CNHmqtt
     int irc_port;
     string irc_nick;
     string irc_channel;
+    string ircmsg_mqtt_tx;
     string irc_mqtt_tx;
     string irc_mqtt_rx;
     string irc_nickserv_password;
   
     nh_irc(int argc, char *argv[]) : CNHmqtt(argc, argv)
     {
-      irc_server  = get_str_option("irc", "server", "irc.freenode.net");
-      irc_nick    = get_str_option("irc", "nick", "test12341234");
-      irc_mqtt_tx = get_str_option("irc", "mqtt_tx", "irc/tx");
-      irc_mqtt_rx = get_str_option("irc", "mqtt_rx", "irc/rx");
-      irc_channel = "#" + get_str_option("irc", "channel", "test4444");
-      irc_port    = get_int_option("irc", "port", 6667);
+      irc_server     = get_str_option("irc", "server", "irc.freenode.net");
+      irc_nick       = get_str_option("irc", "nick", "test12341234");
+      ircmsg_mqtt_tx = get_str_option("irc", "msg_mqtt_tx", "nh/ircmsg/tx");
+      irc_mqtt_tx    = get_str_option("irc", "mqtt_tx", "nh/irc/tx");
+      irc_mqtt_rx    = get_str_option("irc", "mqtt_rx", "nh/irc/rx");
+      irc_channel    = "#" + get_str_option("irc", "channel", "test4444");
+      irc_port       = get_int_option("irc", "port", 6667);
       irc_nickserv_password =  get_str_option("irc", "nickserv_password", "");
       irccon = NULL;
     }
@@ -89,7 +91,8 @@ class nh_irc : public CNHmqtt
       irccon->join(irc_channel); 
       irccon->addCallback("", &irc_callback, this);
       log->dbg("Connected to irc.");
-      subscribe(irc_mqtt_tx);      
+      subscribe(ircmsg_mqtt_tx);
+      subscribe(irc_mqtt_tx);
       subscribe(irc_mqtt_tx + "/#");
       return 0;
     }
@@ -127,7 +130,14 @@ class nh_irc : public CNHmqtt
   void process_message(string topic, string message)
   {
     string nick_chan;
-    
+
+    // Send normal/privmsg to the channel
+    if (topic == ircmsg_mqtt_tx)
+    {
+      irccon->send_privmsg(message);
+      return;
+    }
+
     if ((irc_mqtt_tx.length() <= topic.length()) && (irc_mqtt_tx == topic.substr(0, irc_mqtt_tx.length())))
     {
       // Send to the channel
@@ -136,7 +146,7 @@ class nh_irc : public CNHmqtt
         irccon->send(message);
         return;
       }
-    
+
       // remove leading nh/irc/tx/
       nick_chan = topic.substr(irc_mqtt_tx.length()+1);
       if (nick_chan.length() < 2) 

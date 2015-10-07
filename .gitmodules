@@ -1,0 +1,3 @@
+[submodule "SlackRtm"]
+	path = SlackRtm
+	url = git@github.com:daniel1111/SlackRtm.git
