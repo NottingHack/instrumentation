@@ -14,6 +14,7 @@ BEGIN
   declare tool_status varchar(20);
   declare done int default false;
   declare usage_id int;
+  declare l_tool_id int;
 
   declare tool_use_cur cursor for 
     select tu.usage_id
@@ -44,9 +45,11 @@ BEGIN
     
     -- Get tool status
     select 
-      t.tool_status
+      t.tool_status,
+      t.tool_id
     into 
-      tool_status
+      tool_status,
+      l_tool_id
     from tl_tools t
     where t.tool_name = p_tool_name;  
     
@@ -54,7 +57,7 @@ BEGIN
     if (tool_status = 'IN_USE') then
       update tl_tools
       set tool_status = 'FREE'
-      where tl_tools.tool_id = tool_id;
+      where tl_tools.tool_id = l_tool_id;
     end if;  
     
     open tool_use_cur;
