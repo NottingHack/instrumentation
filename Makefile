@@ -16,7 +16,7 @@ BIN_OUT = bin/
 ALL_BIN = nh-test nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tools nh-slack
 ALL_BINS := $(addprefix $(BIN_OUT),$(ALL_BIN))
 
-SLACK_INC=-I./SlackRtm/libwebsockets/build/lib/Headers -I./SlackRtm/include
+SLACK_INC=-I./SlackRtm/libwebsockets/lib -I./SlackRtm/include -I./SlackRtm/libwebsockets/build
 
 CFLAGS = -Wall -Wextra -c -g
 LFLAGS = -Wall -g
@@ -50,7 +50,7 @@ $(BIN_OUT)GateKeeper: $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_
 	g++ -lmysqlclient -lmosquitto -lrt -o $(BIN_OUT)GateKeeper $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 $(BIN_OUT)nh-tools: $(BUILD_DIR)nh-tools.o $(BUILD_DIR)nh-tools-bookings.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lmysqlclient -lmosquitto -lrt -lcurl -lical -ljson -luuid -o $(BIN_OUT)nh-tools $(BUILD_DIR)nh-tools.o $(BUILD_DIR)nh-tools-bookings.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lmysqlclient -lmosquitto -lrt -lpthread -lcurl -lical -ljson -luuid -o $(BIN_OUT)nh-tools $(BUILD_DIR)nh-tools.o $(BUILD_DIR)nh-tools-bookings.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 $(BIN_OUT)nh-monitor: $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
 	g++ -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-monitor $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
