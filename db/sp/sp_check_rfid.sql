@@ -76,7 +76,7 @@ BEGIN
     
     if (member_status != 5) then -- 5=current member
       set err = "Not a current member";
-      set unlock_text = "Access Denied";
+      set unlock_text = "Access Denied: Ex-member";
       leave main;
     end if;
     
