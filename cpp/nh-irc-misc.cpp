@@ -39,43 +39,22 @@ class nh_irc_misc : public CNHmqtt_irc
     CNHDBAccess *db;
     string entry_announce;
     string door_button;
-    string slack_mqtt_tx;
-    string slack_mqtt_rx;
-    string ircmsg_mqtt_tx;
-    string slack_channel;
+
     
     nh_irc_misc(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
     {
       db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   ;   
       entry_announce = get_str_option("gatekeeper", "entry_announce", "nh/gk/entry_announce");
       door_button = get_str_option("gatekeeper", "door_button", "nh/gk/DoorButton");
-      ircmsg_mqtt_tx = get_str_option("irc", "msg_mqtt_tx", "nh/ircmsg/tx");
-      slack_mqtt_tx = get_str_option("slack", "mqtt_tx", "nh/slack/tx");
-      slack_mqtt_rx = get_str_option("slack", "mqtt_rx", "nh/slack/rx");
-      slack_channel = get_str_option("slack", "channel", "irc");
     }
 
     void process_message(string topic, string message)
     {
-      
-      // Send any messages from the slack channel to IRC
-      if 
-      (
-        (topic.length()+2 > slack_mqtt_rx.length()) &&
-        (topic.substr(0, slack_mqtt_rx.length()) == slack_mqtt_rx)
-      )
-      {
-        string username;
-        string channel;
-        decode_irc_topic(slack_mqtt_rx, topic, username, channel); // function originally written for IRC, but works well enough for slack
-        if (channel == slack_channel) // the slack bot can be in multiple channels, so only forward messages from the nominated channel to avoid confusion...
-          message_send(ircmsg_mqtt_tx, "<" + username + "> " + message);
-      }
-      
       // Entry annouce is Door opened / Door opened by: etc
       if ((topic.substr(0, entry_announce.length() ) == entry_announce))
       {
         message_send(irc_out, message);
+        message_send(slack_out, message);
       }
       
       if (topic == door_button)
@@ -84,7 +63,10 @@ class nh_irc_misc : public CNHmqtt_irc
         tmp = message;
         for (int c = 0; message[c]; c++)
           tmp[c] = tolower(message[c]);
-        message_send(irc_out, "Door Bell (" + tmp +")");
+        
+        string msg_to_send = "Door Bell (" + tmp +")";
+        message_send(irc_out, msg_to_send );
+        message_send(slack_out, msg_to_send );
       }
       
       CNHmqtt_irc::process_message(topic, message);
@@ -97,9 +79,13 @@ class nh_irc_misc : public CNHmqtt_irc
      string sMsg = msg;
      string tts_msg;
 
-     // Send all chat message to the slack channel
-     if (!msg.is_pm())
-       message_send(slack_mqtt_tx, "<" + msg.nick + "> " + msg.message);
+     // Send IRC messages to slack
+     if ((msg.msgtype == irc_msg::MSGTYPE_IRC) && (msg.channel == irc_channel))
+       message_send(slack_out + "/" + slack_irc_channel, "<" + msg.nick + "> " + msg.message);
+
+     // Send slack messages to IRC
+     else if ((msg.msgtype == irc_msg::MSGTYPE_SLACK) && (msg.channel == slack_irc_channel))
+       message_send(ircmsg_mqtt_tx, "<" + msg.nick + "> " + msg.message);
 
      if (msg=="!help")
      {
@@ -118,11 +104,11 @@ class nh_irc_misc : public CNHmqtt_irc
         db->sp_space_net_activity(activity);
         msg.reply(activity);
      }
-    
+
      if (msg=="!temp")
      {
         db->sp_temperature_check(temperature);
-        msg.reply(temperature);      
+        msg.reply(temperature);
      }
 
      if (msg=="!tools")
@@ -170,7 +156,6 @@ class nh_irc_misc : public CNHmqtt_irc
      
      subscribe(entry_announce + "/#");
      subscribe(door_button);
-     subscribe(slack_mqtt_rx + "/#");
      
      return true;
    }
