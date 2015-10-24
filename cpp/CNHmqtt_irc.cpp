@@ -111,7 +111,6 @@ int CNHmqtt_irc::slack_send_nick (string message, string nick)
 
 int CNHmqtt_irc::slack_send_channel (string message, string channel)
 {
-  printf("slack_send_channel> CHANNEL = [%s], MESSAGE = [%s]\n", channel.c_str(), message.c_str());
   return message_send(slack_out + "/" + channel, message);
 }
 

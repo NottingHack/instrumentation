@@ -34,7 +34,7 @@
 
 #include "CNHmqtt_irc.h"
 #include "CNHDBAccess.h"
-#include "nh-tools-cbi.h"
+#include "nh-cbi.h"
 #include "nh-tools-bookings.h"
 
 #include <stdio.h>
@@ -46,7 +46,7 @@ bool CNHmqtt::debug_mode = false;
 bool CNHmqtt::daemonized = false; 
 
 
-class nh_tools : public CNHmqtt_irc, public ToolsCallbackInterface
+class nh_tools : public CNHmqtt_irc, public InstCBI
 {
   public:
     nh_tools(int argc, char *argv[]);
