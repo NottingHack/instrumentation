@@ -14,6 +14,7 @@ DELIMITER //
 CREATE PROCEDURE sp_check_pin
 (
    IN  pin          varchar(12),
+   IN  door_id      int,
    OUT unlock_text  varchar(95),
    OUT username     varchar(50),
    OUT err          varchar(100)
@@ -33,6 +34,7 @@ BEGIN
   declare l_rfid_serial varchar(50);
   declare l_access_result int;
   declare l_access_time timestamp;
+  declare l_access_denied int;
   
   set ck_exists = 0;
   set access_granted = 0;
@@ -85,14 +87,26 @@ BEGIN
       
       leave main;
     end if;
-    
-    if (p_member_status != 5) then -- 5 = current member
-      set err = "Not a current member";
-      set unlock_text = "Access Denied";
-      
+
+    -- Check the PIN belongs to either a member, or someone with specific access to open the door
+    call sp_gatekeeper_check_access(p_member_id, door_id, l_access_denied);
+    if (l_access_denied != 0) then
+      -- Vary the message depending on the reason
+      if (l_access_denied = 1) then
+        set err = "Not a current member";
+        set unlock_text = "Access Denied: Non-member";
+      elseif (l_access_denied = 2) then
+        set err = "No permission to open door";
+        set unlock_text = "Access Denied";
+      else
+        -- Some other reason, send non-specific Access Denied
+        set err = "Access Denied (other)";
+        set unlock_text = "Access Denied";
+      end if;
+
       leave main;
     end if;
-    
+
     -- Check for an enroll pin (to register a card)
     if (
           (p_state = 40) and -- enroll
@@ -109,6 +123,7 @@ BEGIN
         l_access_result
       from access_log l 
       where l.rfid_serial is not null 
+        and l.door_id = door_id
       order by access_id 
       desc limit 1;
       
@@ -118,7 +133,7 @@ BEGIN
         set unlock_text = concat('Unlock:', coalesce(p_unlock_text, 'Welcome'));
         set access_granted = 1;
         leave main;
-      end if;        
+      end if;
       
       -- check the card is suitable (not already registered)
       select count(*) into ck_exists
@@ -171,11 +186,11 @@ BEGIN
   end main;
   
   if (access_granted = 1) then
-    insert into access_log (rfid_serial, pin, access_result, member_id)
-    values (null, pin, 20, p_member_id); -- granted
+    insert into access_log (rfid_serial, pin, access_result, member_id, door_id)
+    values (null, pin, 20, p_member_id, door_id); -- granted
   else
-    insert into access_log (rfid_serial, pin, access_result, member_id, denied_reason)
-    values (null, pin, 10, p_member_id, err); -- denied
+    insert into access_log (rfid_serial, pin, access_result, member_id, denied_reason, door_id)
+    values (null, pin, 10, p_member_id, err, door_id); -- denied
   end if;
 
 END //

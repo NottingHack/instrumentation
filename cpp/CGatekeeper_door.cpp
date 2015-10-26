@@ -1,7 +1,4 @@
 /* TODO: 
- *  - put door_id in access log
- *  - when registering cards, ensure RFID card from another door isn't registered
- *  - maybe: add method to limit access to door by group
  *  - maintain door state in database
  */
 
@@ -65,7 +62,7 @@ void CGatekeeper_door::process_door_event(string type, string payload)
   {
     if ((payload.substr(0, ((string)("Door Opened by:")).length() ) == "Door Opened by:") && (_handle != ""))
     {
-      _db->sp_log_event("DOOR_OPENED", "");
+      _db->sp_log_event("DOOR_OPENED", CNHmqtt::itos(_id));
 
       if (_last_seen.length() > 1)
       {
@@ -82,18 +79,18 @@ void CGatekeeper_door::process_door_event(string type, string payload)
     else if (payload=="Door Closed")
     {
       dbg("Ignoring door closed message");
-      _db->sp_log_event("DOOR_CLOSED", "");
+      _db->sp_log_event("DOOR_CLOSED", CNHmqtt::itos(_id));
     }
     else if (payload=="Door Time Out")
     {
       _handle = "";
       _last_seen = "";
-      _db->sp_log_event("DOOR_TIMEOUT", "");
+      _db->sp_log_event("DOOR_TIMEOUT", CNHmqtt::itos(_id));
     }
     else if (payload=="Door Opened")
     {
       _cb->cbiSendMessage(_entry_announce + "/unknown", "Door opened");
-      _db->sp_log_event("DOOR_OPENED", "");
+      _db->sp_log_event("DOOR_OPENED", CNHmqtt::itos(_id));
     }
     else _cb->cbiSendMessage(_entry_announce, payload); // Else just pass the message on verbatim
   }
@@ -106,7 +103,7 @@ void CGatekeeper_door::process_door_event(string type, string payload)
     time(&current_time);
     if (difftime(current_time, _last_valid_read) > _read_timeout) // If there's been an unlock message sent in the
     {                                                             // last few seconds, do nothing (door is already open)
-      if(_db->sp_check_rfid(payload, unlock_text, _handle, _last_seen, err))
+      if(_db->sp_check_rfid(payload, _id, unlock_text, _handle, _last_seen, err))
       {
         dbg("Call to sp_check_rfid failed");
         _cb->cbiSendMessage(unlock_topic, "Access Denied");
@@ -126,7 +123,7 @@ void CGatekeeper_door::process_door_event(string type, string payload)
 
   else if (type=="Keypad")
   {
-    _db->sp_check_pin(payload, unlock_text, _handle, err);
+    _db->sp_check_pin(payload, _id, unlock_text, _handle, err);
     dbg("err = [" + err + "]");
     _cb->cbiSendMessage(unlock_topic, unlock_text);
   }

@@ -42,7 +42,7 @@ insert into permissions (permission_code, permission_desc) values ('VIEW_MEMBER_
 insert into permissions (permission_code, permission_desc) values ('AMEND_PINS      ', 'Add / Cancel PINs');
 insert into permissions (permission_code, permission_desc) values ('WIFI_ACCESS     ', 'Connect to Spacenet');
 insert into permissions (permission_code, permission_desc) values ('WIKI_ACCESS     ', 'Login to Wiki');
-
+insert into permissions (permission_code, permission_desc) values ('RSTR1           ', 'Open test restricted door 1');
 
 
 insert into group_permissions 
