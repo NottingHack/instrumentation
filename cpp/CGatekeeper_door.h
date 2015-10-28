@@ -24,11 +24,9 @@ class CGatekeeper_door
     std::string _entry_announce;
     time_t _last_valid_read;
     int _read_timeout;
-    
+
     CLogging *_log;
     CNHDBAccess *_db;
     InstCBI *_cb;
-    
-
 };
 
