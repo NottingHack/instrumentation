@@ -12,6 +12,6 @@ create table doors
 ) ENGINE = InnoDB; 
 
 
-insert into doors values (1, 'Upstairs inner Gatekeeper door', 'UP-INNER', 'UNKNOWN', sysdate(), NULL);
-insert into doors values (2, 'Upstairs outer door'           , 'UP-OUTER', 'UNKNOWN', sysdate(), NULL);
-insert into doors values (3, 'Test resticted door'           , 'R1'      , 'UNKNOWN', sysdate(), 'RSTR1');
+insert into doors values (1, 'Upstairs inner Gatekeeper door', 'INNER'   , 'UNKNOWN', sysdate(), NULL);
+insert into doors values (2, 'Upstairs outer door'           , 'OUTER'   , 'UNKNOWN', sysdate(), NULL);
+insert into doors values (3, 'Workshop door'                 , 'WORKSHOP', 'UNKNOWN', sysdate(), NULL);

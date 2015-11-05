@@ -1,6 +1,7 @@
 #include <string>
 #include <time.h>
 #include <string.h>
+#include <list>
 
 #include "CLogging.h"
 #include "CNHDBAccess.h"
@@ -16,7 +17,15 @@ class CGatekeeper_door
     void process_door_event(std::string type, std::string payload);
 
   private:
+    struct door_bell
+    {
+      std::string mqtt_topic;
+      std::string mqtt_message;
+    };
+    
     void dbg(std::string msg);
+    
+    std::list<door_bell> _door_bells;
     int _id;
     std::string _base_topic;
     std::string _handle;
