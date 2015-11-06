@@ -61,14 +61,14 @@ void CGatekeeper_door::set_opts(int id, string base_topic, CLogging *log, CNHDBA
   _entry_announce = entry_announce;
   _read_timeout = read_timeout;
   
-  // Now the door_id has been set, get the list of door bells that should be rang is the button is pushed
+  // Now the door_id has been set, get the list of door bells that should be rang when the button is pushed
   _door_bells.clear();
   
   // Get a list of all bells to be rung...
   dbrows bells;
   db->sp_gatekeeper_get_door_bells(_id, &bells);
 
-  log->dbg("Door button will ring:");
+  dbg("Door button will ring:");
   for (dbrows::const_iterator iterator = bells.begin(), end = bells.end(); iterator != end; ++iterator) 
   {
     door_bell bell;
@@ -78,7 +78,7 @@ void CGatekeeper_door::set_opts(int id, string base_topic, CLogging *log, CNHDBA
     bell.mqtt_message = row["bell_message"].asStr();
     _door_bells.push_back(bell);
 
-    log->dbg("\t" + bell.mqtt_topic + "\t" + bell.mqtt_message);
+    dbg("\t" + bell.mqtt_topic + "\t" + bell.mqtt_message);
   }
 
 
@@ -146,6 +146,9 @@ void CGatekeeper_door::process_door_event(string type, string payload)
     // Send message to all bells that need to be rang
     for (list<door_bell>::iterator i=_door_bells.begin(); i != _door_bells.end(); ++i)
       _cb->cbiSendMessage((*i).mqtt_topic, (*i).mqtt_message);
+
+    // Send a message with the door name for the matrix displays / IRC / slack
+    _cb->cbiSendMessage(_base_topic + "/DoorButton", door_short_name);
 
     // Log an event recording this door button was pushed
     _db->sp_log_event("DOORBELL", CNHmqtt::itos(_id));
