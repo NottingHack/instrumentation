@@ -83,7 +83,7 @@
 
 #include "CNHmqtt_irc.h"
 #include "CNHDBAccess.h"
-#include "nh-tools-cbi.h"
+#include "nh-cbi.h"
 
 #include <stdio.h>
 #include <time.h>
@@ -102,7 +102,7 @@ class nh_tools_bookings
 {
   public:
     nh_tools_bookings(CLogging *log, std::string db_server, std::string db_username, std::string db_password, std::string db_name,
-                      std::string client_id, std::string client_secret, std::string bookings_topic, std::string push_url, ToolsCallbackInterface *cb);
+                      std::string client_id, std::string client_secret, std::string bookings_topic, std::string push_url, InstCBI *cb);
     ~nh_tools_bookings();
 
     void setup(int tool_id);  // Call once with the tool_id id to publish bookings for
@@ -153,7 +153,7 @@ class nh_tools_bookings
     CNHDBAccess *_db;
     void cal_thread();
     void notification_channels_thread();
-    ToolsCallbackInterface *_cb;
+    InstCBI *_cb;
     std::vector<evtdata> _bookings;
     int get_now_next_bookings(std::vector<evtdata> const& tool_bookings, evtdata &evt_now, evtdata &evt_next);
     std::string json_encode_booking_data(evtdata event_now, evtdata event_next);

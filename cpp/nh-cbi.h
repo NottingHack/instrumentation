@@ -1,6 +1,6 @@
 #pragma once
 
-class ToolsCallbackInterface
+class InstCBI
 {
   public:
     virtual int cbiSendMessage(std::string, std::string) = 0;

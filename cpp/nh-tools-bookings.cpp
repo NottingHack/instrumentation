@@ -39,7 +39,7 @@
 using namespace std;
 
 nh_tools_bookings::nh_tools_bookings(CLogging *log, string db_server, string db_username, string db_password, string db_name,
-                                     string client_id, string client_secret, string bookings_topic, string push_url, ToolsCallbackInterface *cb)
+                                     string client_id, string client_secret, string bookings_topic, string push_url, InstCBI *cb)
 {
   _log            = log;
   _client_id      = client_id;
