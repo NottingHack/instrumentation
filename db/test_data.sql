@@ -29,7 +29,6 @@ values (1, 50, 1, 'Crisps', 'Packet of Crisps');
 insert into vmc_state (vmc_ref_id, product_id)
 values (1,1); -- set vending machine location A1 to be a "Packet of Crisps"
 
-
 -- Record a purchase
 call sp_transaction_log(2, 50, 'VEND', 'COMPLETE', '[Packet of Crisps] vended from location [A1]', NULL, @tran_id, @err);
 
@@ -37,7 +36,7 @@ call sp_transaction_log(2, 50, 'VEND', 'COMPLETE', '[Packet of Crisps] vended fr
 call sp_transaction_log(2, -50, 'MANUAL', 'COMPLETE', 'Payment', 1, @tran_id, @err);
 
 -- Tools
-insert into tl_tools values (1, '', 'laser', 'FREE', 'RESTRICTED', null, 300);
+insert into tl_tools values (1, '', 'laser', 'FREE', 'RESTRICTED', null, 300, 10, 10, NULL, '', 0);
 
 
 -- Usage - add 2mins of pledged time
