@@ -5,9 +5,6 @@ export DEBIAN_FRONTEND=noninteractive
 cd /vagrant
 git submodule update --init --recursive
 
-# TODO: fix this in the base box
-echo "extension=krb5.so" >> /etc/php5/mods-available/krb5.ini
-
 # Create MySQL database
 mysql -uroot -proot -e "create database instrumentation"
 mysql -uroot -proot -e "grant select on instrumentation.* to 'inst_run'@'localhost' identified by 'inst_password'"
@@ -26,8 +23,6 @@ php db/db_load.php ALL
 # TODO: need to fix this in db_load.php
 mysql -uroot -proot instrumentation -e "GRANT EXECUTE ON FUNCTION fn_check_permission TO 'inst_run'@'localhost'"
 
-
-
 cp web/db.php.template web/db.php
 sed -i -e 's/<WEB USERNAME>/inst_run/g' web/db.php
 sed -i -e 's/<WEB PASSWORD>/inst_password/g' web/db.php
@@ -36,7 +31,7 @@ sed -i -e 's/hms_test\/web/inst\/web/g' web/db.php
 chmod a+rw /config/nhweb.keytab 
 
 if [ ! -f 'qooxdoo-4.0.1-sdk.zip' ]; then
-    wget http://downloads.sourceforge.net/project/qooxdoo/qooxdoo-current/4.0.1/qooxdoo-4.0.1-sdk.zip
+    cp /downloads/qooxdoo-4.0.1-sdk.zip .
     unzip qooxdoo-4.0.1-sdk.zip
 fi
 make web2
@@ -56,8 +51,8 @@ echo "alias sql=\"mysql -proot -uroot instrumentation\"" > /home/vagrant/.bash_a
 
 echo ""
 echo "------------------------------------------------------------------------"
-echo " **** HMS should now be running at http://localhost:8080/ **** "
-echo " **** Login using username=Admin, password=admin          ****"
+echo " **** nh-web should now be running at http://192.168.33.10/nhweb/ **** "
+echo " **** Login using username=Admin, password=admin                  **** "
 echo "      (all other accounts have the password \"password\")"
 echo ""
 echo "MySQL:  username = root,        password = root"

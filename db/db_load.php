@@ -142,7 +142,11 @@ function load_file($file, $aConfig, $oDB)
   if (is_sp($file))
   {
     $spname = basename($file, ".sql");
-    $query = "GRANT EXECUTE ON PROCEDURE $spname TO '$mysql_runtime_user'@'localhost'";
+    if (substr($spname, 0, 3) == "fn_")
+      $query = "GRANT EXECUTE ON FUNCTION $spname TO '$mysql_runtime_user'@'localhost'";
+    else
+      $query = "GRANT EXECUTE ON PROCEDURE $spname TO '$mysql_runtime_user'@'localhost'";
+
     if ($oDB->query($query) === TRUE)
       echo "OK";
     else
