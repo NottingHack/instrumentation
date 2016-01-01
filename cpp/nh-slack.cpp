@@ -96,7 +96,7 @@ class nh_slack : public CNHmqtt, public SlackRTMCallbackInterface
          _rtm->send(slack_channel, message);
         return;
       }
-    
+
       // remove leading nh/irc/tx/
       chan = topic.substr(slack_mqtt_tx.length()+1);
       if (chan.length() < 2) 
@@ -105,8 +105,23 @@ class nh_slack : public CNHmqtt, public SlackRTMCallbackInterface
         return;
       }
 
-      // Msg specific channel
-      _rtm->send(chan, message);
+      // PM
+      if (chan.substr(0, 2) == "pm")
+      {
+        // must be in the format nh/slack/tx/pm/<nick>
+        if (chan.length() <= 4)
+        {
+          log->dbg("Ignoring nick/chan <= 4 char");
+          return;
+        } else
+        {
+          _rtm->send_dm(chan.substr(3), message); // skip over "pm/"
+        }
+      } else
+      {
+        // Msg specific channel
+        _rtm->send(chan, message);
+      }
     }
 
     CNHmqtt::process_message(topic, message);
@@ -119,14 +134,14 @@ class nh_slack : public CNHmqtt, public SlackRTMCallbackInterface
   
   int cbi_got_slack_message(string channel, string username, string message)
   {
-    cbi_debug_message("cbi_got_slack_message> #" + channel + "/<" + username + "> " + message);
+    cbi_debug_message(LOG_DEBUG, "cbi_got_slack_message> #" + channel + "/<" + username + "> " + message);
 
     message_send(slack_mqtt_rx + "/" + channel + "/" + username, message);
 
     return 0;
   }
   
-  void cbi_debug_message(string msg)
+  void cbi_debug_message(int level, string msg)
   {
     log->dbg("[" + msg + "]");
   }
