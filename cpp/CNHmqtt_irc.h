@@ -58,7 +58,7 @@ class CNHmqtt_irc : CNHmqtt
         {
           if (msgtype == MSGTYPE_IRC)
             return con->irc_send_nick (rep, nick);
-          else if (msgtype == MSGTYPE_IRC)
+          else if (msgtype == MSGTYPE_SLACK)
             return con->slack_send_nick (rep, nick);
           else
             return -1;
