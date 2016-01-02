@@ -136,8 +136,11 @@ class nh_slack : public CNHmqtt, public SlackRTMCallbackInterface
   {
     cbi_debug_message(LOG_DEBUG, "cbi_got_slack_message> #" + channel + "/<" + username + "> " + message);
 
-    message_send(slack_mqtt_rx + "/" + channel + "/" + username, message);
-
+    if (channel == "")
+      message_send(slack_mqtt_rx + "/" + "pm"    + "/" + username, message);
+    else
+      message_send(slack_mqtt_rx + "/" + channel + "/" + username, message);
+    
     return 0;
   }
   
