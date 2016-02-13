@@ -8,17 +8,17 @@ drop procedure if exists sp_check_rfid;
 DELIMITER //
 CREATE PROCEDURE sp_check_rfid
 (
-   IN  rfid_serial  varchar(50),
-   IN  door_id      int,
-   OUT unlock_text  varchar(95),
-   OUT username     varchar(50),
-   OUT last_seen    varchar(100),
-   OUT err          varchar(100)
+   IN  rfid_serial    varchar(50),
+   IN  door_id        int,
+   OUT display_msg    varchar(95),
+   OUT username       varchar(50),
+   OUT last_seen      varchar(100),
+   OUT access_granted int,
+   OUT err            varchar(100)
 )
 SQL SECURITY DEFINER
 BEGIN
   declare ck_exists int;
-  declare access_granted int;
   declare r_state int;
   declare member_id int;
   declare member_status int;
@@ -32,7 +32,7 @@ BEGIN
     -- First, check the card is suitable (not unknown type)
     if (rfid_serial = 'Unknown Card Type') then
       set err = 'Unknown Card Type';
-      set unlock_text = 'Unknown Card Type';
+      set display_msg = 'Unknown Card Type';
       leave main;
     end if;   
 
@@ -44,7 +44,7 @@ BEGIN
       
     if (ck_exists = 0) then
       set err = "RFID serial not found";
-      set unlock_text = "Access Denied: Unknown card";
+      set display_msg = "Access Denied: Unknown card";
       leave main;
     end if;
     
@@ -55,13 +55,13 @@ BEGIN
 
     select 
       m.member_id,
-      concat('Unlock:',  coalesce(m.unlock_text, 'Welcome')),
+      coalesce(m.unlock_text, 'Welcome'),
       coalesce(m.username, '<unknown>'),
       r.state,
       m.member_status
     into
       member_id,
-      unlock_text,
+      display_msg,
       username,
       r_state,
       member_status
@@ -72,7 +72,7 @@ BEGIN
 
     if (r_state != 10) then -- STATE_ACTIVE
       set err = "RFID serial not active";
-      set unlock_text = "Access Denied: Inactive card";
+      set display_msg = "Access Denied: Inactive card";
       leave main;
     end if;
 
@@ -82,14 +82,14 @@ BEGIN
       -- Vary the message depending on the reason
       if (access_denied = 1) then
         set err = "Not a current member";
-        set unlock_text = "Access Denied: Ex-member";
+        set display_msg = "Access Denied: Ex-member";
       elseif (access_denied = 2) then
         set err = "No permission to open door";
-        set unlock_text = "Access Denied";
+        set display_msg = "Access Denied";
       else
         -- Some other reason, send non-specific Access Denied
         set err = "Access Denied (other)";
-        set unlock_text = "Access Denied";
+        set display_msg = "Access Denied";
       end if;
 
       leave main;

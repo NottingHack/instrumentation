@@ -30,6 +30,8 @@
 #include "CNHmqtt_irc.h"
 #include "CNHDBAccess.h"
 #include "CGatekeeper_door.h"
+#include "CGatekeeper_door_original.h"
+#include "CGatekeeper_door_hs25.h"
 #include "nh-cbi.h"
 
 #include <stdio.h>
@@ -58,7 +60,7 @@ public:
 
     int read_timeout;
 
-    std::map<int,CGatekeeper_door> _doors;
+    std::map<int,CGatekeeper_door*> _doors;
 
     GateKeeper(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
     {
@@ -75,8 +77,11 @@ public:
     ~GateKeeper()
     {
       delete db;
+
+      for (std::map<int,CGatekeeper_door*>::iterator it = _doors.begin(); it != _doors.end(); ++it) 
+        delete it->second;
     }
- 
+
     void process_message(string topic, string message)
     {
       int door_id;
@@ -87,7 +92,7 @@ public:
         // Message does relate to a specific door
         if (_doors.count(door_id))
         {
-          _doors[door_id].process_door_event(command, message);
+          _doors[door_id]->process_door_event(command, message);
         }
         else
         {
@@ -184,9 +189,14 @@ public:
       dbrow row = *iterator;
       int door_id = row["door_id"].asInt();
 
-      // log->dbg(row["door_id"].asStr() + "\t" + row["door_short_name"].asStr());
-      _doors[door_id].door_short_name = row["door_short_name"].asStr();
-      _doors[door_id].set_opts(door_id, base_topic, log, db, this, entry_announce, read_timeout, row["door_state"].asStr());
+      // Nasty, nasty, bodge.
+      if (door_id == 1)
+        _doors[door_id] = new CGatekeeper_door_original();
+      else
+        _doors[door_id] = new CGatekeeper_door_hs25();
+
+      _doors[door_id]->door_short_name = row["door_short_name"].asStr();
+      _doors[door_id]->set_opts(door_id, base_topic, log, db, this, entry_announce, read_timeout, row["door_state"].asStr());
     }
 
     // Subscribe to wildcard MQTT topics for door events
