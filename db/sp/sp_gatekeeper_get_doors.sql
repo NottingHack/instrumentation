@@ -17,6 +17,7 @@ BEGIN
     d.door_id,
     d.door_description,
     d.door_short_name,
+    d.door_state,
     d.door_state
   from doors d
   where (d.door_id = p_door_id or p_door_id = -1);

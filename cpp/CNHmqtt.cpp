@@ -339,14 +339,14 @@ void CNHmqtt::process_message(string topic, string message)
   } 
 }
 
-int CNHmqtt::message_send(string topic, string message, bool no_debug)
+int CNHmqtt::message_send(string topic, string message, bool no_debug, bool retained)
 {
   int ret;
   
   if (!no_debug)
     log->dbg("Sending message,  topic=[" + topic + "], message=[" + message + "]");
   pthread_mutex_lock(&_mosq_mutex);
-  ret = mosquitto_publish(_mosq, NULL, topic.c_str(), message.length(), message.c_str(), 0, false);
+  ret = mosquitto_publish(_mosq, NULL, topic.c_str(), message.length(), message.c_str(), 0, retained);
   pthread_mutex_unlock(&_mosq_mutex);
   return ret;
 }

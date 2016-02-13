@@ -51,13 +51,13 @@ public:
     string lastman_open;
     string lastman_close;
     string twitter_out;
-    
+
     string entry_announce;
     string base_topic;
     CNHDBAccess *db;
-    
+
     int read_timeout;
-    
+
     std::map<int,CGatekeeper_door> _doors;
 
     GateKeeper(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
@@ -186,7 +186,7 @@ public:
 
       // log->dbg(row["door_id"].asStr() + "\t" + row["door_short_name"].asStr());
       _doors[door_id].door_short_name = row["door_short_name"].asStr();
-      _doors[door_id].set_opts(door_id, base_topic, log, db, this, entry_announce, read_timeout);
+      _doors[door_id].set_opts(door_id, base_topic, log, db, this, entry_announce, read_timeout, row["door_state"].asStr());
     }
 
     // Subscribe to wildcard MQTT topics for door events
@@ -195,9 +195,15 @@ public:
     subscribe(subscribe_base + "DoorButton");
     subscribe(subscribe_base + "RFID");
     subscribe(subscribe_base + "Keypad");
+
+    // Door side specific messages
+    subscribe_base = base_topic + "/+/+/";
+    subscribe(subscribe_base + "DoorButton");
+    subscribe(subscribe_base + "RFID");
+
     subscribe(lastman);
   }
-  
+
   int cbiSendMessage(string topic, string message)
   {
     message_send(topic, message);

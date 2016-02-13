@@ -51,7 +51,7 @@ CGatekeeper_door::~CGatekeeper_door()
   dbg("Deleted");
 }
 
-void CGatekeeper_door::set_opts(int id, string base_topic, CLogging *log, CNHDBAccess *db, InstCBI *cb, string entry_announce, int read_timeout)
+void CGatekeeper_door::set_opts(int id, string base_topic, CLogging *log, CNHDBAccess *db, InstCBI *cb, string entry_announce, int read_timeout, string door_state)
 {
   _id  = id;
   _base_topic = base_topic;
@@ -81,6 +81,7 @@ void CGatekeeper_door::set_opts(int id, string base_topic, CLogging *log, CNHDBA
     dbg("\t" + bell.mqtt_topic + "\t" + bell.mqtt_message);
   }
 
+  _door_state = get_door_state_from_str(door_state);
 
   dbg("Configured");
 }
@@ -93,17 +94,38 @@ void CGatekeeper_door::dbg(string msg)
   _log->dbg("CGatekeeper_door(" + door_short_name + ")", msg);
 }
 
+CGatekeeper_door::DoorState CGatekeeper_door::get_door_state_from_str(string door_state)
+{
+  if (door_state == "OPEN")
+    return DS_OPEN;
+  else if (door_state == "CLOSED")
+    return DS_CLOSED;
+
+  return DS_UNKNWON;
+}
 
 void CGatekeeper_door::process_door_event(string type, string payload)
 {
   if ((_db == NULL) || (_cb == NULL))
     return;
 
+  _log->dbg("door> " + type);
+
   time_t current_time;
   string unlock_text;
   string err;
   string unlock_topic = _base_topic + "/" + CNHmqtt::itos(_id) + "/Unlock";
+  string door_side = "";
 
+
+  // Get door side message relates to (if applicable)
+  if ((type.substr(0, 2) == "A/") || (type.substr(0, 2) == "B/"))
+  {
+    door_side = type.substr(0, 1);
+    type = type.substr(2, string::npos);
+  }
+
+  /*
   if (type=="DoorState")
   {
     if ((payload.substr(0, ((string)("Door Opened by:")).length() ) == "Door Opened by:") && (_handle != ""))
@@ -140,6 +162,19 @@ void CGatekeeper_door::process_door_event(string type, string payload)
     }
     else _cb->cbiSendMessage(_entry_announce, payload); // Else just pass the message on verbatim
   }
+  */
+  
+  if (type=="DoorState")
+  {
+    CGatekeeper_door::DoorState new_door_state = get_door_state_from_str(payload);
+
+    if (new_door_state != _door_state)
+    {
+      _db->sp_set_door_state(_id, payload);
+      _door_state = new_door_state;
+    }
+  }
+
 
   else if (type=="DoorButton")
   {
