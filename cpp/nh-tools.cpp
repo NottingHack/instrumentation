@@ -52,6 +52,7 @@ nh_tools::nh_tools(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
   _db = new CNHDBAccess(_db_server, _db_username, _db_password, _db_name, log);
 
   _setup_done = false;
+   _bookings_log = NULL;
 }
 
 nh_tools::~nh_tools()
@@ -61,6 +62,9 @@ nh_tools::~nh_tools()
   for (std::map<string,nh_tools_bookings*>::iterator it = _bookings.begin(); it != _bookings.end(); ++it)
     delete it->second;
   _bookings.clear();
+  
+  if (_bookings_log)
+    delete _bookings_log;
 }
 
 void nh_tools::process_message(string topic, string message)
@@ -209,9 +213,24 @@ void nh_tools::setup()
 {
   if (_setup_done)
     return;
+  
+  string bookings_logfile = get_str_option("mqtt", "bookings_logfile", "");
 
   subscribe(_tool_topic + "#");
   subscribe(_bookings_topic + "poll");
+  
+  // The bookings logic writes a fair bit to the log file. Put this in a different 
+  // file to seperate it out from the normal tools signon/signoff stuff.
+  if (!debug_mode && (bookings_logfile != ""))
+  {
+    _bookings_log = new CLogging();
+    if (!_bookings_log->open_logfile(bookings_logfile))
+    {
+      log->dbg("failed to open bookings logfile. Using the normal logfile for bookings logic");
+      delete _bookings_log;
+      _bookings_log = NULL;
+    }
+  }
 
   // For each tool that has booking notifications enabled, create an nh_tools_bookings object
   // to manage the sending of booking info periodically over MQTT.
@@ -221,7 +240,7 @@ void nh_tools::setup()
   {
     dbrow row = *iterator;
     log->dbg("Creating booking object for tool [" + row["tool_name"].asStr() + "], id = [" +  row["tool_id"].asStr() + "]");
-    _bookings[row["tool_name"].asStr()] = new nh_tools_bookings(log, _db_server, _db_username, _db_password, _db_name,_client_id, _client_secret, _bookings_topic, _push_url, this);
+    _bookings[row["tool_name"].asStr()] = new nh_tools_bookings((_bookings_log ? _bookings_log : log), _db_server, _db_username, _db_password, _db_name,_client_id, _client_secret, _bookings_topic, _push_url, this);
     _bookings[row["tool_name"].asStr()]->setup(row["tool_id"].asInt());
   }
 
