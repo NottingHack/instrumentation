@@ -1,4 +1,4 @@
-drop procedure if exists sp_check_rfid;
+drop procedure if exists sp_gatekeeper_check_rfid;
 
 /*
   Check an rfid serial is valid, and return an approprite unlock text if it is.
@@ -6,7 +6,7 @@ drop procedure if exists sp_check_rfid;
 */
 
 DELIMITER //
-CREATE PROCEDURE sp_check_rfid
+CREATE PROCEDURE sp_gatekeeper_check_rfid
 (
    IN  rfid_serial    varchar(50),
    IN  door_id        int,
@@ -77,7 +77,7 @@ BEGIN
     end if;
 
     -- Check the card belongs to either a member, or someone with specific access to open the door
-    call sp_gatekeeper_check_access(member_id, door_id, access_denied);
+    call sp_gatekeeper_check_door_access(member_id, door_id, access_denied);
     if (access_denied != 0) then
       -- Vary the message depending on the reason
       if (access_denied = 1) then

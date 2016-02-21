@@ -159,9 +159,9 @@ void CGatekeeper_door_original::process_door_event(string type, string payload)
     if (difftime(current_time, _last_valid_read) > _read_timeout) // If there's been an unlock message sent in the
     {                                                             // last few seconds, do nothing (door is already open)
       int access_result=0;
-      if(_db->sp_check_rfid(payload, _id, unlock_text, _handle, _last_seen, access_result, err))
+      if(_db->sp_gatekeeper_check_rfid(payload, _id, unlock_text, _handle, _last_seen, access_result, err))
       {
-        dbg("Call to sp_check_rfid failed");
+        dbg("Call to sp_gatekeeper_check_rfid failed");
         _cb->cbiSendMessage(unlock_topic, "Access Denied: Internal error");
       } else
       {

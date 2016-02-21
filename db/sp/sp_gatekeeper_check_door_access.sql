@@ -1,4 +1,4 @@
-drop procedure if exists sp_gatekeeper_check_access;
+drop procedure if exists sp_gatekeeper_check_door_access;
 
 /*
   Check if member_id has permission to open door_id.
@@ -15,7 +15,7 @@ drop procedure if exists sp_gatekeeper_check_access;
 */
 
 DELIMITER //
-CREATE PROCEDURE sp_gatekeeper_check_access
+CREATE PROCEDURE sp_gatekeeper_check_door_access
 (
    IN  p_member_id      int,
    IN  p_door_id        int,
