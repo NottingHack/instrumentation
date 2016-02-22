@@ -155,11 +155,14 @@ void CGatekeeper_door_original::process_door_event(string type, string payload)
 
   else if (type=="RFID")
   {
+    int new_zone_id = -1;
+    int member_id = 0;
     time(&current_time);
     if (difftime(current_time, _last_valid_read) > _read_timeout) // If there's been an unlock message sent in the
     {                                                             // last few seconds, do nothing (door is already open)
       int access_result=0;
-      if(_db->sp_gatekeeper_check_rfid(payload, _id, unlock_text, _handle, _last_seen, access_result, err))
+      string door_side = "";
+      if(_db->sp_gatekeeper_check_rfid(payload, _id, door_side, unlock_text, _handle, _last_seen, access_result, new_zone_id, member_id, err))
       {
         dbg("Call to sp_gatekeeper_check_rfid failed");
         _cb->cbiSendMessage(unlock_topic, "Access Denied: Internal error");
@@ -187,5 +190,5 @@ void CGatekeeper_door_original::process_door_event(string type, string payload)
     dbg("err = [" + err + "]");
     _cb->cbiSendMessage(unlock_topic, unlock_text);
   }
-  
+
 }

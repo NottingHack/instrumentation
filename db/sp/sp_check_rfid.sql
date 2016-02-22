@@ -59,6 +59,7 @@ BEGIN
 
     if (r_state != 10) then -- STATE_ACTIVE
       set p_err = "Inactive card";
+      set p_member_id = NULL;
       leave main;
     end if;
 

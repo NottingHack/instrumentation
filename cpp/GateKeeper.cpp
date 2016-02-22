@@ -119,7 +119,7 @@ public:
           message_send(irc_out, lastman_close);
           message_send(slack_out, lastman_close);
           db->sp_log_event("LAST_OUT", "");
-        } else if (message=="First In") 
+        } else if (message=="First In")
         {
           tweet = lastman_open + tweet_time;
           message_send(twitter_out, tweet);

@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2015, Daniel Swann <hs@dswann.co.uk>
+ * Copyright (c) 2016, Daniel Swann <hs@dswann.co.uk>
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -169,11 +169,31 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
 
     if (new_door_state != _door_state)
     {
+      time_t current_time;
+      time (&current_time);
+      int skip_count=0;
+
       _db->sp_set_door_state(_id, payload);
       _door_state = new_door_state;
+
+      // update the zone of any members who swiped their card on the reader in the 10 seconds before the door was opened
+      while (_pending_arrivals.size())
+      {
+        if (current_time - _pending_arrivals.front().card_read_time > 10)
+        {
+          // ignore old card read
+          _pending_arrivals.pop();
+          skip_count++;
+          continue;
+        }
+
+        set_member_zone(_pending_arrivals.front().member_id, _pending_arrivals.front().new_zone_id);
+        _pending_arrivals.pop();
+      }
+      if (skip_count)
+        dbg("skipped over [" + CNHmqtt::itos(skip_count) + "] old arrival record(s)");
     }
   }
-
 
   else if (type=="DoorButton")
   {
@@ -190,15 +210,21 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
 
   else if (type=="RFID")
   {
-    int access_result=0;
+    int access_result = 0;
+    int new_zone_id = -1;
+    int member_id = 0;
     time(&current_time);
+    string side = " ";
+    side[0] = door_side;
 
-    if(_db->sp_gatekeeper_check_rfid(payload, _id, display_message, _handle, _last_seen, access_result, err))
+    if(_db->sp_gatekeeper_check_rfid(payload, _id, side, display_message, _handle, _last_seen, access_result, new_zone_id, member_id, err))
     {
       dbg("Call to sp_gatekeeper_check_rfid failed");
       display_message_lcd(door_side, "Access Denied: internal error", 2000);
     } else
     {
+      if (err != "")
+        dbg("err = " + err);
       display_message_lcd(door_side, display_message, 2000);
 
       if (access_result == 1)
@@ -206,6 +232,21 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
         beep(door_side);
         _cb->cbiSendMessage(unlock_topic, "1");
         time(&_last_valid_read);
+
+        // If the door is already open, update the zone recorded against the member now.
+        if ((_door_state == DS_OPEN) && (new_zone_id != -1))
+        {
+          set_member_zone(member_id, new_zone_id);
+        }
+        else
+        {
+          // door closed. Store entry record until door opened
+          member_arrival ma;
+          ma.member_id = member_id;
+          ma.new_zone_id = new_zone_id;
+          time(&ma.card_read_time);
+          _pending_arrivals.push(ma);
+        }
       }
     }
   }
@@ -217,6 +258,12 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
     _cb->cbiSendMessage(unlock_topic, display_message);
   }
 
+}
+
+int CGatekeeper_door_hs25::set_member_zone(int member_id, int new_zone_id)
+{
+  dbg("Updating current zone for member [" + CNHmqtt::itos(member_id) + "] to be [" + CNHmqtt::itos(new_zone_id) + "]");
+  return _db->sp_gatekeeper_set_zone(member_id, new_zone_id);
 }
 
 void CGatekeeper_door_hs25::display_message_lcd(char side, string message, int duration)
