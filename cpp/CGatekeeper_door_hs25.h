@@ -31,6 +31,8 @@ class CGatekeeper_door_hs25 : public CGatekeeper_door
     {
       int member_id;
       int new_zone_id;
+      std::string last_seen;
+      std::string handle;
       time_t card_read_time;
     };
 
@@ -38,13 +40,11 @@ class CGatekeeper_door_hs25 : public CGatekeeper_door
     void display_message_lcd(char side, std::string message, int duration);
     void beep(char side, int tone = 5000, int duration = 50);
     DoorState get_door_state_from_str(std::string door_state);
-    int set_member_zone(int member_id, int new_zone_id);
+    int set_member_zone(int member_id, int new_zone_id, std::string handle, std::string last_seen);
 
     std::list<door_bell> _door_bells;
     int _id;
     std::string _base_topic;
-    std::string _handle;
-    std::string _last_seen;
     std::string _entry_announce;
     time_t _last_valid_read;
     int _read_timeout;

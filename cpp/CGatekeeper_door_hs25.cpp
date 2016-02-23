@@ -41,7 +41,6 @@ CGatekeeper_door_hs25::CGatekeeper_door_hs25()
   _log = NULL;
   _db = NULL;
   door_short_name = "";
-  _handle = "";
   _entry_announce = "";
   memset(&_last_valid_read, 0, sizeof(_last_valid_read));
 }
@@ -123,52 +122,14 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
     door_side = type[0];
     type = type.substr(2, string::npos);
   }
-
-  /*
+ 
   if (type=="DoorState")
   {
-    if ((payload.substr(0, ((string)("Door Opened by:")).length() ) == "Door Opened by:") && (_handle != ""))
-    {
-      _db->sp_set_door_state(_id, "OPEN");
-
-      if (_last_seen.length() > 1)
-      {
-        _cb->cbiSendMessage(_entry_announce + "/known", "Door opened by: " + _handle + " (last seen " + _last_seen + " ago)");
-      }
-      else
-      {
-        dbg("No last seen time set");
-        _cb->cbiSendMessage(_entry_announce, payload + " " + _handle);
-      }
-      _handle = "";
-      _last_seen = "";
-    }
-    else if (payload=="Door Closed")
-    {
-      dbg("Ignoring door closed message");
-      _db->sp_set_door_state(_id, "CLOSED");
-    }
-    else if (payload=="Door Time Out")
-    {
-      _handle = "";
-      _last_seen = "";
-      _db->sp_log_event("DOOR_TIMEOUTtype", CNHmqtt::itos(_id));
-    }
-    else if (payload=="Door Opened")
-    {
-      _cb->cbiSendMessage(_entry_announce + "/unknown", "Door opened");
-      _db->sp_set_door_state(_id, "OPEN");
-    }
-    else _cb->cbiSendMessage(_entry_announce, payload); // Else just pass the message on verbatim
-  }
-  */
-  
-  if (type=="DoorState")
-  {
-    CGatekeeper_door_hs25::DoorState new_door_state = get_door_state_from_str(payload);
+    DoorState new_door_state = get_door_state_from_str(payload);
 
     if (new_door_state != _door_state)
     {
+      int entry_count = 0;
       time_t current_time;
       time (&current_time);
       int skip_count=0;
@@ -176,22 +137,32 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
       _db->sp_set_door_state(_id, payload);
       _door_state = new_door_state;
 
-      // update the zone of any members who swiped their card on the reader in the 10 seconds before the door was opened
-      while (_pending_arrivals.size())
+      if (new_door_state == DS_OPEN)
       {
-        if (current_time - _pending_arrivals.front().card_read_time > 10)
+        // update the zone of any members who swiped their card on the reader in the 10 seconds before the door was opened
+        while (_pending_arrivals.size())
         {
-          // ignore old card read
-          _pending_arrivals.pop();
-          skip_count++;
-          continue;
-        }
+          if (current_time - _pending_arrivals.front().card_read_time > 10)
+          {
+            // ignore old card read
+            _pending_arrivals.pop();
+            skip_count++;
+            continue;
+          }
 
-        set_member_zone(_pending_arrivals.front().member_id, _pending_arrivals.front().new_zone_id);
-        _pending_arrivals.pop();
+          set_member_zone(_pending_arrivals.front().member_id, _pending_arrivals.front().new_zone_id, _pending_arrivals.front().handle, _pending_arrivals.front().last_seen);
+          entry_count++;
+          _pending_arrivals.pop();
+        }
+        if (skip_count)
+          dbg("skipped over [" + CNHmqtt::itos(skip_count) + "] old arrival record(s)");
+
+        if (!entry_count)
+        {
+          // Ok, this is a little odd. The door has been opened, but we have no record of unlocking it recently.
+          _cb->cbiSendMessage(_entry_announce + "/unknown", door_short_name + " door opened");
+        }
       }
-      if (skip_count)
-        dbg("skipped over [" + CNHmqtt::itos(skip_count) + "] old arrival record(s)");
     }
   }
 
@@ -213,11 +184,13 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
     int access_result = 0;
     int new_zone_id = -1;
     int member_id = 0;
+    string last_seen = "";
+    string handle = "";
     time(&current_time);
     string side = " ";
     side[0] = door_side;
 
-    if(_db->sp_gatekeeper_check_rfid(payload, _id, side, display_message, _handle, _last_seen, access_result, new_zone_id, member_id, err))
+    if(_db->sp_gatekeeper_check_rfid(payload, _id, side, display_message, handle, last_seen, access_result, new_zone_id, member_id, err))
     {
       dbg("Call to sp_gatekeeper_check_rfid failed");
       display_message_lcd(door_side, "Access Denied: internal error", 2000);
@@ -236,7 +209,7 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
         // If the door is already open, update the zone recorded against the member now.
         if ((_door_state == DS_OPEN) && (new_zone_id != -1))
         {
-          set_member_zone(member_id, new_zone_id);
+          set_member_zone(member_id, new_zone_id, handle, last_seen);
         }
         else
         {
@@ -244,6 +217,8 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
           member_arrival ma;
           ma.member_id = member_id;
           ma.new_zone_id = new_zone_id;
+          ma.last_seen = last_seen;
+          ma.handle = handle;
           time(&ma.card_read_time);
           _pending_arrivals.push(ma);
         }
@@ -253,17 +228,26 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
 
   else if (type=="Keypad")
   {
-    _db->sp_check_pin(payload, _id, display_message, _handle, err);
+    // todo
+    string handle="";
+    _db->sp_check_pin(payload, _id, display_message, handle, err);
     dbg("err = [" + err + "]");
     _cb->cbiSendMessage(unlock_topic, display_message);
   }
 
 }
 
-int CGatekeeper_door_hs25::set_member_zone(int member_id, int new_zone_id)
+int CGatekeeper_door_hs25::set_member_zone(int member_id, int new_zone_id, string handle, string last_seen)
 {
   dbg("Updating current zone for member [" + CNHmqtt::itos(member_id) + "] to be [" + CNHmqtt::itos(new_zone_id) + "]");
-  return _db->sp_gatekeeper_set_zone(member_id, new_zone_id);
+  _db->sp_gatekeeper_set_zone(member_id, new_zone_id);
+
+  if (last_seen.length() > 1)
+    _cb->cbiSendMessage(_entry_announce + "/known", door_short_name + " door opened by: " + handle + " (last seen " + last_seen + " ago)");
+  else
+    _cb->cbiSendMessage(_entry_announce + "/known", door_short_name + " door opened by: " + handle);
+
+  return 0;
 }
 
 void CGatekeeper_door_hs25::display_message_lcd(char side, string message, int duration)

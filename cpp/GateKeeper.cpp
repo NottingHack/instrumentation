@@ -56,6 +56,8 @@ public:
 
     string entry_announce;
     string base_topic;
+    string default_message_a;
+    string default_message_b;
     CNHDBAccess *db;
 
     int read_timeout;
@@ -70,6 +72,8 @@ public:
       lastman_close = get_str_option("gatekeeper", "lastman_close", "Hackspace is closed");
       twitter_out = get_str_option("gatekeeper", "twitter_out", "nh/twitter/tx/status");
       entry_announce = get_str_option("gatekeeper", "entry_announce", "nh/gk/entry_announce");
+      default_message_a = get_str_option("gatekeeper", "default_message_a", "Welcome to HSNOTTS");
+      default_message_b = get_str_option("gatekeeper", "default_message_b", "Scan RFID to exit");
       read_timeout = get_int_option("gatekeeper", "read_timeout", 4);
       db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
     }
@@ -177,7 +181,7 @@ public:
     db->dbConnect();
     return 0;
   }
-  
+
   void setup()
   {
     // Get a list of all doors
@@ -212,6 +216,10 @@ public:
     subscribe(subscribe_base + "RFID");
 
     subscribe(lastman);
+
+    // Set default message on both sides of the doors (retained message)
+    message_send("nh/gk/DefaultMessage/A", default_message_a, 0, 1);
+    message_send("nh/gk/DefaultMessage/B", default_message_b, 0, 1);
   }
 
   int cbiSendMessage(string topic, string message)
@@ -220,25 +228,20 @@ public:
 
     return 0;
   }
-  
 };
-
-
 
 int main(int argc, char *argv[])
 {
- 
   string nick;
   string channel;
 
   string handle="";
   GateKeeper nh = GateKeeper(argc, argv);
-   
-  nh.db_connect();  
+
+  nh.db_connect();
 
   nh.init();
   nh.setup();
   nh.message_loop(); 
   return 0;
-  
 }
