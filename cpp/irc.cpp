@@ -28,6 +28,7 @@
  */
 #include "irc.h"
 #include <stdio.h>
+#include <sstream>
 
 irc::irc(string address, int port, string nick, string nickserv_password, CLogging *l)
 {
@@ -460,20 +461,25 @@ int irc::send(string message)
 
 int irc::send(string room, string message)
 {
-    string tx;
+  string tx;
+  string line;
+  if (state != irc::CONNECTED)
+  {
+    log->dbg("irc::send: Not connected!");
+    return -1;
+  }
 
-    if (state != irc::CONNECTED)
-    {
-      log->dbg("irc::send: Not connected!");
-      return -1;
-    } 
-    tx = "NOTICE " + room + " :" + message + "\r\n";
-    
+  std::stringstream ss(message);
+  while(std::getline(ss, line,'\n'))
+  {
+    tx = "NOTICE " + room + " :" + line + "\r\n";
+
     if (write(tx))
     {
       lastError = "Failed to send: [" + tx + "]";
       return -1;
-    }  
+    }
+  }
   return 0;
 }
 
@@ -488,20 +494,26 @@ int irc::send_privmsg(string message)
 int irc::send_privmsg(string room, string message)
 /* Send "PRIVMSG" (i.e. general chat msg) instead of "NOTICE" */
 {
-    string tx;
+  string tx;
+  string line;
 
-    if (state != irc::CONNECTED)
-    {
-      log->dbg("irc::send_privmsg: Not connected!");
-      return -1;
-    } 
-    tx = "PRIVMSG " + room + " :" + message + "\r\n";
-    
+  if (state != irc::CONNECTED)
+  {
+    log->dbg("irc::send_privmsg: Not connected!");
+    return -1;
+  } 
+
+  std::stringstream ss(message);
+  while(std::getline(ss, line,'\n'))
+  {
+    tx = "PRIVMSG " + room + " :" + line + "\r\n";
+
     if (write(tx))
     {
       lastError = "Failed to send(2): [" + tx + "]";
       return -1;
-    }  
+    }
+  }
   return 0;
 }
 

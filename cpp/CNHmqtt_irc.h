@@ -114,6 +114,7 @@ class CNHmqtt_irc : CNHmqtt
     using CNHmqtt::subscribe;
     using CNHmqtt::message_loop;
     using CNHmqtt::itos;
+    using CNHmqtt::debug_mode;
 
         
 //  private:
