@@ -70,6 +70,7 @@ class nh_vend : public CNHmqtt
     CNHDBAccess *db;
     std::string temperature_topic;
     std::string twitter;
+    std::string jammed_notification_topic;
     int debug_level;
 
     nh_vend(int argc, char *argv[]);

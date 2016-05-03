@@ -43,6 +43,7 @@ nh_vend::nh_vend(int argc, char *argv[]) : CNHmqtt(argc, argv)
   temperature_topic = get_str_option("temperature", "temperature_topic", "nh/temp");
   debug_level = get_int_option("vend", "debug", 2);
   twitter = get_str_option("vend", "twitter_out", "nh/twitter/tx/status");
+  jammed_notification_topic = get_str_option("vend", "jammed_notification_topic", "nh/slack/tx/network");
   db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
 }
  
@@ -406,9 +407,16 @@ void nh_vend::process_message(vm_msg* vmmsg)
       message_send(temperature_topic, dbgbuf);
   }
 
+  // JAMMED - note acceptor is jammed
+  if (!strncmp(msgbuf, "JAMMED", 6))
+  {
+     message_send(jammed_notification_topic, "Note acceptor jammed");
+  }
+
   // CASH - Cash sale
   if (!strncmp(msgbuf, "CASH", 4))
   {
+    // NB. Our vending machine doesn't inform us of cash sales, so this code will never be hit
     log->dbg("TODO: Record cash sale");
   }
 
