@@ -41,7 +41,7 @@ class CNHmqtt
     CLogging *log;
 
     int message_send(std::string topic, std::string message);
-    int message_send(std::string topic, std::string message, bool no_debug);
+    int message_send(std::string topic, std::string message, bool no_debug, bool retained = false);
     int get_int_option(std::string section, std::string option, int def_value);
     std::string get_str_option(std::string section, std::string option, std::string def_value);
         

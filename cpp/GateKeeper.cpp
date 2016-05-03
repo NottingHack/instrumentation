@@ -30,6 +30,8 @@
 #include "CNHmqtt_irc.h"
 #include "CNHDBAccess.h"
 #include "CGatekeeper_door.h"
+#include "CGatekeeper_door_original.h"
+#include "CGatekeeper_door_hs25.h"
 #include "nh-cbi.h"
 
 #include <stdio.h>
@@ -51,14 +53,16 @@ public:
     string lastman_open;
     string lastman_close;
     string twitter_out;
-    
+
     string entry_announce;
     string base_topic;
+    string default_message_a;
+    string default_message_b;
     CNHDBAccess *db;
-    
+
     int read_timeout;
-    
-    std::map<int,CGatekeeper_door> _doors;
+
+    std::map<int,CGatekeeper_door*> _doors;
 
     GateKeeper(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
     {
@@ -68,6 +72,8 @@ public:
       lastman_close = get_str_option("gatekeeper", "lastman_close", "Hackspace is closed");
       twitter_out = get_str_option("gatekeeper", "twitter_out", "nh/twitter/tx/status");
       entry_announce = get_str_option("gatekeeper", "entry_announce", "nh/gk/entry_announce");
+      default_message_a = get_str_option("gatekeeper", "default_message_a", "Welcome to HSNOTTS");
+      default_message_b = get_str_option("gatekeeper", "default_message_b", "Scan RFID to exit");
       read_timeout = get_int_option("gatekeeper", "read_timeout", 4);
       db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
     }
@@ -75,8 +81,11 @@ public:
     ~GateKeeper()
     {
       delete db;
+
+      for (std::map<int,CGatekeeper_door*>::iterator it = _doors.begin(); it != _doors.end(); ++it) 
+        delete it->second;
     }
- 
+
     void process_message(string topic, string message)
     {
       int door_id;
@@ -87,7 +96,7 @@ public:
         // Message does relate to a specific door
         if (_doors.count(door_id))
         {
-          _doors[door_id].process_door_event(command, message);
+          _doors[door_id]->process_door_event(command, message);
         }
         else
         {
@@ -114,7 +123,7 @@ public:
           message_send(irc_out, lastman_close);
           message_send(slack_out, lastman_close);
           db->sp_log_event("LAST_OUT", "");
-        } else if (message=="First In") 
+        } else if (message=="First In")
         {
           tweet = lastman_open + tweet_time;
           message_send(twitter_out, tweet);
@@ -172,7 +181,7 @@ public:
     db->dbConnect();
     return 0;
   }
-  
+
   void setup()
   {
     // Get a list of all doors
@@ -184,9 +193,14 @@ public:
       dbrow row = *iterator;
       int door_id = row["door_id"].asInt();
 
-      // log->dbg(row["door_id"].asStr() + "\t" + row["door_short_name"].asStr());
-      _doors[door_id].door_short_name = row["door_short_name"].asStr();
-      _doors[door_id].set_opts(door_id, base_topic, log, db, this, entry_announce, read_timeout);
+      // Nasty, nasty, bodge.
+      if (door_id == 1)
+        _doors[door_id] = new CGatekeeper_door_original();
+      else
+        _doors[door_id] = new CGatekeeper_door_hs25();
+
+      _doors[door_id]->door_short_name = row["door_short_name"].asStr();
+      _doors[door_id]->set_opts(door_id, base_topic, log, db, this, entry_announce, read_timeout, row["door_state"].asStr());
     }
 
     // Subscribe to wildcard MQTT topics for door events
@@ -195,34 +209,39 @@ public:
     subscribe(subscribe_base + "DoorButton");
     subscribe(subscribe_base + "RFID");
     subscribe(subscribe_base + "Keypad");
+
+    // Door side specific messages
+    subscribe_base = base_topic + "/+/+/";
+    subscribe(subscribe_base + "DoorButton");
+    subscribe(subscribe_base + "RFID");
+
     subscribe(lastman);
+
+    // Set default message on both sides of the doors (retained message)
+    message_send("nh/gk/DefaultMessage/A", default_message_a, 0, 1);
+    message_send("nh/gk/DefaultMessage/B", default_message_b, 0, 1);
   }
-  
+
   int cbiSendMessage(string topic, string message)
   {
     message_send(topic, message);
 
     return 0;
   }
-  
 };
-
-
 
 int main(int argc, char *argv[])
 {
- 
   string nick;
   string channel;
 
   string handle="";
   GateKeeper nh = GateKeeper(argc, argv);
-   
-  nh.db_connect();  
+
+  nh.db_connect();
 
   nh.init();
   nh.setup();
   nh.message_loop(); 
   return 0;
-  
 }
