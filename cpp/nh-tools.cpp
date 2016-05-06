@@ -204,7 +204,7 @@ int nh_tools::db_connect()
 
 int nh_tools::cbiSendMessage(string topic, string message)
 {
-  message_send(topic, message);
+  message_send(topic, message, false, true); // send retained messages from tools bookings logic
 
   return 0;
 }
