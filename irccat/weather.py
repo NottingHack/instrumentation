@@ -1,47 +1,42 @@
 #!/usr/bin/env python
-from xml.dom.minidom import parseString
-try:
-    from urllib.request import urlopen
-except ImportError:
-    from urllib import urlopen
-try:
-    from urllib.parse import urlencode
-except ImportError:
-    from urllib import urlencode
-from sys import argv, exit, stderr
-from os.path import expanduser
 
-VERSION = '0.3'
-URL = 'http://closure.ath.cx/cliweather'
+# Stolen from https://github.com/londonhackspace/irccat-commands/
 
-place = ' '.join(argv[5:])
-if not place:
-    place = 'NG3 1JH'
-#    place = 'E2 8HD'
+import requests
+import json
+from sys import stderr
+from pprint import pprint
 
-api = 'http://www.google.com/ig/api?%s' % urlencode({'weather': place})
+response = requests.get('https://api.forecast.io/forecast/f1668a680b102eca99dcf740b09a0072/52.9557,-1.1350?units=uk')
+data = json.loads(response.content)
 
-dom = parseString(urlopen(api).read())
+#pprint(data, stream=stderr)
 
-items = [ 'city'
-        , 'condition'
-        , 'temp_f'
-        , 'temp_c'
-        , 'humidity'
-        , 'wind_condition' ]
-info = {}
-try:
-    for item in items:
-        info[item] = dom.getElementsByTagName(item)[0].getAttribute('data')
-except IndexError:
-    stderr.write('Invalid Area\n')
-    exit(1)
+current_summary = data['currently']['summary']
+temp_c = data['currently']['temperature']
+temp_f = (temp_c * 9.0 / 5) + 32
+app_temp_c = data['currently']['apparentTemperature']
+app_temp_f = (app_temp_c * 9.0 / 5) + 32
+humidity = data['currently']['humidity']
+wind_bearing = data['currently']['windBearing']
+wind_compass = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'N'][int(wind_bearing / 45.0 + 0.5)]
+wind_speed = data['currently']['windSpeed']
+minute_summary = data['minutely']['summary']
+day_summary = data['daily']['summary']
 
-#print('City: %s' % info['city'])
-print('City: %s, %s, %sC/%sF, %s %s' % (
-    info['city'],
-    info['condition'],
-    info['temp_c'], info['temp_f'],
-    info['humidity'],
-    info['wind_condition'],
-))
+feels_like = ''
+if app_temp_c != temp_c:
+    feels_like = u' (feels like %.1f\u00b0)' % (
+        app_temp_c,
+    )
+
+msg = u'Currently %.1f\u00b0C%s, humidity %s%%, wind: %s at %.0fmph. %s %s' % (
+    temp_c,
+    feels_like,
+    int(humidity * 100),
+    wind_compass,
+    wind_speed,
+    minute_summary,
+    day_summary,
+)
+print msg.encode('utf-8')
