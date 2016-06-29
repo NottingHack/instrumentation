@@ -30,20 +30,20 @@ class nh_irccat: public CNHmqtt_irc
        msg.reply("?commands - List commands ripped off from London Hackspace");
      }
      
-     // Special case for ?commands, as it needs to PM always PM the results
+     // Special case for ?commands, as it needs to always PM the results
      // (nb commands.sh needs tweaking to remove netcat call)
      if (msg=="?commands")
      {
-       cmd = commands + " \"" + msg.nick + "\"";       
+       cmd = commands + " \"" + msg.nick + "\"";
        log->dbg("cmd = [" + cmd + "]");
        fp = popen(cmd.c_str(), "r");
        memset(cmd_ret, 0, sizeof(cmd_ret));
        while (fgets (cmd_ret , sizeof(cmd_ret) , fp))
          msg.reply_pm(cmd_ret); 
-       pclose(fp);   
+       pclose(fp);
        
        if (!msg.is_pm())
-         irc_send_channel(msg.nick + ", I have pm'd you the list of available commands.", msg.channel);       
+         msg.reply(msg.nick + ", I have pm'd you the list of available commands.");
      } else
      
      if (msg.message.substr(0, 1)=="?")
