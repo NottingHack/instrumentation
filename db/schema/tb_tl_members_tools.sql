@@ -10,4 +10,4 @@ create table tl_members_tools
   mt_access_level   varchar(20), -- USER, INDUCTOR or MAINTAINER
   primary key (member_tool_id),
   unique (tool_id, member_id)
-);
+) ENGINE = InnoDB; 

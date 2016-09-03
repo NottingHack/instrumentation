@@ -6,7 +6,7 @@ create table zones
   zone_description  varchar(100) not null, -- Long/full description of zone
   zone_short_name   varchar(10)  not null, -- Short description of zone
   permission_code   varchar(16)  null,     -- Permision code members must have to enter the zone (or null for open access)
-  unique key (zone_id)
+  primary key (zone_id)
 ) ENGINE = InnoDB;  
 
    insert into zones values (0, 'Off-site'                              , 'Off-site',  NULL  ); -- n.b. zone_id=0 is "specical"

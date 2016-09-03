@@ -10,4 +10,4 @@ create table addresses
   comments      varchar(256),
   primary key (id),
   constraint addr unique (mac_address)
-);
+) ENGINE = InnoDB; 

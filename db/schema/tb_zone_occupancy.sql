@@ -7,4 +7,4 @@ create table zone_occupancy
   member_id     int not null,
   time_entered  timestamp default CURRENT_TIMESTAMP,
   primary key (member_id)
-);
+) ENGINE = InnoDB; 

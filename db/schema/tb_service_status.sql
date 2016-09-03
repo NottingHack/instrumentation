@@ -10,4 +10,4 @@ create table service_status
   restart_time  timestamp null,
   description   varchar(2048),
   primary key (service_name)
-);
+) ENGINE = InnoDB; 

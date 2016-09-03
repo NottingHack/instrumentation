@@ -10,7 +10,7 @@ create table doors
   permission_code   varchar(16)  null,     -- link to permissions.permission_code to restict access to door (NULL=unrestircted)
   side_a_zone_id    int(11)      null,     -- Zone id of the zone on side a of the door (zone 0 = outside/off-site)
   side_b_zone_id    int(11)      null,     -- Zone id of the zone on side b of the door 
-  unique key (door_id)
+  primary key (door_id)
 ) ENGINE = InnoDB;
 
 

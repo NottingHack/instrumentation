@@ -11,4 +11,4 @@ create table access_log
   door_id       int,
   denied_reason varchar(100),
   primary key (access_id)
-);
+) ENGINE = InnoDB; 

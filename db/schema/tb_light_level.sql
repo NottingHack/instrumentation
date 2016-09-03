@@ -7,4 +7,4 @@ create table light_level
   reading int,
   time timestamp default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   primary key (sensor)
-);
+) ENGINE = InnoDB; 
