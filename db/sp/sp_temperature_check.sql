@@ -14,7 +14,8 @@ BEGIN
   declare temperature_cur cursor for
     select  concat(t.name, ' : ',  cast(t.temperature as char(5)))
     FROM temperature t
-    where t.name is not null;
+    where t.name is not null
+      and timestampdiff(minute,t.time, now()) < 20; -- ignore readings older than 20 minutes
 
     
   declare continue HANDLER for not found set done = true;
