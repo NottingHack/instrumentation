@@ -166,7 +166,7 @@ void nh_vend::receive_thread()
 
 void nh_vend::process_message(vm_msg* vmmsg)
 {
-  char rfid_serial[20];
+  char rfid_serial[22];
   char temp_addr[20];
   float temp;
   char dbgbuf[256];
@@ -182,6 +182,7 @@ void nh_vend::process_message(vm_msg* vmmsg)
   int balance;
   char msg_response[BUFLEN]="";
   char disp_msg[100];
+  string dbg_msg="";
 
   unsigned int len = vmmsg->msg.length();
   const char *msgbuf = vmmsg->msg.c_str();
@@ -218,6 +219,9 @@ void nh_vend::process_message(vm_msg* vmmsg)
       strncpy(rfid_serial, msgbuf+5, sizeof(rfid_serial)-1);
     else
       strncpy(rfid_serial, msgbuf+5, len-5);
+
+    db->sp_rfid_update(rfid_serial, CNHmqtt::hex2legacy_rfid(rfid_serial), dbg_msg);
+    log->dbg(dbg_msg);
 
     if (db->sp_vend_check_rfid (vmmsg->vm_id, rfid_serial, ret, err))
     {

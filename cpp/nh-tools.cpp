@@ -72,6 +72,7 @@ void nh_tools::process_message(string topic, string message)
   std::vector<string> split_topic;
   int member_id = 0;
   string disp_msg;
+  string dbg_msg="";
 
   // E.g. "nh/tools/laser/RFID"
 
@@ -92,6 +93,9 @@ void nh_tools::process_message(string topic, string message)
 
     if (tool_message == "AUTH")
     {
+      _db->sp_rfid_update(message, CNHmqtt_irc::hex2legacy_rfid(message), dbg_msg);
+      log->dbg(dbg_msg);
+
       if (_db->sp_tool_sign_on(tool_name, message, access_result, msg, member_id))
       {
         message_send(_tool_topic + tool_name + "/DENY", "Failure.");
@@ -150,6 +154,9 @@ void nh_tools::process_message(string topic, string message)
         card_inductee = message.substr(pos+1, string::npos);
 
         log->dbg("card_inductor=" + card_inductor + ", card_inductee=" + card_inductee);
+        _db->sp_rfid_update(card_inductee, CNHmqtt_irc::hex2legacy_rfid(card_inductee), dbg_msg);
+        log->dbg(dbg_msg);
+
         if (_db->sp_tool_induct(tool_name, card_inductor, card_inductee, ret, err))
         {
           log->dbg("sp_tool_induct failed...");

@@ -380,6 +380,21 @@ int CNHmqtt::message_loop(void)
   return 0;
 }
 
+string CNHmqtt::hex2legacy_rfid(string rfid_serial)
+{
+  unsigned long lUid;
+  stringstream ssUid;
+
+  // rfid UID must be at least 4 bytes (8 ascii characters) 
+  if (rfid_serial.length() < 8)
+    return "";
+
+  stringstream converter(rfid_serial.substr(rfid_serial.length()-8, 8)); // get the last 8 characters
+  converter >> hex >> lUid;
+  ssUid << lUid;
+
+  return ssUid.str();
+}
 
 // Other stuff not mqtt / instrumentation specifc
 // Integer to String

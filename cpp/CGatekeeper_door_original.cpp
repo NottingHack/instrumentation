@@ -162,6 +162,11 @@ void CGatekeeper_door_original::process_door_event(string type, string payload)
     {                                                             // last few seconds, do nothing (door is already open)
       int access_result=0;
       string door_side = "";
+      string msg;
+
+      _db->sp_rfid_update(payload, CNHmqtt::hex2legacy_rfid(payload), msg);
+      dbg(msg);
+
       if(_db->sp_gatekeeper_check_rfid(payload, _id, door_side, unlock_text, _handle, _last_seen, access_result, new_zone_id, member_id, err))
       {
         dbg("Call to sp_gatekeeper_check_rfid failed");

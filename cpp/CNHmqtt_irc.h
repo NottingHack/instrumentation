@@ -115,6 +115,7 @@ class CNHmqtt_irc : CNHmqtt
     using CNHmqtt::message_loop;
     using CNHmqtt::itos;
     using CNHmqtt::debug_mode;
+    using CNHmqtt::hex2legacy_rfid;
 
         
 //  private:

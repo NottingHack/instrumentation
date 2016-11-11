@@ -189,7 +189,11 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
     time(&current_time);
     string side = " ";
     side[0] = door_side;
+    string dbg_msg="";
 
+    _db->sp_rfid_update(payload, CNHmqtt::hex2legacy_rfid(payload), dbg_msg);
+    dbg(dbg_msg);
+    
     if(_db->sp_gatekeeper_check_rfid(payload, _id, side, display_message, handle, last_seen, access_result, new_zone_id, member_id, err))
     {
       dbg("Call to sp_gatekeeper_check_rfid failed");
