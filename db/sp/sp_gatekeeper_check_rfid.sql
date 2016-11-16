@@ -59,6 +59,9 @@ BEGIN
       elseif (l_access_denied = 3) then
         set p_err = "Not in correct zone (didn't swipe out?)";
         set p_display_msg = "Access Denied: Out of zone";
+      elseif (l_access_denied = 4) then
+        set p_err = "Banned member (member status 7)";
+        set p_display_msg = "Access Denied: Banned Member";
       else 
         -- Some other reason, send non-specific Access Denied
         set p_err = "Access Denied (other)";

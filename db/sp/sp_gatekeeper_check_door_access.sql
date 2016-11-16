@@ -12,6 +12,7 @@ drop procedure if exists sp_gatekeeper_check_door_access;
     1 - access denied: non-member (in reality, should mean ex-member, as earlier states shouldn't have a card yet)
     2 - access denied: no permission to open door
     3 - access denied: out of zone - card has been read at an entrance without having signed out last time
+    4 - access denied: Banned member
    98 - acsses denied: invalid door side (i.e. bug somewhere)
    99 - access denied: other
 */
@@ -100,6 +101,12 @@ BEGIN
     from members m
     where m.member_id = p_member_id;
  
+    -- Banned members get a special banned message
+    if (l_member_status = 7) then
+      set p_access_denied = 4;
+      leave main;
+    end if;
+
     -- If the door has a permission code associated with it, check the member is in a group with that code
     if (l_permission_code is not null) then
       select fn_check_permission(p_member_id, l_permission_code)
