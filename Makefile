@@ -18,7 +18,7 @@ ALL_BINS := $(addprefix $(BIN_OUT),$(ALL_BIN))
 
 SLACK_INC=-I./SlackRtm/libwebsockets/lib -I./SlackRtm/include -I./SlackRtm/libwebsockets/build
 
-CFLAGS = -Wall -Wextra -c -g
+CFLAGS = -Wall -Wextra -c -g -I/usr/include/mariadb
 LFLAGS = -Wall -g
 CC = g++
 
@@ -112,7 +112,7 @@ $(BUILD_DIR)nh-test-irc.o: $(SRC_DIR)nh-test-irc.cpp $(SRC_DIR)nh-test-irc.h
 $(BUILD_DIR)nh-matrix.o: $(SRC_DIR)nh-matrix.cpp $(SRC_DIR)nh-matrix.h
 	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-matrix.cpp $(CC_OUT)
 
-$(BUILD_DIR)nh-temperature.o: $(SRC_DIR)nh-temperature.cpp $(SRC_DIR)nh-temperature.h db/lib/CNHDBAccess.o
+$(BUILD_DIR)nh-temperature.o: $(SRC_DIR)nh-temperature.cpp $(SRC_DIR)nh-temperature.h $(BUILD_DIR)CNHDBAccess.o
 	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-temperature.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-irc-misc.o: $(SRC_DIR)nh-irc-misc.cpp $(SRC_DIR)nh-irc-misc.h
@@ -195,7 +195,7 @@ $(BUILD_DIR)CNHDBAccess.o: db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h
 
 $(BUILD_DIR)CDBValue.o: db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.h
 	$(CC) $(CFLAGS) -c db/lib/CDBValue.cpp -o $(BUILD_DIR)CDBValue.o
-
+                
 clean:
 	rm -fv build/*
 	rm -fv bin/*

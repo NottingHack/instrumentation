@@ -3,7 +3,7 @@
 #include <string.h>
 #include <sstream>
 
-#include <mysql/mysql.h>
+#include <mariadb/mysql.h>
 
 #include "CDBValue.h"
 
