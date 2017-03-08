@@ -7,7 +7,7 @@ create table bells
   bell_topic        varchar(100)  not null, -- MQTT topic the bell is subscribed to 
   bell_message      varchar( 50)  not null, -- Payload of the message required to ring the bell
   bell_enabled      boolean       not null default 1, -- enabled yes/no
-  unique key (bell_id)
+  primary key (bell_id)
 ) ENGINE = InnoDB; 
 
 

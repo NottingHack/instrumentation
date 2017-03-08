@@ -312,7 +312,7 @@ void nh_tools_bookings::get_cal_data()
   dbrows::const_iterator iterator = tool_list.begin();
   dbrow row = *iterator;
 
-  string calendar_url = "http://www.google.com/calendar/ical/" + row["tool_calendar"].asStr() + "/public/basic.ics";
+  string calendar_url = "https://calendar.google.com/calendar/ical/" + row["tool_calendar"].asStr() + "/public/basic.ics";
   dbg("calendar = " + calendar_url);
 
   dbg("Processing tool: " + 

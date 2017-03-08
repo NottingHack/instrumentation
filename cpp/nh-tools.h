@@ -74,6 +74,7 @@ class nh_tools : public CNHmqtt_irc, public InstCBI
     std::string _db_name;
     std::string _push_url;
     bool _setup_done;
+    CLogging *_bookings_log;
     
     std::map<std::string,nh_tools_bookings*> _bookings;
 

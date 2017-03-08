@@ -16,4 +16,4 @@ create table tl_tools
   tool_cal_poll_ival  int unsigned not null default 0, -- Calendar polling interval: How often to poll/publish booking information in seconds. 0=never
   primary key (tool_id),
   unique (tool_name)
-);
+) ENGINE = InnoDB; 

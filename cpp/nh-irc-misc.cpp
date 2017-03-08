@@ -124,7 +124,7 @@ class nh_irc_misc : public CNHmqtt_irc
 
          if (row["tool_status"].asStr() == "FREE")
          {
-           tools_msg += "Free; last used: " + row["usage_end"].asStr();
+           tools_msg += "Available; last used: " + row["usage_end"].asStr();
          }
          else if (row["tool_status"].asStr() == "IN_USE")
          {
@@ -132,7 +132,7 @@ class nh_irc_misc : public CNHmqtt_irc
          }
          else if (row["tool_status"].asStr() == "DISABLED")
          {
-           tools_msg += "Out of sevice";
+           tools_msg += "Out of service";
            if (!(row["tool_status_text"].isNull()))
              tools_msg += ": " + row["tool_status_text"].asStr();
          }

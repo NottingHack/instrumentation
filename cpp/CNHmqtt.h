@@ -28,6 +28,7 @@ class CNHmqtt
     static bool debug_mode;
     static bool daemonized;
     static std::string itos(int n);
+    static std::string hex2legacy_rfid(std::string rfid_serial);
     
   protected:
     std::string _mqtt_topic;
@@ -41,7 +42,7 @@ class CNHmqtt
     CLogging *log;
 
     int message_send(std::string topic, std::string message);
-    int message_send(std::string topic, std::string message, bool no_debug);
+    int message_send(std::string topic, std::string message, bool no_debug, bool retained = false);
     int get_int_option(std::string section, std::string option, int def_value);
     std::string get_str_option(std::string section, std::string option, std::string def_value);
         

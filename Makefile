@@ -18,7 +18,7 @@ ALL_BINS := $(addprefix $(BIN_OUT),$(ALL_BIN))
 
 SLACK_INC=-I./SlackRtm/libwebsockets/lib -I./SlackRtm/include -I./SlackRtm/libwebsockets/build
 
-CFLAGS = -Wall -Wextra -c -g
+CFLAGS = -Wall -Wextra -c -g -I/usr/include/mariadb
 LFLAGS = -Wall -g
 CC = g++
 
@@ -46,8 +46,8 @@ $(BIN_OUT)nh-irc-misc: $(BUILD_DIR)nh-irc-misc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJ
 $(BIN_OUT)nh-irccat: $(BUILD_DIR)nh-irccat.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
 	g++ -lpthread -lmosquitto -o $(BIN_OUT)nh-irccat $(BUILD_DIR)nh-irccat.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
 
-$(BIN_OUT)GateKeeper: $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CGatekeeper_door.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lmysqlclient -lmosquitto -lrt -o $(BIN_OUT)GateKeeper $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CGatekeeper_door.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
+$(BIN_OUT)GateKeeper: $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CGatekeeper_door_original.o  $(BUILD_DIR)CGatekeeper_door_hs25.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lmysqlclient -lmosquitto -lrt -o $(BIN_OUT)GateKeeper $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CGatekeeper_door_original.o $(BUILD_DIR)CGatekeeper_door_hs25.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 $(BIN_OUT)nh-tools: $(BUILD_DIR)nh-tools.o $(BUILD_DIR)nh-tools-bookings.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
 	g++ -lmysqlclient -lmosquitto -lrt -lpthread -lcurl -lical -ljson -luuid -o $(BIN_OUT)nh-tools $(BUILD_DIR)nh-tools.o $(BUILD_DIR)nh-tools-bookings.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
@@ -112,7 +112,7 @@ $(BUILD_DIR)nh-test-irc.o: $(SRC_DIR)nh-test-irc.cpp $(SRC_DIR)nh-test-irc.h
 $(BUILD_DIR)nh-matrix.o: $(SRC_DIR)nh-matrix.cpp $(SRC_DIR)nh-matrix.h
 	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-matrix.cpp $(CC_OUT)
 
-$(BUILD_DIR)nh-temperature.o: $(SRC_DIR)nh-temperature.cpp $(SRC_DIR)nh-temperature.h db/lib/CNHDBAccess.o
+$(BUILD_DIR)nh-temperature.o: $(SRC_DIR)nh-temperature.cpp $(SRC_DIR)nh-temperature.h $(BUILD_DIR)CNHDBAccess.o
 	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-temperature.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-irc-misc.o: $(SRC_DIR)nh-irc-misc.cpp $(SRC_DIR)nh-irc-misc.h
@@ -127,8 +127,11 @@ $(BUILD_DIR)nh-irccat.o: $(SRC_DIR)nh-irccat.cpp $(SRC_DIR)nh-irccat.h
 $(BUILD_DIR)GateKeeper.o: $(SRC_DIR)GateKeeper.cpp db/lib/CNHDBAccess.h
 	$(CC) $(CFLAGS) -c $(SRC_DIR)GateKeeper.cpp $(CC_OUT)
 
-$(BUILD_DIR)CGatekeeper_door.o: $(SRC_DIR)CGatekeeper_door.cpp db/lib/CNHDBAccess.h $(SRC_DIR)CGatekeeper_door.h
-	$(CC) $(CFLAGS) -c $(SRC_DIR)CGatekeeper_door.cpp $(CC_OUT)
+$(BUILD_DIR)CGatekeeper_door_original.o: $(SRC_DIR)CGatekeeper_door_original.cpp db/lib/CNHDBAccess.h $(SRC_DIR)CGatekeeper_door_original.h
+	$(CC) $(CFLAGS) -c $(SRC_DIR)CGatekeeper_door_original.cpp $(CC_OUT)
+
+$(BUILD_DIR)CGatekeeper_door_hs25.o: $(SRC_DIR)CGatekeeper_door_hs25.cpp db/lib/CNHDBAccess.h $(SRC_DIR)CGatekeeper_door_hs25.h
+	$(CC) $(CFLAGS) -c $(SRC_DIR)CGatekeeper_door_hs25.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-tools.o: $(SRC_DIR)nh-tools.cpp $(SRC_DIR)nh-tools.h db/lib/CNHDBAccess.h
 	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-tools.cpp $(CC_OUT)
@@ -192,7 +195,7 @@ $(BUILD_DIR)CNHDBAccess.o: db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h
 
 $(BUILD_DIR)CDBValue.o: db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.h
 	$(CC) $(CFLAGS) -c db/lib/CDBValue.cpp -o $(BUILD_DIR)CDBValue.o
-
+                
 clean:
 	rm -fv build/*
 	rm -fv bin/*

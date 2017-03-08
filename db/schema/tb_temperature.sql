@@ -7,4 +7,4 @@ create table temperature
   temperature float,
   time timestamp default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   primary key (dallas_address)
-);
+) ENGINE = InnoDB; 

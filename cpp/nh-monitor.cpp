@@ -95,8 +95,8 @@ class nh_monitor : public CNHmqtt
     state = message.substr(0, pos);               // E.g. "Running" or "Terminated"
     sname = message.substr(pos+2, string::npos);  // E.g. "Gatekeeper"
     
-    if (state != "Running" && state != "Terminated" && state != "Restart")
-      return;
+    // if (state != "Running" && state != "Terminated" && state != "Restart")
+    //  return;
     
     if (state == "Restart")
     {
@@ -165,7 +165,7 @@ class nh_monitor : public CNHmqtt
     return 0;
   }
   
-  static void sig_func(int sig)
+  static void sig_func(int)
   {
 
   }

@@ -10,4 +10,4 @@ create table tl_tool_usages
   usage_active_time   int,          -- Amount of time tool active for, where applicable (e.g. laser tube time)
   usage_status        varchar(20),  -- IN_PROGRESS, COMPLETE or CHARGED
   primary key (usage_id)
-);
+) ENGINE = InnoDB; 

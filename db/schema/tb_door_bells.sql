@@ -7,7 +7,7 @@ create table door_bells
 (
   door_id int(11) not null,
   bell_id int(11) not null,
-  unique key (door_id, bell_id)
+  primary key (door_id, bell_id)
 ) ENGINE = InnoDB; 
 
 

@@ -28,13 +28,13 @@
  */
 
 
-#include "CGatekeeper_door.h"
+#include "CGatekeeper_door_original.h"
 #include "CNHmqtt.h"
 
 using namespace std;
 
 
-CGatekeeper_door::CGatekeeper_door()
+CGatekeeper_door_original::CGatekeeper_door_original()
 {
   _id = 0;
   _base_topic = "";
@@ -46,12 +46,12 @@ CGatekeeper_door::CGatekeeper_door()
   memset(&_last_valid_read, 0, sizeof(_last_valid_read));
 }
 
-CGatekeeper_door::~CGatekeeper_door()
+CGatekeeper_door_original::~CGatekeeper_door_original()
 {
   dbg("Deleted");
 }
 
-void CGatekeeper_door::set_opts(int id, string base_topic, CLogging *log, CNHDBAccess *db, InstCBI *cb, string entry_announce, int read_timeout)
+void CGatekeeper_door_original::set_opts(int id, string base_topic, CLogging *log, CNHDBAccess *db, InstCBI *cb, string entry_announce, int read_timeout, string door_state)
 {
   _id  = id;
   _base_topic = base_topic;
@@ -60,10 +60,10 @@ void CGatekeeper_door::set_opts(int id, string base_topic, CLogging *log, CNHDBA
   _cb  = cb;
   _entry_announce = entry_announce;
   _read_timeout = read_timeout;
-  
+
   // Now the door_id has been set, get the list of door bells that should be rang when the button is pushed
   _door_bells.clear();
-  
+
   // Get a list of all bells to be rung...
   dbrows bells;
   db->sp_gatekeeper_get_door_bells(_id, &bells);
@@ -85,16 +85,15 @@ void CGatekeeper_door::set_opts(int id, string base_topic, CLogging *log, CNHDBA
   dbg("Configured");
 }
 
-void CGatekeeper_door::dbg(string msg)
+void CGatekeeper_door_original::dbg(string msg)
 {
   if (_log == NULL)
     return;
 
-  _log->dbg("CGatekeeper_door(" + door_short_name + ")", msg);
+  _log->dbg("CGatekeeper_door_original(" + door_short_name + ")", msg);
 }
 
-
-void CGatekeeper_door::process_door_event(string type, string payload)
+void CGatekeeper_door_original::process_door_event(string type, string payload)
 {
   if ((_db == NULL) || (_cb == NULL))
     return;
@@ -156,19 +155,33 @@ void CGatekeeper_door::process_door_event(string type, string payload)
 
   else if (type=="RFID")
   {
+    int new_zone_id = -1;
+    int member_id = 0;
     time(&current_time);
     if (difftime(current_time, _last_valid_read) > _read_timeout) // If there's been an unlock message sent in the
     {                                                             // last few seconds, do nothing (door is already open)
-      if(_db->sp_check_rfid(payload, _id, unlock_text, _handle, _last_seen, err))
+      int access_result=0;
+      string door_side = "";
+      string msg;
+
+      _db->sp_rfid_update(payload, CNHmqtt::hex2legacy_rfid(payload), msg);
+      dbg(msg);
+
+      if(_db->sp_gatekeeper_check_rfid(payload, _id, door_side, unlock_text, _handle, _last_seen, access_result, new_zone_id, member_id, err))
       {
-        dbg("Call to sp_check_rfid failed");
-        _cb->cbiSendMessage(unlock_topic, "Access Denied");
+        dbg("Call to sp_gatekeeper_check_rfid failed");
+        _cb->cbiSendMessage(unlock_topic, "Access Denied: Internal error");
       } else
       {
-        _cb->cbiSendMessage(unlock_topic, unlock_text); 
-
-        if (unlock_text.substr(0, 7) == "Unlock:")
+        if (access_result == 1)
+        {
           time(&_last_valid_read);
+          _cb->cbiSendMessage(unlock_topic, "Unlock:" + unlock_text);
+        }
+        else
+        {
+          _cb->cbiSendMessage(unlock_topic, unlock_text);
+        }
       }
     } else
     {
@@ -182,5 +195,5 @@ void CGatekeeper_door::process_door_event(string type, string payload)
     dbg("err = [" + err + "]");
     _cb->cbiSendMessage(unlock_topic, unlock_text);
   }
-  
+
 }
