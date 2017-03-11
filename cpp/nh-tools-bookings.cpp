@@ -141,7 +141,9 @@ void *nh_tools_bookings::s_notification_channel_thread(void *arg)
 {
   nh_tools_bookings *tools;
   tools = (nh_tools_bookings*) arg;
+  mysql_thread_init();
   tools->notification_channels_thread();
+  mysql_thread_end();
   return NULL;
 }
 
@@ -211,7 +213,9 @@ void *nh_tools_bookings::s_cal_thread(void *arg)
 {
   nh_tools_bookings *tools;
   tools = (nh_tools_bookings*) arg;
+  mysql_thread_init();
   tools->cal_thread();
+  mysql_thread_end();
   return NULL;
 }
 

@@ -121,7 +121,9 @@ int nh_vend::setup()
 
 void *nh_vend::s_receive_thread(void *arg)
 {
+  mysql_thread_init();
   ((nh_vend*)arg)->receive_thread();
+  mysql_thread_end();
   return NULL;
 }
 
