@@ -13,7 +13,7 @@ CC_OUT = -o $(BUILD_DIR)$(notdir $@)
 
 BIN_OUT = bin/
 
-ALL_BIN = nh-test nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tools nh-slack
+ALL_BIN = nh-test nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tools nh-slack nh-macmon
 ALL_BINS := $(addprefix $(BIN_OUT),$(ALL_BIN))
 
 SLACK_INC=-I./SlackRtm/libwebsockets/lib -I./SlackRtm/include -I./SlackRtm/libwebsockets/build
@@ -68,7 +68,7 @@ $(BIN_OUT)nh-mail: $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR
 	g++ -lmysqlclient -lmosquitto -o $(BIN_OUT)nh-mail $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o $(OBJS_DBLIB)
 
 $(BIN_OUT)nh-macmon: $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lpcap -lmysqlclient -lmosquitto -o $(BIN_OUT)nh-macmon $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lpcap -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-macmon $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 web/nhweb/build/script/custom.js: $(wildcard web/nhweb/source/class/custom/*)
 	sh nhweb.sh
@@ -173,7 +173,7 @@ $(BUILD_DIR)CalcWordCount.o: $(SRC_DIR)CalcWordCount.cpp
 	$(CC) $(CFLAGS) -c $(SRC_DIR)CalcWordCount.cpp $(CC_OUT)
 
 $(BUILD_DIR)CMacmon.o: $(SRC_DIR)CMacmon.cpp $(SRC_DIR)CMacmon.h
-	$(CC) $(CFLAGS) -c $(SRC_DIR)CMacmon.cpp 
+	$(CC) $(CFLAGS) -c $(SRC_DIR)CMacmon.cpp  $(CC_OUT)
 
 
 dblib: $(BUILD_DIR)gen_dblib

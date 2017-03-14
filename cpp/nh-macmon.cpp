@@ -1,7 +1,9 @@
 #include "CNHmqtt.h"
 #include "nh-macmon.h"
 #include "CMacmon.h"
-#include "db/lib/CNHDBAccess.h"
+#include "CNHDBAccess.h"
+
+using namespace std;
 
 class nh_macmon : public CNHmqtt
 {
@@ -34,7 +36,10 @@ class nh_macmon : public CNHmqtt
 
       /* Record address seen */
       for (itr = addresses.begin(); itr != addresses.end(); ++itr) 
+      {
+        log->dbg("itr->first = [" + itr->first + "]");
         _db->sp_update_address(itr->first, &itr->second);
+      }
 
       /* Publish stats */
       _db->sp_get_address_stats(_update_freq, addr_known, addr_unknown);
