@@ -3,6 +3,8 @@ SRC_DIR = cpp/
 DATABASE = database/
 BUILD_DIR = build/
 
+GOPLAN_BASE = web/plan/
+
 OBJ_BASE = CNHmqtt.o INIReader.o ini.o CLogging.o
 OBJS_BASE  := $(addprefix $(BUILD_DIR),$(OBJ_BASE))
 
@@ -70,6 +72,11 @@ $(BIN_OUT)nh-mail: $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR
 $(BIN_OUT)nh-macmon: $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
 	g++ -lpcap -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-macmon $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
 
+# buid plan written in go
+$(BIN_OUT)plan: $(GOPLAN_BASE)plan.go
+	export GOPATH=$(shell pwd)/$(GOPLAN_BASE)vendor ; \
+	go build -o $(BIN_OUT)plan $(GOPLAN_BASE)plan.go 
+	
 web/nhweb/build/script/custom.js: $(wildcard web/nhweb/source/class/custom/*)
 	sh nhweb.sh
 
@@ -195,6 +202,7 @@ $(BUILD_DIR)CNHDBAccess.o: db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h
 
 $(BUILD_DIR)CDBValue.o: db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.h
 	$(CC) $(CFLAGS) -c db/lib/CDBValue.cpp -o $(BUILD_DIR)CDBValue.o
+
                 
 clean:
 	rm -fv build/*

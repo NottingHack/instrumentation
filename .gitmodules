@@ -1,3 +1,18 @@
 [submodule "SlackRtm"]
 	path = SlackRtm
 	url = https://github.com/daniel1111/SlackRtm.git
+[submodule "web/plan/vendor/src/github.com/eclipse/paho.mqtt.golang"]
+	path = web/plan/vendor/src/github.com/eclipse/paho.mqtt.golang
+	url = https://github.com/eclipse/paho.mqtt.golang
+[submodule "web/plan/vendor/src/github.com/gorilla/websocket"]
+	path = web/plan/vendor/src/github.com/gorilla/websocket
+	url = https://github.com/gorilla/websocket
+[submodule "web/plan/vendor/src/github.com/grafov/bcast"]
+	path = web/plan/vendor/src/github.com/grafov/bcast
+	url = https://github.com/grafov/bcast
+[submodule "web/plan/vendor/src/github.com/zieckey/goini"]
+	path = web/plan/vendor/src/github.com/zieckey/goini
+	url = https://github.com/zieckey/goini
+[submodule "web/plan/vendor/src/golang.org/x/net"]
+	path = web/plan/vendor/src/golang.org/x/net
+	url = https://github.com/golang/net
