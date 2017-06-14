@@ -96,6 +96,8 @@ func main() {
     panic(token.Error())
   }
 
+  go eventGroup.Broadcast(0) // accept messages and broadcast it to all members
+
   if token := c.Subscribe("nh/gk/+/DoorState", 0, doorStateHandler); token.Wait() && token.Error() != nil {
     panic(token.Error())
   }
@@ -111,9 +113,6 @@ func main() {
   if token := c.Subscribe(statusRequestTopic, 0, func (client mqtt.Client, msg mqtt.Message) {statusReqHandler(client, msg, statusResponsetTopic, statusName)}); token.Wait() && token.Error() != nil {
     panic(token.Error())
   }
-
-
-  go eventGroup.Broadcast(0) // accept messages and broadcast it to all members
 
   // Start web server
   listenAddr := ":" + listenPort
