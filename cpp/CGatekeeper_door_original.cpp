@@ -121,7 +121,7 @@ void CGatekeeper_door_original::process_door_event(string type, string payload)
       _handle = "";
       _last_seen = "";
     }
-    else if ((payload=="CLOSED") || (payload=="LOCKED"))
+    else if (payload=="LOCKED")
     {
       _handle = "";
       _last_seen = "";
