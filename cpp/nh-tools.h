@@ -73,6 +73,7 @@ class nh_tools : public CNHmqtt_irc, public InstCBI
     std::string _db_password;
     std::string _db_name;
     std::string _push_url;
+    std::string _status_topic;
     bool _setup_done;
     CLogging *_bookings_log;
     
