@@ -107,16 +107,6 @@ void CGatekeeper_door_original::process_door_event(string type, string payload)
   {
     _db->sp_set_door_state(_id, payload);
 
-    // Ignore stale RFID card reads. So that e.g. if someone presents a valid card but never opens the door, if the door is later opened 
-    // from the inside hours later (i.e. without a card), don't use the stored details.
-    time(&current_time);
-    if ((difftime(current_time, _last_valid_read) > MAG_REL_TIMEOUT) && (_handle != ""))
-    {
-      dbg("Discarding stale handle of [" + _handle + "]");
-      _handle = "";
-      _last_seen = "";
-    }
-
     if ((payload == "OPEN") && (_handle != ""))
     {
       if (_last_seen.length() > 1)

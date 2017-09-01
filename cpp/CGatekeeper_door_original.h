@@ -8,9 +8,6 @@
 #include "nh-cbi.h"
 #include "CGatekeeper_door.h"
 
-
-#define MAG_REL_TIMEOUT 6 // (seconds) this should be close to the value in Gatekeeper/Config.h divided by 1000 (i.e. the time span as set in H/W)
-
 class CGatekeeper_door_original : public CGatekeeper_door
 {
   public:
