@@ -60,7 +60,7 @@ BEGIN
     if (vm_type = 'NOTE') then
       -- Payment made using note acceptor
 
-      select concat('Note payment - £', format((-1*v.amount_scaled)/100, 0))
+      select concat('Cash payment - £', format(abs(v.amount_scaled)/100, 2))
       into vdesc
       from vend_log v
       where v.vend_tran_id = vend_tran_id;
