@@ -40,7 +40,6 @@ BEGIN
           from purchase_payment pp
           where pp.transaction_id_payment = t.transaction_id
             and pp.transaction_id_purchase <= p_transaction_id
-            and pp.transaction_id_payment  <= p_transaction_id
         )
         order by t.transaction_id;
 

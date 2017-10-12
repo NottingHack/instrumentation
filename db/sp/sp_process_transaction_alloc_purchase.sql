@@ -39,7 +39,6 @@ BEGIN
           select ifnull(sum(pp.amount), 0)
           from purchase_payment pp
           where pp.transaction_id_purchase = t.transaction_id
-            and pp.transaction_id_purchase <= p_transaction_id
             and pp.transaction_id_payment  <= p_transaction_id
         )
         order by t.transaction_id;
