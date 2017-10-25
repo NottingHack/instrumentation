@@ -134,10 +134,11 @@ int main(int argc, char *argv[])
   
   nh_temperature nh = nh_temperature(argc, argv);
   
-  nh.mosq_connect();
+  if (nh.mosq_connect())
+    return -1;
   
   if (!nh.setup())
-    return 1;
+    return -1;
   
   // run with "-d" flag to avoid daemonizing
   nh_temperature::daemonize(); // will only work on first run

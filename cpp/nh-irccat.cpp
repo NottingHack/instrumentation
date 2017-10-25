@@ -69,19 +69,21 @@ class nh_irccat: public CNHmqtt_irc
      }
    }
    
-   bool setup()
+   int setup()
    {
      if (!init()) // connect to mosquitto, daemonize, etc
       return -1;
 
-     return true;
+     return 0;
    }
 };
 
 int main(int argc, char *argv[])
 { 
   nh_irccat nh = nh_irccat(argc, argv);
-  nh.setup();
+  
+  if (nh.setup())
+    return -1;
   
   nh.message_loop();
   return 0;
