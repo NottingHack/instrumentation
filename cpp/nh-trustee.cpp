@@ -65,37 +65,39 @@ class nh_trustee : public CNHmqtt
 
     }
 
+    static size_t s_curl_write(char *data, size_t size, size_t nmemb, void *p)
+    /* static callback used by cURL when data is recieved. */
+    {
+      ((string*)p)->append(data, size * nmemb);
+      return size*nmemb;
+    }
+
     int slack_post(string message)
     {
+      string body;
       string payload;
       int res;
       CURL *curl;
       struct curl_slist *headers = NULL;
 
-      payload = json_encode_slack_message(slack_channel, message);
-
-      // $ch = curl_init($url);
-      // $jsonData = array('text' => $user.": ".$msg);
-      // $jsonDataEncoded = json_encode($jsonData);
-      // curl_setopt($ch, CURLOPT_POST, 1);
-      // curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonDataEncoded);
-      // curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json')); 
-      // $result = curl_exec($ch);
+      body = json_encode_slack_message(slack_channel, message);
 
       // Init cURL
       curl = curl_easy_init();
+
+      headers = curl_slist_append(headers, "Accept: application/json");
+      headers = curl_slist_append(headers, "Content-Type: application/json");
+
       curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1); // Get "*** longjmp causes uninitialized stack frame ***:" without this.
       curl_easy_setopt(curl, CURLOPT_ERRORBUFFER  , _errorBuffer);
       curl_easy_setopt(curl, CURLOPT_FAILONERROR  , 1); // On error (e.g. 404), we want curl_easy_perform to return an error
       curl_easy_setopt(curl, CURLOPT_TIMEOUT      , 20L);   // wait a maximum of 20 seconds before giving up
-      
-      headers = curl_slist_append(headers, "Accept: application/json");
-      headers = curl_slist_append(headers, "Content-Type: application/json");
-
-      curl_easy_setopt(curl, CURLOPT_URL, api_url.c_str());
-      curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
-      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload.c_str());
+      curl_easy_setopt(curl, CURLOPT_URL          , api_url.c_str()); // URL for this request
+      curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");  // we are doing a POST
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER   , headers); // set the json headers
+      curl_easy_setopt(curl, CURLOPT_POSTFIELDS   , body.c_str()); // body of our post
+      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, s_curl_write); // callback for response
+      curl_easy_setopt(curl, CURLOPT_WRITEDATA    , &payload); // pointer for response storage
 
       /* Perform the request, res will get the return code */ 
       res = curl_easy_perform(curl);
@@ -103,12 +105,14 @@ class nh_trustee : public CNHmqtt
       {
         log->dbg("cURL perform failed: " + (string)_errorBuffer);
         log->dbg("URL: " + api_url);
-        log->dbg("payload: " + payload);   
+        log->dbg("body: " + body);
+        log->dbg("Slack replied: " + payload);
         curl_easy_cleanup(curl);
         return -1;
       } else
       {
-        log->dbg("Got data");
+        log->dbg("Sent to slack: " + body);
+        log->dbg("Slack replied: " + payload);
       }
 
     // dbg(LOG_DEBUG, "Got: " + payload);
