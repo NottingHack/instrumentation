@@ -1,0 +1,14 @@
+[Unit]
+Description=Slack bot
+After=network.target mosquitto.service
+Requires=mosquitto.service	
+
+[Service]
+Type=forking
+ExecStart=/home/instrumentation/bin/nh-slack -c /home/instrumentation/conf/nh-slack.conf
+#KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=instrumentation.target
+

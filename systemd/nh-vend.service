@@ -1,0 +1,14 @@
+[Unit]
+Description=Vending machine stuff 
+After=network.target mosquitto.service
+Requires=mosquitto.service	
+
+[Service]
+Type=forking
+ExecStart=/home/instrumentation/bin/nh-vend -c /home/instrumentation/conf/nh-vend.conf
+#KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=instrumentation.target
+

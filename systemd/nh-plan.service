@@ -1,0 +1,14 @@
+[Unit]
+Description=Plan
+After=network.target mosquitto.service
+Requires=mosquitto.service	
+
+[Service]
+Type=simple
+ExecStart=/home/instrumentation/bin/plan -c /home/instrumentation/conf/plan.conf  -w /home/instrumentation/plan_www/
+KillMode=process
+Restart=on-failure
+CPUQuota=10%
+
+[Install]
+WantedBy=instrumentation.target

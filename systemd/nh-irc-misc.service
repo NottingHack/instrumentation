@@ -1,0 +1,14 @@
+[Unit]
+Description=Misc. IRC stuff
+After=network.target mosquitto.service
+Requires=mosquitto.service	
+
+[Service]
+Type=forking
+ExecStart=/home/instrumentation/bin/nh-irc-misc -c /home/instrumentation/conf/nh-irc-misc.conf
+#KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=instrumentation.target
+

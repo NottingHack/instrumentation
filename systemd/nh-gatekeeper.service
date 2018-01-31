@@ -1,0 +1,14 @@
+[Unit]
+Description=Gatekeeper
+After=network.target mosquitto.service
+Requires=mosquitto.service	
+
+[Service]
+Type=forking
+ExecStart=/home/instrumentation/bin/GateKeeper -c /home/instrumentation/conf/GateKeeper.conf
+#KillMode=process
+Restart=on-failure
+
+
+[Install]
+WantedBy=instrumentation.target

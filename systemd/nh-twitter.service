@@ -1,0 +1,14 @@
+[Unit]
+Description=twitter bot
+After=network.target mosquitto.service
+Requires=mosquitto.service	
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/php /home/instrumentation/bin/nh-twitter/nh-twitter.php
+#KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=instrumentation.target
+

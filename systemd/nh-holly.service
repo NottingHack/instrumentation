@@ -1,0 +1,15 @@
+[Unit]
+Description=nh-holly IRC bot in freenode/nottinghack
+After=network.target mosquitto.service
+Requires=mosquitto.service	
+
+[Service]
+Type=forking
+ExecStart=/home/instrumentation/bin/nh-irc -c /home/instrumentation/conf/nh-irc.conf
+#KillMode=process
+Restart=always
+
+[Install]
+WantedBy=instrumentation.target
+
+
