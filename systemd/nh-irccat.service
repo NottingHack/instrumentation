@@ -1,0 +1,14 @@
+[Unit]
+Description=irccat
+After=network.target mosquitto.service
+Requires=mosquitto.service	
+
+[Service]
+Type=forking
+ExecStart=/home/instrumentation/bin/nh-irccat -c /home/instrumentation/conf/nh-irccat.conf
+#KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=instrumentation.target
+

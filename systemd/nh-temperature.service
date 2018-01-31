@@ -1,0 +1,14 @@
+[Unit]
+Description=Temperature logging and reporting
+After=network.target mosquitto.service
+Requires=mosquitto.service	
+
+[Service]
+Type=forking
+ExecStart=/home/instrumentation/bin/nh-temperature -c /home/instrumentation/conf/nh-temperature.conf
+#KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=instrumentation.target
+
