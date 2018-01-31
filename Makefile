@@ -73,7 +73,7 @@ $(BIN_OUT)nh-macmon: $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) 
 	g++ -lpcap -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-macmon $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 $(BIN_OUT)nh-trustee: $(BUILD_DIR)nh-trustee.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lmosquitto -lpthread -ljson -lcurl -o $(BIN_OUT)nh-trustee $(BUILD_DIR)nh-trustee.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lmysqlclient -lmosquitto -lpthread -ljson -lcurl -o $(BIN_OUT)nh-trustee $(BUILD_DIR)nh-trustee.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 
 # buid plan written in go

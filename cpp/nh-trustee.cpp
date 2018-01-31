@@ -47,13 +47,17 @@ class nh_trustee : public CNHmqtt
     string door_button;
     string api_url;
     string slack_channel;
+    char _errorBuffer[CURL_ERROR_SIZE];
 
     nh_trustee(int argc, char *argv[]) : CNHmqtt(argc, argv)
     {
-      entry_announce = get_str_option("gatekeeper", "entry_announce", "nh/gk/entry_announce/");
+      entry_announce = get_str_option("gatekeeper", "entry_announce", "nh/gk/entry_announce");
       door_button = get_str_option("gatekeeper", "door_button", "nh/gk/DoorButton");
       api_url = get_str_option("slack", "webhook", "https://hooks.slack.com/services/");
-      slack_channel = get_str_option("slack", "channel", "#door-log");
+      slack_channel = get_str_option("slack", "trustee_channel", "door-log");
+
+      log->dbg("api_url: " + api_url);
+      log->dbg("slack_channel: " + slack_channel);
     }
 
     ~nh_trustee()
@@ -61,7 +65,7 @@ class nh_trustee : public CNHmqtt
 
     }
 
-    void slack_post(string message)
+    int slack_post(string message)
     {
       string payload;
       int res;
@@ -80,17 +84,15 @@ class nh_trustee : public CNHmqtt
 
       // Init cURL
       curl = curl_easy_init();
-      // curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1); // Get "*** longjmp causes uninitialized stack frame ***:" without this.
-      // curl_easy_setopt(curl, CURLOPT_ERRORBUFFER  , _errorBuffer);
-      // curl_easy_setopt(curl, CURLOPT_FAILONERROR  , 1); // On error (e.g. 404), we want curl_easy_perform to return an error
-      // curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, s_curl_write);
-      // curl_easy_setopt(curl, CURLOPT_WRITEDATA    , &payload);
-      // curl_easy_setopt(curl, CURLOPT_TIMEOUT      , 20L);   // wait a maximum of 20 seconds before giving up
+      curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1); // Get "*** longjmp causes uninitialized stack frame ***:" without this.
+      curl_easy_setopt(curl, CURLOPT_ERRORBUFFER  , _errorBuffer);
+      curl_easy_setopt(curl, CURLOPT_FAILONERROR  , 1); // On error (e.g. 404), we want curl_easy_perform to return an error
+      curl_easy_setopt(curl, CURLOPT_TIMEOUT      , 20L);   // wait a maximum of 20 seconds before giving up
       
       headers = curl_slist_append(headers, "Accept: application/json");
       headers = curl_slist_append(headers, "Content-Type: application/json");
 
-      curl_easy_setopt(curl, CURLOPT_URL, api_url);
+      curl_easy_setopt(curl, CURLOPT_URL, api_url.c_str());
       curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
       curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
       curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload.c_str());
@@ -100,6 +102,8 @@ class nh_trustee : public CNHmqtt
       if (res != CURLE_OK)
       {
         log->dbg("cURL perform failed: " + (string)_errorBuffer);
+        log->dbg("URL: " + api_url);
+        log->dbg("payload: " + payload);   
         curl_easy_cleanup(curl);
         return -1;
       } else
