@@ -53,7 +53,7 @@ BEGIN
     door_event_time_m,
     door_event_time_s
   from events
-  where event_type in ('DOOR_OPENED', 'DOOR_CLOSED')
+  where event_type in ('DOOR_OPENED', 'DOOR_CLOSED', 'DOOR_LOCKED')
   order by event_time desc, event_id desc
   limit 1; 
  
