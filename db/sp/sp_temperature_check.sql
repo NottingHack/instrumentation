@@ -12,7 +12,7 @@ BEGIN
   declare tstr varchar(100);
 
   declare temperature_cur cursor for
-    select  concat(t.name, ' : ',  cast(t.temperature as char(5)))
+    select  concat(t.name, ' : ',  cast(format(temperature, 1) as char(5)))
     FROM temperature t
     where t.name is not null
       and timestampdiff(minute,t.time, now()) < 20; -- ignore readings older than 20 minutes
