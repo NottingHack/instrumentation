@@ -37,7 +37,7 @@
   "let" :
   {
     "APPLICATION"  : "custom",
-    "QOOXDOO_PATH" : "../../qooxdoo-4.0.1-sdk",
+    "QOOXDOO_PATH" : "../../qooxdoo-5.0.2-sdk",
     "QXTHEME"      : "custom.theme.Theme",
     "API_EXCLUDE"  : ["qx.test.*", "${APPLICATION}.theme.*", "${APPLICATION}.test.*", "${APPLICATION}.simulation.*"],
     "LOCALES"      : [ "en" ],
