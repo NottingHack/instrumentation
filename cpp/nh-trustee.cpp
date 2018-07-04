@@ -45,6 +45,7 @@ class nh_trustee : public CNHmqtt
   public:
     string entry_announce;
     string door_button;
+    string last_man;
     string api_url;
     string slack_channel;
     char _errorBuffer[CURL_ERROR_SIZE];
