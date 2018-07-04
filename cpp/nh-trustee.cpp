@@ -149,7 +149,7 @@ class nh_trustee : public CNHmqtt
 
       if (topic == last_man) 
       {
-        slack_post(message)
+        slack_post(message);
       }
 
       if (topic == door_button)
