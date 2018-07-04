@@ -53,6 +53,7 @@ class nh_trustee : public CNHmqtt
     {
       entry_announce = get_str_option("gatekeeper", "entry_announce", "nh/gk/entry_announce");
       door_button = get_str_option("gatekeeper", "door_button", "nh/gk/DoorButton");
+      last_man = get_str_option("gatekeeper", "lastman", "nh/gk/LastManState");
       api_url = get_str_option("slack", "webhook", "https://hooks.slack.com/services/");
       slack_channel = get_str_option("slack", "trustee_channel", "door-log");
 
@@ -146,6 +147,11 @@ class nh_trustee : public CNHmqtt
         slack_post(message);
       }
 
+      if (topic == last_man) 
+      {
+        slack_post(message)
+      }
+
       if (topic == door_button)
       {
         string tmp;
@@ -169,6 +175,7 @@ class nh_trustee : public CNHmqtt
     {
      subscribe(entry_announce + "/#");
      subscribe(door_button);
+     subscribe(last_man);
       
       return true;
     }
