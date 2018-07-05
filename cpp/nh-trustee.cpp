@@ -45,7 +45,9 @@ class nh_trustee : public CNHmqtt
   public:
     string entry_announce;
     string door_button;
-    string last_man;
+    string lastman;
+    string lastman_open;
+    string lastman_close;
     string api_url;
     string slack_channel;
     char _errorBuffer[CURL_ERROR_SIZE];
@@ -54,7 +56,9 @@ class nh_trustee : public CNHmqtt
     {
       entry_announce = get_str_option("gatekeeper", "entry_announce", "nh/gk/entry_announce");
       door_button = get_str_option("gatekeeper", "door_button", "nh/gk/DoorButton");
-      last_man = get_str_option("gatekeeper", "lastman", "nh/gk/LastManState");
+      lastman = get_str_option("gatekeeper", "lastman", "nh/gk/LastManState");
+      lastman_open = get_str_option("gatekeeper", "lastman_open", "Hackspace now Open!");
+      lastman_close = get_str_option("gatekeeper", "lastman_close", "Hackspace is closed");
       api_url = get_str_option("slack", "webhook", "https://hooks.slack.com/services/");
       slack_channel = get_str_option("slack", "trustee_channel", "door-log");
 
@@ -146,14 +150,18 @@ class nh_trustee : public CNHmqtt
       if ((topic.substr(0, entry_announce.length() ) == entry_announce))
       {
         slack_post(message);
-      }
 
-      if (topic == last_man) 
+      } else if (topic == lastman) 
       {
-        slack_post(message);
-      }
+        if (message=="Last Out") 
+        {
+          slack_post(lastman_close);
+        } else if (message=="First In")
+        {
+          slack_post(lastman_open);
+        }
 
-      if (topic == door_button)
+      } else if (topic == door_button)
       {
         string tmp;
         tmp = message;
@@ -176,7 +184,7 @@ class nh_trustee : public CNHmqtt
     {
      subscribe(entry_announce + "/#");
      subscribe(door_button);
-     subscribe(last_man);
+     subscribe(lastman);
       
       return true;
     }
