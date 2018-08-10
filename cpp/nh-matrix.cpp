@@ -233,7 +233,7 @@ class nh_mini_matrix : public CNHmqtt_irc
       return str;
     }
 
-    bool setup()
+    int setup()
     { 
       if (!init()) // connect to mosquitto, daemonize, etc
         return -1;
@@ -291,7 +291,7 @@ class nh_mini_matrix : public CNHmqtt_irc
       subscribe(topic_gatekeeper + "/#");
       subscribe(topic_doorbell);
 
-      return true;
+      return 0;
     }
 
     void udp_send(string msg)
@@ -513,7 +513,9 @@ int main(int argc, char *argv[])
  // run with "-d" flag to avoid daemonizing
  
   nh_mini_matrix nh = nh_mini_matrix(argc, argv);
-  nh.setup();
+  
+  if (nh.setup())
+    return -1;
   
   nh.message_loop();
   return 0;

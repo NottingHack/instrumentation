@@ -1,0 +1,15 @@
+[Unit]
+Description=Trustee Slack
+After=network.target mosquitto.service
+Requires=mosquitto.service  
+
+[Service]
+Type=forking
+ExecStart=/home/instrumentation/bin/nh-trustee -c /home/instrumentation/conf/nh-trustee.conf
+#KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=instrumentation.target
+
+

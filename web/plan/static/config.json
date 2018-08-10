@@ -1,0 +1,8 @@
+{
+  "DoorCount":9,
+  "Plans":[
+    {"Name": "plan-up"},
+    {"Name": "plan-down"}
+  ]
+
+}

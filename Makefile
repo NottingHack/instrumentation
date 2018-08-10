@@ -3,6 +3,8 @@ SRC_DIR = cpp/
 DATABASE = database/
 BUILD_DIR = build/
 
+GOPLAN_BASE = web/plan/
+
 OBJ_BASE = CNHmqtt.o INIReader.o ini.o CLogging.o
 OBJS_BASE  := $(addprefix $(BUILD_DIR),$(OBJ_BASE))
 
@@ -13,7 +15,7 @@ CC_OUT = -o $(BUILD_DIR)$(notdir $@)
 
 BIN_OUT = bin/
 
-ALL_BIN = nh-test nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tools nh-slack
+ALL_BIN = nh-test nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tools nh-slack nh-macmon nh-trustee
 ALL_BINS := $(addprefix $(BIN_OUT),$(ALL_BIN))
 
 SLACK_INC=-I./SlackRtm/libwebsockets/lib -I./SlackRtm/include -I./SlackRtm/libwebsockets/build
@@ -68,8 +70,17 @@ $(BIN_OUT)nh-mail: $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR
 	g++ -lmysqlclient -lmosquitto -o $(BIN_OUT)nh-mail $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o $(OBJS_DBLIB)
 
 $(BIN_OUT)nh-macmon: $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lpcap -lmysqlclient -lmosquitto -o $(BIN_OUT)nh-macmon $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lpcap -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-macmon $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
 
+$(BIN_OUT)nh-trustee: $(BUILD_DIR)nh-trustee.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lmysqlclient -lmosquitto -lpthread -ljson -lcurl -o $(BIN_OUT)nh-trustee $(BUILD_DIR)nh-trustee.o $(OBJS_BASE) $(OBJS_DBLIB)
+
+
+# buid plan written in go
+$(BIN_OUT)plan: $(GOPLAN_BASE)plan.go
+	export GOPATH=$(shell pwd)/$(GOPLAN_BASE)vendor ; \
+	go build -o $(BIN_OUT)plan $(GOPLAN_BASE)plan.go 
+	
 web/nhweb/build/script/custom.js: $(wildcard web/nhweb/source/class/custom/*)
 	sh nhweb.sh
 
@@ -148,6 +159,9 @@ $(BUILD_DIR)nh-irc.o: $(SRC_DIR)nh-irc.cpp
 $(BUILD_DIR)nh-slack.o: $(SRC_DIR)nh-slack.cpp SlackRtm/lib/libslackrtm.a
 	$(CC) $(CFLAGS) $(SLACK_INC) -c $(SRC_DIR)nh-slack.cpp $(CC_OUT)
 
+$(BUILD_DIR)nh-trustee.o: $(SRC_DIR)nh-trustee.cpp
+	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-trustee.cpp $(CC_OUT)
+	
 $(BUILD_DIR)irc.o: $(SRC_DIR)irc.cpp $(SRC_DIR)irc.h
 	$(CC) $(CFLAGS) -c $(SRC_DIR)irc.cpp  $(CC_OUT)
 
@@ -173,7 +187,7 @@ $(BUILD_DIR)CalcWordCount.o: $(SRC_DIR)CalcWordCount.cpp
 	$(CC) $(CFLAGS) -c $(SRC_DIR)CalcWordCount.cpp $(CC_OUT)
 
 $(BUILD_DIR)CMacmon.o: $(SRC_DIR)CMacmon.cpp $(SRC_DIR)CMacmon.h
-	$(CC) $(CFLAGS) -c $(SRC_DIR)CMacmon.cpp 
+	$(CC) $(CFLAGS) -c $(SRC_DIR)CMacmon.cpp  $(CC_OUT)
 
 
 dblib: $(BUILD_DIR)gen_dblib
@@ -195,6 +209,7 @@ $(BUILD_DIR)CNHDBAccess.o: db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h
 
 $(BUILD_DIR)CDBValue.o: db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.h
 	$(CC) $(CFLAGS) -c db/lib/CDBValue.cpp -o $(BUILD_DIR)CDBValue.o
+
                 
 clean:
 	rm -fv build/*

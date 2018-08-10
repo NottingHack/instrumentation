@@ -1,0 +1,14 @@
+[Unit]
+Description=Network address counter
+After=network.target mosquitto.service
+Requires=mosquitto.service	
+
+[Service]
+Type=forking
+ExecStart=/home/instrumentation/bin/nh-macmon -c /home/instrumentation/conf/nh-macmon.conf
+#KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=instrumentation.target
+

@@ -1,0 +1,12 @@
+.statusOpen {
+    color: green;
+}
+
+.statusError {
+    color: red;
+}
+
+.statusSetup {
+    color: DarkOrange;
+}
+

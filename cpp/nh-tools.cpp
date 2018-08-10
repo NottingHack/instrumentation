@@ -41,8 +41,9 @@ nh_tools::nh_tools(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
   _tool_topic     = get_str_option("tools", "tool_topic"   , "nh/tools/"); // tool name is appended to this, e.g. laser's topic is nh/tools/laser/
   _client_id      = get_str_option("tools", "client_id"    , "<NOT SET>");
   _client_secret  = get_str_option("tools", "client_secret", "<NOT SET>");
-  _bookings_topic = get_str_option("tools", "bookings_topic", "nh/bookings/");
+  _bookings_topic = get_str_option("tools", "bookings_topic","nh/bookings/");
   _push_url       = get_str_option("tools", "push_url"     , "https://lspace.nottinghack.org.uk/temp/google.php");
+  _status_topic   = get_str_option("tools", "status_topic" , "nh/status/tool/");
 
   _db_server   = get_str_option("mysql", "server"  , "localhost");
   _db_username = get_str_option("mysql", "username", "gatekeeper");
@@ -106,6 +107,7 @@ void nh_tools::process_message(string topic, string message)
           // Access granted
           _db->sp_tool_pledged_remain(tool_name, member_id, disp_msg);
           message_send(_tool_topic + tool_name + "/GRANT", msg + disp_msg);
+          message_send(_status_topic + tool_name, "IN_USE", false, true);
         }
         else
         {
@@ -114,6 +116,8 @@ void nh_tools::process_message(string topic, string message)
       }
     } else if (tool_message == "COMPLETE")
     {
+      message_send(_status_topic + tool_name, "SIGNED_OFF", false, true);
+
       if (_db->sp_tool_sign_off(tool_name, atoi(tool_message.c_str()), msg))
       {
         log->dbg("sp_tool_sign_off failed...");
@@ -126,6 +130,7 @@ void nh_tools::process_message(string topic, string message)
       // Device has either just been powered up, or has reconnected and isn't in use - so make sure it's signed off
       if ((message == "BOOT") || (message == "IDLE"))
       {
+        message_send(_status_topic + tool_name, "SIGNED_OFF", false, true);
         if (_db->sp_tool_sign_off(tool_name, atoi(tool_message.c_str()), msg))
         {
           log->dbg("sp_tool_sign_off failed...");

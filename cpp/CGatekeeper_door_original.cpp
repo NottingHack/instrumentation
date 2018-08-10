@@ -105,10 +105,10 @@ void CGatekeeper_door_original::process_door_event(string type, string payload)
 
   if (type=="DoorState")
   {
-    if ((payload.substr(0, ((string)("Door Opened by:")).length() ) == "Door Opened by:") && (_handle != ""))
-    {
-      _db->sp_set_door_state(_id, "OPEN");
+    _db->sp_set_door_state(_id, payload);
 
+    if ((payload == "OPEN") && (_handle != ""))
+    {
       if (_last_seen.length() > 1)
       {
         _cb->cbiSendMessage(_entry_announce + "/known", "Door opened by: " + _handle + " (last seen " + _last_seen + " ago)");
@@ -116,28 +116,20 @@ void CGatekeeper_door_original::process_door_event(string type, string payload)
       else
       {
         dbg("No last seen time set");
-        _cb->cbiSendMessage(_entry_announce, payload + " " + _handle);
+        _cb->cbiSendMessage(_entry_announce + "/known", "Door opened by: " + _handle);
       }
       _handle = "";
       _last_seen = "";
     }
-    else if (payload=="Door Closed")
-    {
-      dbg("Ignoring door closed message");
-      _db->sp_set_door_state(_id, "CLOSED");
-    }
-    else if (payload=="Door Time Out")
+    else if (payload=="LOCKED")
     {
       _handle = "";
       _last_seen = "";
-      _db->sp_log_event("DOOR_TIMEOUT", CNHmqtt::itos(_id));
     }
-    else if (payload=="Door Opened")
+    else if (payload=="OPEN")
     {
       _cb->cbiSendMessage(_entry_announce + "/unknown", "Door opened");
-      _db->sp_set_door_state(_id, "OPEN");
     }
-    else _cb->cbiSendMessage(_entry_announce, payload); // Else just pass the message on verbatim
   }
 
   else if (type=="DoorButton")
@@ -180,7 +172,12 @@ void CGatekeeper_door_original::process_door_event(string type, string payload)
         }
         else
         {
+          // access denied (usually card not found)
           _cb->cbiSendMessage(unlock_topic, unlock_text);
+
+          // If the card was found (e.g. ex-member), hanndle/last seen might have been set... clear this so it's not used when the door is next opened
+          _handle = "";
+          _last_seen = "";
         }
       }
     } else

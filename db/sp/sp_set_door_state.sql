@@ -19,6 +19,7 @@ BEGIN
     set evt = case 
         when p_door_state = 'OPEN'   then 'DOOR_OPENED' 
         when p_door_state = 'CLOSED' then 'DOOR_CLOSED'
+        when p_door_state = 'LOCKED' then 'DOOR_LOCKED'
         else 'UNKNOWN'
       end;
     

@@ -178,8 +178,7 @@ public:
 
   int db_connect()
   {
-    db->dbConnect();
-    return 0;
+    return db->dbConnect();
   }
 
   void setup()
@@ -238,9 +237,12 @@ int main(int argc, char *argv[])
   string handle="";
   GateKeeper nh = GateKeeper(argc, argv);
 
-  nh.db_connect();
+  if (nh.db_connect())
+    return -1;
 
-  nh.init();
+  if (!nh.init())
+    return -1;
+
   nh.setup();
   nh.message_loop(); 
   return 0;
