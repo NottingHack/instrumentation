@@ -25,7 +25,7 @@ LFLAGS = -Wall -g
 CC = g++
 
 
-all: $(ALL_BINS) db/lib/CNHDBAccess.php
+all: $(ALL_BINS) db/lib/CNHDBAccess.php $(BIN_OUT)plan
 
 $(BIN_OUT)nh-test: $(BUILD_DIR)nh-test.o $(OBJS_BASE)
 	g++ -lmosquitto -o $(BIN_OUT)nh-test $(BUILD_DIR)nh-test.o $(OBJS_BASE)
