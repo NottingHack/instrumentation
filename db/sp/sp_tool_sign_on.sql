@@ -95,6 +95,23 @@ BEGIN
       leave main;
     end if;
 
+    -- Check that the member hasn't had access to the tool
+    -- disabled. Note that this check applies even to tools
+    -- that are normally unrestricted (i.e. no induction).
+    select count(*)
+    into cnt
+    from tl_members_tools mt
+    where mt.member_id = p_member_id
+      and mt.tool_id   = tool_id
+      and mt.mt_access_level = 'DISABLED';
+
+    if (cnt >= 1) then
+      set p_msg = 'Access disabled';
+      call sp_log_event('TOOL', concat('Access attempt by disabled account ', p_member_id,  ' to tool_id ', tool_id));
+      leave main;
+    end if;
+    
+
     -- Check tool hasn't been disabled
     if (tool_status = 'DISABLED') then
       set p_msg = 'Out of service';
