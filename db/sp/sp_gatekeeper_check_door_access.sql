@@ -84,9 +84,9 @@ BEGIN
         leave main;
       end if;
 
-      set p_new_zone_id = ifnull(l_door_new_zone, -1);
+      set p_new_zone_id = ifnull(l_door_new_zone, 0);
 
-      -- zone_id = 0 is special - it means off-site/outside (i.e. door is an exit). So always allow that, skipping other checks
+      -- zone_id = 0 is special - it means either off-site/outside (i.e. door is an exit), or zone checks aren't being used. So always allow that, skipping other checks
       if (l_door_new_zone = 0) then
         set p_access_denied = 0;
         leave main;

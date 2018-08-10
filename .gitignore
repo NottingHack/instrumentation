@@ -1,10 +1,13 @@
 *.o
 *~
 
+qooxdoo-4.0.1-sdk.zip
+qooxdoo-4.0.1-sdk/
 qooxdoo-1.6-sdk/
 web/nhweb/build/
 website/
 
+web/db.php
 db/lib/CNHDBAccess.cpp
 db/lib/CNHDBAccess.h
 db/lib/CNHDBAccess.php

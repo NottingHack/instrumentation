@@ -1,5 +1,5 @@
 <?php
-require "/home/instrumentation/db.php";
+require "../../db.php";
 
 header('Access-Control-Allow-Origin: *');
 header("Cache-Control: no-cache, must-revalidate");
@@ -7,7 +7,7 @@ header("Content-type: application/json");
 
 //$oInstDB = new CNHDBAccess('localhost', 'nh-web', 'nh-web', 'instrumentation');
 $oInstDB = db_link();
-$oInstDB->sp_get_space_status($space_open, $last_change, &$rs_temps);
+$oInstDB->sp_get_space_status($space_open, $last_change, $rs_temps);
 
 $aStatus = Array();
 $aStatus['api'] = "0.13";

@@ -227,6 +227,11 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
           _pending_arrivals.push(ma);
         }
       }
+      else
+      {
+        // Access Denied
+        beep(door_side, 500, 3000);       
+      }
     }
   }
 

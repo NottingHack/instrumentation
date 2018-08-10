@@ -48,8 +48,8 @@ BEGIN
     where member_id = p_member_id;
 
     -- record log entry for old zone
-    insert into zone_occupancy_log (zone_id      , member_id  , time_entered    )
-                            values (p_new_zone_id, p_member_id, old_time_entered);
+    insert into zone_occupancy_log (zone_id    , member_id  , time_entered    )
+                            values (old_zone_id, p_member_id, old_time_entered);
 
   end if;
 END //
