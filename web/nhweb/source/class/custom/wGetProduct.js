@@ -1,8 +1,9 @@
+
 qx.Class.define("custom.wGetProduct",
 {
   extend : qx.ui.window.Window,
 
-  construct : function(loc)
+  construct : function(vmc_ref_id, loc)
   {
     this.base(arguments, "Select Product");
 
@@ -75,7 +76,7 @@ qx.Class.define("custom.wGetProduct",
 
         try 
         {
-          var prdlst = rpc.callSync("setvendprd", loc, item.getModel());
+          var prdlst = rpc.callSync("setvendprd", vmc_ref_id, item.getModel());
         } catch (exc) 
         {
             alert("Exception during sync call: " + exc);

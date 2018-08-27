@@ -90,11 +90,17 @@ class class_nhweb extends ServiceIntrospection
         }
         
         $link = db_link2();
-        $result = mysqli_query($link, "select coalesce(vr.loc_name, '') as Position, coalesce(p.shortdesc, '') as Product from vmc_ref vr left outer join vmc_state vs on vr.vmc_ref_id = vs.vmc_ref_id left outer join products p on vs.product_id = p.product_id order by vr.loc_name");
+        $result = mysqli_query($link, "select vr.vmc_ref_id, vd.vmc_description, coalesce(vr.loc_name, '') as Position, coalesce(p.shortdesc, '') as Product 
+from vmc_ref vr 
+inner join vmc_details vd on vd.vmc_id = vr.vmc_id
+left outer join vmc_state vs on vr.vmc_ref_id = vs.vmc_ref_id 
+left outer join products p on vs.product_id = p.product_id 
+order by vr.vmc_id, vr.loc_name;
+");
         $rows = array();
         while($row = mysqli_fetch_assoc($result)) 
         {
-          $rows[] = array($row["Position"], $row["Product"]);
+          $rows[] = array($row["vmc_ref_id"], $row["vmc_description"], $row["Position"], $row["Product"]);
         }
         mysqli_close($link);
         return json_encode($rows);

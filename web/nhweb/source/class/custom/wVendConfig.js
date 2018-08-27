@@ -12,7 +12,7 @@ qx.Class.define("custom.wVendConfig",
   //  this.setShowMinimize(false);
 
     // adjust size
-    this.setWidth(250);
+    this.setWidth(450);
     this.setHeight(300);
 
     // add the layout
@@ -25,12 +25,14 @@ qx.Class.define("custom.wVendConfig",
     // add grid
     var rowData = this.getRowData();
     var tableModel = new qx.ui.table.model.Simple();
-    tableModel.setColumns(["Position", "Product"]);
+    tableModel.setColumns(["vmc_ref_id", "Vending Machine", "Position", "Product"]);
     tableModel.setData(rowData);
     tableModel.setColumnEditable(1, false);
-    tableModel.setColumnEditable(2, true);    
+    tableModel.setColumnEditable(2, false);
+    tableModel.setColumnEditable(3, false);
+    tableModel.setColumnEditable(4, true);
 
-    var vendGrid = new qx.ui.table.Table(tableModel);
+    var vendGrid = new qx.ui.table.Table(tableModel, {initiallyHiddenColumns: [0]});
 
     vendGrid.set({
       width: 600,
@@ -51,10 +53,10 @@ qx.Class.define("custom.wVendConfig",
     postButton.addListener("execute", function() 
     {
 
-       var loc = tableModel.getValue(0, vendGrid.getFocusedRow());
-
+       var loc = tableModel.getValue(2, vendGrid.getFocusedRow());
+       var vmc_ref_id = tableModel.getValue(0, vendGrid.getFocusedRow());
     
-        var gprd = new custom.wGetProduct(loc);
+        var gprd = new custom.wGetProduct(vmc_ref_id, loc);
         gprd.moveTo(55, 35);
         gprd.setModal(true); 
         gprd.addListener("beforeClose", function(e) 
