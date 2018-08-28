@@ -9,7 +9,7 @@ DELIMITER //
 CREATE PROCEDURE sp_web_set_vendprd
 (
    IN   member_id   int,
-   IN   vmc_ref_id  int,
+   IN   p_vmc_ref_id  int,
    IN   product_id  int,
    OUT  err         varchar(255)
 )
@@ -26,7 +26,7 @@ BEGIN
 
     select count(*) into ck_exists
     from vmc_ref vr
-    where vr.vmc_ref_id = vmc_ref_id;
+    where vr.vmc_ref_id = p_vmc_ref_id;
 
     if (ck_exists != 1) then
       set err = 'Failed to find location';
@@ -35,7 +35,7 @@ BEGIN
 
     if (product_id = -1) then
       delete from vmc_state
-      where vmc_ref_id = vmc_ref_id;
+      where vmc_ref_id = p_vmc_ref_id;
 
       leave main;
     end if;
@@ -50,10 +50,9 @@ BEGIN
     end if;
 
 
-    replace into vmc_state (vmc_ref_id, product_id) values (vmc_ref_id, product_id);
+    replace into vmc_state (vmc_ref_id, product_id) values (p_vmc_ref_id, product_id);
 
   end main;
 
 END //
 DELIMITER ;
-

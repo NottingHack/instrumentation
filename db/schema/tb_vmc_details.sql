@@ -15,6 +15,6 @@ create table vmc_details
 insert into vmc_details values (1, 'Studio vending machine', 'VEND', 'UDP' , '192.168.0.12');
 insert into vmc_details values (2, 'Note acceptor'         , 'NOTE', 'MQTT', 'nh/note_acc/');
 insert into vmc_details values (3, 'Coin acceptor'         , 'NOTE', 'MQTT', 'nh/coin_acc/');
-insert into vmc_details values (4, 'Can vending machine'   , 'VEND', 'MQTT', 'nh/can_vend/');
+insert into vmc_details values (4, 'Can vending machine'   , 'VEND', 'MQTT', 'nh/CanVend/');
 
 
