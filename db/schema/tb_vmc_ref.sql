@@ -87,4 +87,4 @@ insert into vmc_ref (vmc_id, loc_name, loc_encoded) values (4, 'E5', '00-2c');
 insert into vmc_ref (vmc_id, loc_name, loc_encoded) values (4, 'E6', '00-2d');
 insert into vmc_ref (vmc_id, loc_name, loc_encoded) values (4, 'E7', '00-2e');
 insert into vmc_ref (vmc_id, loc_name, loc_encoded) values (4, 'E8', '00-2f');
-insert into vmc_ref (vmc_id, loc_name, loc_encoded) values (4, 'E8', '00-30');
+insert into vmc_ref (vmc_id, loc_name, loc_encoded) values (4, 'E9', '00-30');

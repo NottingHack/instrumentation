@@ -19,7 +19,7 @@ create table doors
 insert into doors values (1, 'Upstairs inner Gatekeeper door', 'UP-INNER'     , 'UNKNOWN', sysdate(), NULL,    0, NULL);
 insert into doors values (2, 'Upstairs outer door'           , 'UP-OUTER'     , 'UNKNOWN', sysdate(), NULL, NULL, NULL); -- Not RFID controlled
 insert into doors values (3, 'Workshop door'                 , 'WORKSHOP'     , 'UNKNOWN', sysdate(), NULL, NULL, NULL); -- Not RFID controlled
-insert into doors values (4, 'Goods lift entrance'           , 'GOODS'        , 'UNKNOWN', sysdate(), NULL,    0,    2);
+insert into doors values (4, 'CNC corridor door'             , 'CNCCORIDOR'   , 'UNKNOWN', sysdate(), 'DOOR_CNC',    0, NULL);
 insert into doors values (5, 'Team storage'                  , 'TEAMSTORE'    , 'UNKNOWN', sysdate(), NULL,    2, NULL);
 insert into doors values (6, 'Communal (Left)'               , 'COMMUNAL-L'   , 'UNKNOWN', sysdate(), NULL,    0,    2);
 insert into doors values (7, 'Communal (Right)'              , 'COMMUNAL-R'   , 'UNKNOWN', sysdate(), NULL,    0,    1);
