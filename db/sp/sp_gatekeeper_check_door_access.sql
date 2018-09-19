@@ -11,7 +11,7 @@ drop procedure if exists sp_gatekeeper_check_door_access;
     0 - access granted
     1 - access denied: non-member (in reality, should mean ex-member, as earlier states shouldn't have a card yet)
     2 - access denied: no permission to open door
-    3 - access denied: out of zone - card has been read at an entrance without having signed out last time
+    3 - (unused / put next reason here)
     4 - access denied: Banned member
    98 - acsses denied: invalid door side (i.e. bug somewhere)
    99 - access denied: other
@@ -131,29 +131,7 @@ BEGIN
       leave main;
     end if;
 
-    -- Don't allow entry if the current zone stored against the member doesn't match where the card was read
-    -- Get current zone from db
-    select count(*) into ck_exists
-    from zone_occupancy z
-    where z.member_id = p_member_id;
-
-    if (ck_exists = 0) then
-      -- no current location recorded for member, so can't possibly be the wrong zone. Allow access.
-      set p_access_denied = 0;
-      leave main;
-    end if;
-
-    select z.zone_id
-    into l_db_zone_id
-    from zone_occupancy z
-    where z.member_id = p_member_id;
-
-    if (l_db_zone_id != l_door_current_zone) then
-      set p_access_denied = 3;
-      leave main;
-    else
-      set p_access_denied = 0;
-    end if;
+    set p_access_denied = 0;
 
   end main;
 

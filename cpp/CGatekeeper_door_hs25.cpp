@@ -211,20 +211,23 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
         time(&_last_valid_read);
 
         // If the door is already open, update the zone recorded against the member now.
-        if ((_door_state == DS_OPEN) && (new_zone_id != -1))
+        if (new_zone_id != -1)
         {
-          set_member_zone(member_id, new_zone_id, handle, last_seen);
-        }
-        else
-        {
-          // door closed. Store entry record until door opened
-          member_arrival ma;
-          ma.member_id = member_id;
-          ma.new_zone_id = new_zone_id;
-          ma.last_seen = last_seen;
-          ma.handle = handle;
-          time(&ma.card_read_time);
-          _pending_arrivals.push(ma);
+          if (_door_state == DS_OPEN)
+          {
+            set_member_zone(member_id, new_zone_id, handle, last_seen);
+          }
+          else
+          {
+            // door closed. Store entry record until door opened
+            member_arrival ma;
+            ma.member_id = member_id;
+            ma.new_zone_id = new_zone_id;
+            ma.last_seen = last_seen;
+            ma.handle = handle;
+            time(&ma.card_read_time);
+            _pending_arrivals.push(ma);
+          }
         }
       }
       else
