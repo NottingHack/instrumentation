@@ -58,6 +58,7 @@ public:
     string base_topic;
     string default_message_a;
     string default_message_b;
+    string exit_message;
     CNHDBAccess *db;
 
     int read_timeout;
@@ -74,6 +75,7 @@ public:
       entry_announce = get_str_option("gatekeeper", "entry_announce", "nh/gk/entry_announce");
       default_message_a = get_str_option("gatekeeper", "default_message_a", "Welcome to HSNOTTS");
       default_message_b = get_str_option("gatekeeper", "default_message_b", "Scan RFID to exit");
+      exit_message = get_str_option("gatekeeper", "exit_message", "Goodbye");
       read_timeout = get_int_option("gatekeeper", "read_timeout", 4);
       db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
     }
@@ -199,7 +201,7 @@ public:
         _doors[door_id] = new CGatekeeper_door_hs25();
 
       _doors[door_id]->door_short_name = row["door_short_name"].asStr();
-      _doors[door_id]->set_opts(door_id, base_topic, log, db, this, entry_announce, read_timeout, row["door_state"].asStr());
+      _doors[door_id]->set_opts(door_id, base_topic, log, db, this, entry_announce, read_timeout, row["door_state"].asStr(), exit_message);
     }
 
     // Subscribe to wildcard MQTT topics for door events

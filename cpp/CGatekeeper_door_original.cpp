@@ -51,7 +51,7 @@ CGatekeeper_door_original::~CGatekeeper_door_original()
   dbg("Deleted");
 }
 
-void CGatekeeper_door_original::set_opts(int id, string base_topic, CLogging *log, CNHDBAccess *db, InstCBI *cb, string entry_announce, int read_timeout, string door_state)
+void CGatekeeper_door_original::set_opts(int id, string base_topic, CLogging *log, CNHDBAccess *db, InstCBI *cb, string entry_announce, int read_timeout, string door_state, string)
 {
   _id  = id;
   _base_topic = base_topic;

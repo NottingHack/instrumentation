@@ -50,7 +50,7 @@ CGatekeeper_door_hs25::~CGatekeeper_door_hs25()
   dbg("Deleted");
 }
 
-void CGatekeeper_door_hs25::set_opts(int id, string base_topic, CLogging *log, CNHDBAccess *db, InstCBI *cb, string entry_announce, int read_timeout, string door_state)
+void CGatekeeper_door_hs25::set_opts(int id, string base_topic, CLogging *log, CNHDBAccess *db, InstCBI *cb, string entry_announce, int read_timeout, string door_state, string exit_message)
 {
   _id  = id;
   _base_topic = base_topic;
@@ -59,6 +59,7 @@ void CGatekeeper_door_hs25::set_opts(int id, string base_topic, CLogging *log, C
   _cb  = cb;
   _entry_announce = entry_announce;
   _read_timeout = read_timeout;
+  _exit_message = exit_message;
 
   // Now the door_id has been set, get the list of door bells that should be rang when the button is pushed
   _door_bells.clear();
@@ -145,14 +146,14 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
           if (current_time - _pending_arrivals.front().card_read_time > 10)
           {
             // ignore old card read
-            _pending_arrivals.pop();
+            _pending_arrivals.pop_front();
             skip_count++;
             continue;
           }
 
           set_member_zone(_pending_arrivals.front().member_id, _pending_arrivals.front().new_zone_id, _pending_arrivals.front().handle, _pending_arrivals.front().last_seen);
           entry_count++;
-          _pending_arrivals.pop();
+          _pending_arrivals.pop_front();
         }
         if (skip_count)
           dbg("skipped over [" + CNHmqtt::itos(skip_count) + "] old arrival record(s)");
@@ -193,7 +194,7 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
 
     _db->sp_rfid_update(payload, CNHmqtt::hex2legacy_rfid(payload), dbg_msg);
     dbg(dbg_msg);
-    
+
     if(_db->sp_gatekeeper_check_rfid(payload, _id, side, display_message, handle, last_seen, access_result, new_zone_id, member_id, err))
     {
       dbg("Call to sp_gatekeeper_check_rfid failed");
@@ -202,7 +203,11 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
     {
       if (err != "")
         dbg("err = " + err);
-      display_message_lcd(door_side, display_message, 2000);
+
+      if (door_side == 'B')
+        display_message_lcd(door_side, _exit_message, 2000);
+      else
+        display_message_lcd(door_side, display_message, 2000);
 
       if (access_result == 1)
       {
@@ -226,14 +231,14 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
             ma.last_seen = last_seen;
             ma.handle = handle;
             time(&ma.card_read_time);
-            _pending_arrivals.push(ma);
+            add_pending_arrival(ma);
           }
         }
       }
       else
       {
         // Access Denied
-        beep(door_side, 500, 3000);       
+        beep(door_side, 500, 3000);
       }
     }
   }
@@ -251,15 +256,36 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
 
 int CGatekeeper_door_hs25::set_member_zone(int member_id, int new_zone_id, string handle, string last_seen)
 {
+  string direction;
   dbg("Updating current zone for member [" + CNHmqtt::itos(member_id) + "] to be [" + CNHmqtt::itos(new_zone_id) + "]");
   _db->sp_gatekeeper_set_zone(member_id, new_zone_id);
 
-  if (last_seen.length() > 1)
-    _cb->cbiSendMessage(_entry_announce + "/known", door_short_name + " door opened by: " + handle + " (last seen " + last_seen + " ago)");
+  if (new_zone_id == 0)
+    direction = "->";
   else
-    _cb->cbiSendMessage(_entry_announce + "/known", door_short_name + " door opened by: " + handle);
+    direction = "<-";
+
+  if (last_seen.length() > 1)
+    _cb->cbiSendMessage(_entry_announce + "/known", door_short_name + " (" + direction + ") door opened by: " + handle + " (last seen " + last_seen + " ago)");
+  else
+    _cb->cbiSendMessage(_entry_announce + "/known", door_short_name + " (" + direction + ") door opened by: " + handle);
 
   return 0;
+}
+
+void CGatekeeper_door_hs25::add_pending_arrival(struct member_arrival ma)
+// Add a pending arrial, if not already pending
+{
+  for (unsigned int n = 0; n < _pending_arrivals.size(); ++n) 
+  {
+    if (_pending_arrivals.at(n).member_id == ma.member_id)
+    {
+      dbg("Member ID already in pending arrivals list, replacing");
+      _pending_arrivals[n] = ma;
+      return;
+    }
+  }
+  _pending_arrivals.push_back(ma);
 }
 
 void CGatekeeper_door_hs25::display_message_lcd(char side, string message, int duration)
