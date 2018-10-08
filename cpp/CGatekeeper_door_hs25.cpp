@@ -204,7 +204,7 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
       if (err != "")
         dbg("err = " + err);
 
-      if (door_side == 'B')
+      if ((door_side == 'B') && (access_result == 1))
         display_message_lcd(door_side, _exit_message, 2000);
       else
         display_message_lcd(door_side, display_message, 2000);
