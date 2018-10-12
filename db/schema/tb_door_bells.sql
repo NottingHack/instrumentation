@@ -22,3 +22,9 @@ insert into door_bells values (2, 5);
 -- Workshop door bell button (which doesn't exist yet) rings the workshop bell with 3 rings
 insert into door_bells values (3, 6);
 
+-- CNC corridor door bell button rings the G5 bell with 1 ring
+insert into door_bells values (4, 7);
+
+-- Communal-l/blue room door bell button rings the G5 bell with 2 rings
+insert into door_bells values (6, 8);
+

@@ -18,3 +18,6 @@ insert into bells values (3, 'Comfy area - 3 rings', 'nh/gk/bell/ComfyArea', '3'
 insert into bells values (4, 'Workshop - 1 ring ', 'nh/gk/bell/Workshop', '1', 1);
 insert into bells values (5, 'Workshop - 2 rings', 'nh/gk/bell/Workshop', '2', 1);
 insert into bells values (6, 'Workshop - 3 rings', 'nh/gk/bell/Workshop', '3', 1);
+
+insert into bells values (7, 'G5 - 1 ring' , 'nh/gk/bell/G5', '1', 1);
+insert into bells values (8, 'G5 - 2 rings', 'nh/gk/bell/G5', '2', 1);
