@@ -1,5 +1,7 @@
 {
   "DoorCount":9,
+  "LightCount":19,
+  "LightingWebSocket":"ws://queen:8181/lighting",
   "Plans":[
     {"Name": "plan-up"},
     {"Name": "plan-down"}

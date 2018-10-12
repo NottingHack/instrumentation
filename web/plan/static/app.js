@@ -2,6 +2,7 @@
 
 var tempLabelNameToElement = {};
 var doorIdToPlan = {};
+var lightIdToPlan = {};
 var config = {};
 
 window.onload = function()
@@ -43,16 +44,24 @@ function failedToGetConfig()
 
 function init()
 {
+  
   var displayStatus = document.getElementById('displayStatus');
 
-  // Find which door is on which plan
+  // Find which doors/lights are on which plan
   findDoors();
+  findLights();
 
   // Hide all status icons for all doors
   for (i = 1; i <= config.DoorCount; i++)
   {
     setDoorState(i, "NOTHING");
     setBellState(i, "OFF");
+  }
+  
+  // Set all lights to off
+  for (i = 1; i <= config.LightCount; i++)
+  {
+    setLightState(i, "OFF");
   }
 
   // Set all temperature labels to an empty string and populate tempLabelNameToElement
@@ -79,7 +88,6 @@ function init()
     displayStatus.className = 'statusError';
   };
 
-
   // Handle events sent by the server.
   socket.onmessage = function(event)
   {
@@ -100,7 +108,6 @@ function init()
         setTemp(eventMsg.Location, eventMsg.Temperature);
         break;
     }
-
   };
 
   // Show a disconnected message when the WebSocket is closed.
@@ -110,6 +117,48 @@ function init()
     displayStatus.className = 'statusError';
   };
 
+  // Lighting socket
+  var lightingSocket = new WebSocket(config.LightingWebSocket, 'lighting');
+  lightingSocket.onopen = function(event)
+  {
+    console.log("Connected to lighting WS");
+  };
+  
+  lightingSocket.onopen = function(event)
+  {
+    // TODO: where should this come from?
+    lightingSocket.send("{\"eventType\":\"ConnectRequest\",\"token\":\"9p5cNFsViBtysW4RBtPwemH0ZuLcZUl031i4dP3r\"}");
+  };
+
+
+  // Handle events sent by the lighting server.
+  lightingSocket.onmessage = function(event)
+  {
+    var message = event.data;
+    eventMsg = JSON.parse(message);
+
+    if (Array.isArray(eventMsg)) 
+    {
+      eventMsg.forEach(function(event) 
+      { 
+        processLightingMessage(event);
+      })
+    }
+    else
+    {
+      processLightingMessage(eventMsg);
+    }
+  }
+}
+
+function processLightingMessage(message)
+{
+  switch (message.eventType)
+  {
+    case "LightState":
+      setLightState(message.light, message.state);
+      break;
+  }
 }
 
 function setDoorState(doorId, newState)
@@ -194,6 +243,20 @@ function setBellState(doorId, state)
     hideElement(element, plan);
 }
 
+function setLightState(lightId, state)
+{
+  if (lightId > config.LightCount)
+    return;
+
+  plan = lightIdToPlan[lightId];
+  element = "LIGHT_" + lightId;
+
+  if (state == "ON")
+    showElement(element, plan);
+  else if (state == "OFF")
+    hideElement(element, plan);
+}
+
 function hideElement(elementId, plan)
 {
   var a = document.getElementById(plan);
@@ -215,7 +278,16 @@ function showElement(elementId, plan)
 // Set the temperature label for a given location. Assumes location is unique across all plans
 function setTemp(location, value)
 {
-  tempLabelNameToElement["TEMP_" + location].textContent = value.toFixed(1) + "\u00B0C";
+  var labelName = "TEMP_" + location;
+
+  if (typeof tempLabelNameToElement[labelName]  === 'undefined')
+  {
+    console.log("Element [" + labelName + "] not found in SVG");
+  }
+  else
+  {
+    tempLabelNameToElement[labelName].textContent = value.toFixed(1) + "\u00B0C";
+  }
 }
 
 
@@ -255,3 +327,21 @@ function findDoors()
     }
   }
 }
+
+// Find which plan each light is on, and store the mapping in lightIdToPlan
+function findLights()
+{
+  for (i = 1; i <= config.LightCount; i++)
+  {
+    for (j = 0; j < config.Plans.length; j++)
+    {
+      var a = document.getElementById(config.Plans[j].Name);
+      var svgDoc = a.contentDocument;
+      var element = svgDoc.getElementById("LIGHT_" + i);
+      if (element != null)
+        lightIdToPlan[i] = config.Plans[j].Name;
+    }
+  }
+}
+
+
