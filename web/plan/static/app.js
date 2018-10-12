@@ -4,6 +4,7 @@ var tempLabelNameToElement = {};
 var doorIdToPlan = {};
 var lightIdToPlan = {};
 var config = {};
+var lightingSocket;
 
 window.onload = function()
 {
@@ -44,7 +45,6 @@ function failedToGetConfig()
 
 function init()
 {
-  
   var displayStatus = document.getElementById('displayStatus');
 
   // Find which doors/lights are on which plan
@@ -118,7 +118,7 @@ function init()
   };
 
   // Lighting socket
-  var lightingSocket = new WebSocket(config.LightingWebSocket, 'lighting');
+  lightingSocket = new WebSocket(config.LightingWebSocket, 'lighting');
   lightingSocket.onopen = function(event)
   {
     console.log("Connected to lighting WS");
@@ -163,7 +163,6 @@ function processLightingMessage(message)
 
 function setDoorState(doorId, newState)
 {
-
   switch (newState)
   {
     case "NOTHING":
@@ -203,7 +202,6 @@ function initDoorState(doorId)
   hideElement("DOOR_" + doorId + "_LOCKED", plan);
   hideElement("DOOR_" + doorId + "_WARNING", plan);
 }
-
 
 function flashBell(doorId, duration)
 {
@@ -290,7 +288,6 @@ function setTemp(location, value)
   }
 }
 
-
 // Find all text elements with an ID starting with TEMP_, and set the text to ""
 // (hide all the temperature labels until we receive a temperature)
 // Also, store a reference to each element/label found in tempLabelNameToElement, so
@@ -339,9 +336,28 @@ function findLights()
       var svgDoc = a.contentDocument;
       var element = svgDoc.getElementById("LIGHT_" + i);
       if (element != null)
+      {
         lightIdToPlan[i] = config.Plans[j].Name;
+      }
     }
   }
 }
 
+// This is called whenever an element on the SVG is clicked
+function svgElementClicked(theElement)
+{
+  if (theElement.id.substring(0, 11) == "LIGHT_RECT_")
+    toggleLight(theElement.id.substring(11));
+}
 
+function toggleLight(lightId)
+{
+  var lightRequestEvent = 
+  {
+    "eventType": "LightRequest",
+ // "room": ele.id.split('_')[0].replace(/-/g, ' '),
+    "light": parseInt(lightId, 10),
+    "state": "TOGGLE"
+  }
+  lightingSocket.send(JSON.stringify(lightRequestEvent));
+}
