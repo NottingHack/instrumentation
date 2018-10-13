@@ -17,7 +17,9 @@ BEGIN
   
   if (address_exists = 1) then
     UPDATE temperature
-    SET temperature = (temp_update)
+    SET 
+      temperature = (temp_update),
+      time = now()
     WHERE dallas_address = address;
   else
     INSERT INTO temperature (dallas_address, temperature)
