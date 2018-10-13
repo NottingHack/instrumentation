@@ -109,10 +109,10 @@ class nh_mini_matrix : public CNHmqtt_irc
       // Door opened - show on display (but only interested if a name was reported)
       if (topic == (topic_gatekeeper + "/known"))
       { 
-        pos = message.find_first_of('(');
+        pos = message.find_first_of(':');
         if (pos != string::npos)
         {
-          display_alert(message.substr(0, pos-1), message.substr(pos, string::npos), false); 
+          display_alert(message.substr(0, pos), message.substr(pos+1, string::npos), false); 
         } else
           display_alert(message, "", false); 
       }
