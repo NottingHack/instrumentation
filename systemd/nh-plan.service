@@ -9,6 +9,8 @@ ExecStart=/home/instrumentation/bin/plan -c /home/instrumentation/conf/plan.conf
 KillMode=process
 Restart=on-failure
 CPUQuota=10%
+User=instrumentation
+Group=instrumentation
 
 [Install]
 WantedBy=instrumentation.target
