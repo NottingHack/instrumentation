@@ -26,7 +26,7 @@ select
       and t.transaction_status = 'COMPLETE'
   ) as "Payments"
 from vend_log l
-where (l.vmc_id = 1 or l.vmc_id is null)
+where (l.vmc_id in (1, 4) or l.vmc_id is null)
   and l.success_datetime is not null
   and (year(l.success_datetime) > 2012 or (year(l.success_datetime)=2012 and month(l.success_datetime) >= 6))
 group by year(l.success_datetime), monthname(l.success_datetime)
