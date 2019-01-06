@@ -8,6 +8,7 @@ import (
   "strconv"
   "flag"
   "os"
+  "time"
   "github.com/eclipse/paho.mqtt.golang"
   "github.com/grafov/bcast"
   "github.com/zieckey/goini"
@@ -206,6 +207,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
   conn, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
   if err != nil {
     http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
+    return
   }
 
   go wsSendEvents(conn)
@@ -237,6 +239,7 @@ func sendInitalTemperatures(conn *websocket.Conn) {
 
 // Main websocket handler - one of these (thread/go routine) per connected client
 func wsSendEvents(conn *websocket.Conn) {
+  defer conn.Close();
 
   // Client has just connected... send inital door states & temperatures
   sendInitalDoorStates(conn)
@@ -244,12 +247,14 @@ func wsSendEvents(conn *websocket.Conn) {
 
   // Join broadcast group to get door events arriving via mqtt
   events := eventGroup.Join()
+  defer eventGroup.Leave(events)
 
   // Send door events to connected client. On error (likley client disconnect), exit goroutine
   for {
     event := events.Recv() // Wait for broadcasted events
+    conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
     if err := conn.WriteJSON(event); err != nil {
-      fmt.Println(err)
+      fmt.Println("wsSendEvents> ", err)
       return
     }
   }
