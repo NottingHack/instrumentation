@@ -1,0 +1,4 @@
+check for pending trans.
+run:
+php generate_invoices.php
+php send_pending.php
