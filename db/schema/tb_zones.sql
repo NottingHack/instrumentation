@@ -14,3 +14,5 @@ create table zones
 -- insert into zones values (2, 'Members storage'                       , 'Zone 2'  , 'ZONE2');
    insert into zones values (2, 'Laser, CNC & blue room'                , 'Zone 2'  , 'ZONE2');
 -- insert into zones values (4, 'Infastructure & team storage'          , 'Zone 4'  , 'ZONE4');
+   insert into zones values (5, 'Upstairs / HS2.0'                      , 'Zone 5'  , 'ZONE5');
+
