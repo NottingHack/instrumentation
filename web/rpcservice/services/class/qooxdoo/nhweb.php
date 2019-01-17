@@ -2,8 +2,8 @@
 
 
 require_once "server/lib/JSON.phps";
-require_once "../../../krb5_auth.php";
-require_once "../../../db.php";
+require_once "../../../www_secure/krb5_auth.php";
+require_once "../../../www_secure/db.php";
 
 
     

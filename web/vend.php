@@ -14,7 +14,7 @@
 
 <?php
 
-require "../db.php";
+require "../www_secure/db.php";
 
 $oInstDB = db_link();
 
