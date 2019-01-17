@@ -1,15 +1,17 @@
 <?php
 
-require_once "../../db.php";
-require_once "../../krb5_auth.php";
+require_once "../../www_secure/db.php";
+require_once "../../www_secure/krb5_auth.php";
 
 function writeMsg($sMsg) 
 {
   $sLogFile = "/home/instrumentation/logs/wiki.log";
         
   $sOutput = date("M d H:i:s") . ": " . $sMsg . "\n";
-  file_put_contents($sLogFile, $sOutput, FILE_APPEND);
+//  file_put_contents($sLogFile, $sOutput, FILE_APPEND | LOCK_EX);
 }
+
+writeMsg("Wiki auth.");
 
 $include_error = false;
 
@@ -156,3 +158,4 @@ function login()
 
 ?>
   
+
