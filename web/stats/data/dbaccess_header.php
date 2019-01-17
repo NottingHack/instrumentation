@@ -5,7 +5,7 @@ header("Cache-Control: max-age=43200"); // Stats don't change much and are expen
 header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + 43200)); 
 header("Content-type: application/json");
 
-include "../../../db.php";
+include "../../../www_secure/db.php";
 
 function sql_to_tt_json($db, $sql, $params=null)
 /* Given a PDO/MySQL connection and sql statment with optional parameters, return the results
