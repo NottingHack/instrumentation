@@ -5,8 +5,7 @@
     <table border="0" cellspacing="2" cellpadding="2">
 
 <?php
-require "db.php";
-//require "../db.php";
+require "../../www_secure/db.php";
 
 $date_from = $_GET["from"];
 $date_to   = $_GET["to"];
@@ -74,6 +73,7 @@ $sSQLVDetails = "
   where gs.ggemail_date >= FROM_UNIXTIME($date_from)
     and gs.ggemail_date <  FROM_UNIXTIME($date_to)
     and gs.ggaddresses_id = $ggaddresses_id
+    order by gm.ggemail_date desc
 ";
 
 

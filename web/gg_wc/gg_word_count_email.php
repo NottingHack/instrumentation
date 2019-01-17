@@ -7,8 +7,7 @@
     <table border="0" cellspacing="2" cellpadding="2">
 
 <?php
-require "db.php";
-//require "../db.php";
+require "../../www_secure/db.php";
 
 $ggemail_id = $_GET["ggemail_id"];
 
