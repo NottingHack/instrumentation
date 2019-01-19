@@ -13,21 +13,14 @@ mysql -uroot -proot -e "grant select on instrumentation.* to 'inst_run'@'localho
 mysql -uroot -proot -e "GRANT ALL ON *.* TO 'hms'@'localhost' IDENTIFIED BY '' WITH GRANT OPTION"
 mysql -uroot -proot -e "FLUSH PRIVILEGES"
 
-apachectl restart
-
-echo "deb http://ftp.debian.org/debian jessie-backports main" >> /etc/apt/sources.list
+# echo "deb http://ftp.debian.org/debian jessie-backports main" >> /etc/apt/sources.list
 apt-get update
+apt-get -y install libmariadb-dev libjson-c-dev libcurl4-gnutls-dev libical-dev uuid-dev cmake libwebsockets-dev libutfcpp-dev libboost1.62-dev libpcap0.8-dev golang
 
-# Now using mariadb, so remove mysql first
-
-# apt-get -y install libmariadbd-dev mariadb-client mariadb-common mariadb-server libmariadb-client-lgpl-dev libmariadb-client-lgpl-dev-compat libmariadb2 libmosquittopp-dev libmosquittopp1 libpcap0.8-dev golang-1.6
-
-apt-get -y install libjson-c-dev libcurl4-gnutls-dev libical-dev uuid-dev cmake libwebsockets-dev libutfcpp-dev libboost1.62-dev libpcap0.8-dev golang-1.6
-
-
-ln -s /usr/lib/go-1.6/bin/go /usr/bin/go
+# ln -s /usr/lib/go-1.6/bin/go /usr/bin/go
 
 cd /vagrant
+make clean
 make
 php db/db_load.php ALL
 
