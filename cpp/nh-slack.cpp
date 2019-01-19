@@ -29,8 +29,7 @@
 
 
 #include "CNHmqtt.h"
-#include "SlackRTMCallbackInterface.h"
-#include "CSlackRTM.h"
+#include "slackrtm/slackrtm.h"
 
 #include <stdio.h>
 #include <signal.h>

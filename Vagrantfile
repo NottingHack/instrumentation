@@ -10,7 +10,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # please see the online documentation at vagrantup.com.
 
   # Every Vagrant virtual environment requires a box to build off of.
-  config.vm.box = "NottingHack/hsnotts"
+  config.vm.box = "NottingHack/hms2"
   config.vm.hostname = "hsnotts.nottingtest.org.uk"
   config.vm.provision :shell, path: "vagrant_config/bootstrap.sh"
 
@@ -24,6 +24,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # accessing "localhost:8080" will access port 80 on the guest machine.
   config.vm.network "forwarded_port", guest: 80, host: 8000
 #  config.vm.network "forwarded_port", guest: 3306, host:3000
+  config.vm.network "forwarded_port", guest: 8000, host:8001
 
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.

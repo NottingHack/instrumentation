@@ -19,11 +19,11 @@ echo "deb http://ftp.debian.org/debian jessie-backports main" >> /etc/apt/source
 apt-get update
 
 # Now using mariadb, so remove mysql first
-apt-get -y remove mysql-common mysql-client-5.5 mysql-server mysql-server-5.5 mysql-server-core-5.5 libmysqlclient-dev libmysqlclient18:amd64
 
-debconf-set-selections <<< 'mysql-server mysql-server/root_password password root'
-debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password root'
-apt-get -y install libmariadbd-dev mariadb-client mariadb-common mariadb-server libmariadb-client-lgpl-dev libmariadb-client-lgpl-dev-compat libmariadb2 libmosquittopp-dev libmosquittopp1 libpcap0.8-dev golang-1.6
+# apt-get -y install libmariadbd-dev mariadb-client mariadb-common mariadb-server libmariadb-client-lgpl-dev libmariadb-client-lgpl-dev-compat libmariadb2 libmosquittopp-dev libmosquittopp1 libpcap0.8-dev golang-1.6
+
+apt-get -y install libjson-c-dev libcurl4-gnutls-dev libical-dev uuid-dev cmake libwebsockets-dev libutfcpp-dev libboost1.62-dev libpcap0.8-dev golang-1.6
+
 
 ln -s /usr/lib/go-1.6/bin/go /usr/bin/go
 
@@ -48,7 +48,7 @@ if [ ! -f 'qooxdoo-5.0.2-sdk.zip' ]; then
     unzip -q qooxdoo-5.0.2-sdk.zip
 fi
 
-make nh-web web2
+# make nh-web web2
 
 rm -rf /var/www/html/
 ln -s /vagrant/website/public/ /var/www/html

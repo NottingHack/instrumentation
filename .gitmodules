@@ -16,3 +16,6 @@
 [submodule "web/plan/vendor/src/golang.org/x/net"]
 	path = web/plan/vendor/src/golang.org/x/net
 	url = https://github.com/golang/net
+[submodule "db/database"]
+	path = db/database
+	url = git@github.com:NottingHack/database.git

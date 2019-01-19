@@ -9,6 +9,13 @@
  *     is "tb_<table name>.sql"
  */ 
 
+class ctable
+{
+  public $filepath;
+  public $loaded;
+  public $error;
+}
+
 $config_file = "database.conf";
 $base_path = __DIR__ . "/";
 
@@ -48,17 +55,11 @@ if (isset($argv[1]))
       if (fgets(STDIN) != "yes\n")
         exit();
     }
-    // Load tables
-    $path = $base_path . "schema/";
-    $aFileList = scandir($path);
-    foreach($aFileList as $file) 
-    {
-      if (is_table($file))
-        load_file($path . $file, $aConfig, $oDB);
-    }    
-    
+
+    load_tables($base_path . "database/schema/", $aConfig, $oDB);
+
     // Load SPs
-    $path = $base_path . "sp/";
+    $path = $base_path . "database/procedures/";
     $aFileList = scandir($path);
     foreach($aFileList as $file) 
     {
@@ -66,15 +67,19 @@ if (isset($argv[1]))
         load_file($path . $file, $aConfig, $oDB);
     }
 
-    // Load sample data
-    load_file($base_path . "test_data.sql", $aConfig, $oDB);
+    // Load inital data
+    load_inital_data($base_path, $aConfig, $oDB);
+  }
+  else if ($filename == "DATA")
+  {
+    load_inital_data($base_path, $aConfig, $oDB);
   }
   else if (is_table($filename))
   {
     if (file_exists(realpath($filename)))
       $filenamepath = realpath($filename);
-    else if (file_exists(realpath($base_path . "schema/" . $filename)))
-      $filenamepath = realpath($base_path . "schema/" . $filename);
+    else if (file_exists(realpath($base_path . "database/schema/" . $filename)))
+      $filenamepath = realpath($base_path . "database/schema/" . $filename);
     else
     {
       echo "Not found!\n";
@@ -99,7 +104,7 @@ if (isset($argv[1]))
     if (file_exists($filename))
     load_file($filename, $aConfig, $oDB);
     else
-      load_file($base_path . "sp/" . $filename, $aConfig, $oDB);
+      load_file($base_path . "database/procedures/" . $filename, $aConfig, $oDB);
   } else
   {
     // Not an SP, not a table. What is it?
@@ -112,7 +117,7 @@ else
   $input = fgets(STDIN);
   if ($input == "yes\n")
   {
-    $path = $base_path . "sp/";
+    $path = $base_path . "database/procedures/";
     $aFileList = scandir($path);
     foreach($aFileList as $file) 
     {
@@ -134,7 +139,7 @@ function load_file($file, $aConfig, $oDB)
   echo "Load [$file]...";
     
   $cmd = "mysql -u$mysql_user -p$mysql_passwd -h$mysql_server $mysql_dbase < $file";
-  exec ($cmd, $out, $retval);    
+  exec ($cmd, $out, $retval);
   if ($retval != 0)
     die("\n>>FAILED<<\n");
   
@@ -160,6 +165,33 @@ function load_file($file, $aConfig, $oDB)
   echo "\n";
 }
 
+function load_table(&$table, $aConfig, $oDB)
+{
+  $mysql_server = $aConfig['mysql']['server'];
+  $mysql_dbase = $aConfig['mysql']['database'];
+  $mysql_user = $aConfig['mysql_admin']['username'];
+  $mysql_passwd = $aConfig['mysql_admin']['password'];
+  $mysql_runtime_user = $aConfig['mysql_runtime']['username'];
+
+  echo "Load [$table->filepath]...";
+    
+  $cmd = "mysql -u$mysql_user -p$mysql_passwd -h$mysql_server $mysql_dbase < " . $table->filepath . " 2>&1";
+  exec ($cmd, $out, $retval);
+  if ($retval != 0)
+  {
+    echo "Failed\n";
+    $table->loaded = FALSE;
+    $table->error = $out;
+    return;
+  }
+  else
+  {
+    echo "Ok\n";
+    $table->loaded = TRUE;
+    return;
+  }
+}
+
 function is_sp($filename)
 {
   if (preg_match ("/(sp|fn)_+[^\.]+.sql$/", $filename) == 1)
@@ -176,6 +208,13 @@ function is_table($filename)
     return FALSE; 
 }
 
+function is_data($filename)
+{
+  if (preg_match ("/data_+[^\.]+.sql$/", $filename) == 1)
+    return TRUE;
+  else
+    return FALSE;
+}
 
 function table_count($oDB)
 {
@@ -211,6 +250,52 @@ function table_exists($oDB, $aConfig, $table_name)
   return $bRet;
 }
 
+function load_tables($path, $aConfig, $oDB)
+{
+  /* Due to FKs, the tables have to be loaded in a specific order. Instead of
+     figuring this order out, just make repeated attemps to load all tables.
+   */
 
+  // Load tables
+  $aFileList = scandir($path);
+  $aTableList = array();
+
+  foreach($aFileList as $file)
+  {
+    if (is_table($file) || is_data($file))
+    {
+      $oTable = new ctable();
+      $oTable->filepath = $path . $file;
+      $oTable->loaded = FALSE;
+      $aTableList[] = $oTable;
+    }
+  }
+
+  // Make up to 5 attempts to create each table (only retry if it failed to create the previous time)
+  for ($pass = 0; $pass < 5; $pass++)
+    foreach($aTableList as $table)
+      if ($table->loaded == FALSE)
+        load_table($table, $aConfig, $oDB);
+
+  // List out tables that didn't create even after a few attempts
+  echo "*** Failure list: ***\n";
+  foreach($aTableList as $table)
+  {
+    if ($table->loaded == FALSE)
+    {
+      echo $table->filepath . ": ";
+      foreach ($table->error as $err)
+        echo "$err ";
+      echo "\n";
+    }
+  }
+  echo "*********************\n";
+}
+
+function load_inital_data($base_path, $aConfig, $oDB)
+{
+  // reuse table loader for this
+  load_tables($base_path . "database/data/", $aConfig, $oDB);
+}
 
 ?>

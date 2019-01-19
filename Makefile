@@ -18,7 +18,7 @@ BIN_OUT = bin/
 ALL_BIN = nh-test nh-irc GateKeeper nh-test-irc nh-irc-misc nh-irccat nh-monitor nh-matrix nh-temperature nh-vend nh-mail nh-tools nh-slack nh-macmon nh-trustee
 ALL_BINS := $(addprefix $(BIN_OUT),$(ALL_BIN))
 
-SLACK_INC=-I./SlackRtm/libwebsockets/lib -I./SlackRtm/include -I./SlackRtm/libwebsockets/build
+SLACK_INC=-I./SlackRtm 
 
 CFLAGS = -Wall -Wextra -c -g -I/usr/include/mariadb
 LFLAGS = -Wall -g
@@ -52,7 +52,7 @@ $(BIN_OUT)GateKeeper: $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CGatekeeper_door_orig
 	g++ -lmysqlclient -lmosquitto -lrt -o $(BIN_OUT)GateKeeper $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CGatekeeper_door_original.o $(BUILD_DIR)CGatekeeper_door_hs25.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 $(BIN_OUT)nh-tools: $(BUILD_DIR)nh-tools.o $(BUILD_DIR)nh-tools-bookings.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lmysqlclient -lmosquitto -lrt -lpthread -lcurl -lical -ljson -luuid -o $(BIN_OUT)nh-tools $(BUILD_DIR)nh-tools.o $(BUILD_DIR)nh-tools-bookings.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lmysqlclient -lmosquitto -lrt -lpthread -lcurl -lical -ljson-c -luuid -o $(BIN_OUT)nh-tools $(BUILD_DIR)nh-tools.o $(BUILD_DIR)nh-tools-bookings.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 $(BIN_OUT)nh-monitor: $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
 	g++ -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-monitor $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
@@ -60,11 +60,11 @@ $(BIN_OUT)nh-monitor: $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
 $(BIN_OUT)nh-irc: $(BUILD_DIR)nh-irc.o $(BUILD_DIR)irc.o $(OBJS_BASE)
 	g++ -lmosquitto -lrt -lpthread -o $(BIN_OUT)nh-irc $(BUILD_DIR)nh-irc.o $(BUILD_DIR)irc.o $(OBJS_BASE)
 
-SlackRtm/lib/libslackrtm.a: $(wildcard SlackRtm/cpp/*)
-	cd SlackRtm ; make
+SlackRtm/slackrtm/libslackrtm_static.a: $(wildcard SlackRtm/cpp/*)
+	cd SlackRtm ; cmake . ; make
 
-$(BIN_OUT)nh-slack: $(BUILD_DIR)nh-slack.o $(BUILD_DIR)irc.o $(OBJS_BASE) SlackRtm/lib/libslackrtm.a
-	g++ -lmosquitto -lrt -lpthread -lssl -lcrypto -lz -ljson -lcurl -o $(BIN_OUT)nh-slack $(BUILD_DIR)nh-slack.o $(BUILD_DIR)irc.o SlackRtm/lib/libslackrtm.a $(OBJS_BASE)
+$(BIN_OUT)nh-slack: $(BUILD_DIR)nh-slack.o $(BUILD_DIR)irc.o $(OBJS_BASE) SlackRtm/slackrtm/libslackrtm_static.a
+	g++ -lmosquitto -lrt -lpthread -lssl -lcrypto -lz -ljson-c -lcurl -lwebsockets -o $(BIN_OUT)nh-slack $(BUILD_DIR)nh-slack.o $(BUILD_DIR)irc.o SlackRtm/slackrtm/libslackrtm_static.a $(OBJS_BASE)
 
 $(BIN_OUT)nh-mail: $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o $(OBJS_DBLIB)
 	g++ -lmysqlclient -lmosquitto -o $(BIN_OUT)nh-mail $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o $(OBJS_DBLIB)
@@ -73,7 +73,7 @@ $(BIN_OUT)nh-macmon: $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) 
 	g++ -lpcap -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-macmon $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 $(BIN_OUT)nh-trustee: $(BUILD_DIR)nh-trustee.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lmysqlclient -lmosquitto -lpthread -ljson -lcurl -o $(BIN_OUT)nh-trustee $(BUILD_DIR)nh-trustee.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -lmysqlclient -lmosquitto -lpthread -ljson-c -lcurl -o $(BIN_OUT)nh-trustee $(BUILD_DIR)nh-trustee.o $(OBJS_BASE) $(OBJS_DBLIB)
 
 
 # buid plan written in go
@@ -157,7 +157,7 @@ $(BUILD_DIR)nh-monitor.o: $(SRC_DIR)nh-monitor.cpp db/lib/CNHDBAccess.h
 $(BUILD_DIR)nh-irc.o: $(SRC_DIR)nh-irc.cpp
 	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-irc.cpp $(CC_OUT)
 
-$(BUILD_DIR)nh-slack.o: $(SRC_DIR)nh-slack.cpp SlackRtm/lib/libslackrtm.a
+$(BUILD_DIR)nh-slack.o: $(SRC_DIR)nh-slack.cpp
 	$(CC) $(CFLAGS) $(SLACK_INC) -c $(SRC_DIR)nh-slack.cpp $(CC_OUT)
 
 $(BUILD_DIR)nh-trustee.o: $(SRC_DIR)nh-trustee.cpp
@@ -196,14 +196,14 @@ dblib: $(BUILD_DIR)gen_dblib
 $(BUILD_DIR)gen_dblib: db/lib/gen_dblib.c
 	gcc -Wall -o $(BUILD_DIR)gen_dblib db/lib/gen_dblib.c
 
-db/lib/CNHDBAccess.cpp: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.cpp $(wildcard db/sp/sp_*.sql)
-	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/sp/sp_*.sql)
+db/lib/CNHDBAccess.cpp: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.cpp $(wildcard db/database/procedures/sp_*.sql)
+	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/database/procedures/sp_*.sql)
 
-db/lib/CNHDBAccess.h: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.h $(wildcard db/sp/sp_*.sql)
-	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/sp/sp_*.sql)
+db/lib/CNHDBAccess.h: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.h $(wildcard db/database/procedures/sp_*.sql)
+	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/database/procedures/sp_*.sql)
 
-db/lib/CNHDBAccess.php: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.php $(wildcard db/sp/sp_*.sql)
-	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/sp/sp_*.sql)
+db/lib/CNHDBAccess.php: $(BUILD_DIR)gen_dblib db/lib/CNHDBAccess_template.php $(wildcard db/database/procedures/sp_*.sql)
+	$(BUILD_DIR)gen_dblib db/lib $(wildcard db/database/procedures/sp_*.sql)
 
 $(BUILD_DIR)CNHDBAccess.o: db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h 
 	$(CC) $(CFLAGS) -c db/lib/CNHDBAccess.cpp -o $(BUILD_DIR)CNHDBAccess.o
@@ -211,9 +211,11 @@ $(BUILD_DIR)CNHDBAccess.o: db/lib/CNHDBAccess.cpp db/lib/CNHDBAccess.h
 $(BUILD_DIR)CDBValue.o: db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.h
 	$(CC) $(CFLAGS) -c db/lib/CDBValue.cpp -o $(BUILD_DIR)CDBValue.o
 
-                
 clean:
 	rm -fv build/*
 	rm -fv bin/*
 	rm -fv web/nhweb/build/script/custom.js
 	rm -rfv website/
+	cd SlackRtm ; make clean
+	
+	

@@ -32,7 +32,7 @@
 #include <stdio.h>
 #include <signal.h>
 
-#include <json/json.h>       // libjson0-dev
+#include <json-c/json.h>     // libjson-c-dev
 #include <curl/curl.h>       // libcurl4-gnutls-dev
 
 bool CNHmqtt::debug_mode = false;

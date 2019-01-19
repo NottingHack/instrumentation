@@ -1,5 +1,5 @@
 #pragma once
-#include <mariadb/mysql.h>
+#include <mysql/mysql.h>
 #include <iostream>
 #include <stdlib.h>
 #include <map> 

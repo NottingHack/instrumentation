@@ -91,7 +91,7 @@
 #include <vector>
 #include <algorithm>
 #include <cerrno>
-#include <json/json.h>       // libjson0-dev
+#include <json-c/json.h>     // libjson-c-dev
 #include <curl/curl.h>       // libcurl4-gnutls-dev
 #include <libical/ical.h>    // libical-dev 
 #include <libical/icalss.h>
