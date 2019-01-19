@@ -52,6 +52,7 @@ make nh-web web2
 
 rm -rf /var/www/html/
 ln -s /vagrant/website/public/ /var/www/html
+ln -s /vagrant/website/www_secure/ /var/www/www_secure
 
 echo "Setting the password of all dummy accounts to be \"password\""...
 mysql -uroot -proot instrumentation <<<"select lower(username) from members where username is not null and username != 'Admin'" |

@@ -12,8 +12,7 @@ if (isset($_GET['from']))
     <table border="0" cellspacing="2" cellpadding="2">
 
 <?php
-require "db.php";
-//require "../db.php";
+require "../../www_secure/db.php";
 
 $date_from = strtotime($_GET["from"]);
 $date_to   = strtotime($_GET["to"]);
@@ -109,7 +108,7 @@ if ($oResult = $oInstDB->query($sSQLVDetails))
 
 ?>
 
-<form name="input" action="<?php echo $PHP_SELF;?>" method="get">
+<form name="input" action="<?php echo $_SERVER['PHP_SELF'];?>" method="get">
   From date: <input type="text" name="from" value="2013-02-05"><br />
   To name: <input type="text" name="to" value="<?php echo date("Y-m-d"); ?>"><br />
   <input type="submit" value="Submit">

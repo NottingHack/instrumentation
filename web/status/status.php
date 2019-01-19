@@ -1,5 +1,5 @@
 <?php
-require "../../db.php";
+require "../../www_secure/db.php";
 
 header('Access-Control-Allow-Origin: *');
 header("Cache-Control: no-cache, must-revalidate");
@@ -12,8 +12,8 @@ $oInstDB->sp_get_space_status($space_open, $last_change, $rs_temps);
 $aStatus = Array();
 $aStatus['api'] = "0.13";
 $aStatus['space'] = "Nottinghack";
-$aStatus['logo'] = "http://lspace.nottinghack.org.uk/status/logo.png";
-$aStatus['icon'] = array("open" => "http://lspace.nottinghack.org.uk/status/logo_open.png", "closed" => "http://lspace.nottinghack.org.uk/status/logo_closed.png");
+$aStatus['logo'] = "https://lspace.nottinghack.org.uk/status/logo.png";
+$aStatus['icon'] = array("open" => "https://lspace.nottinghack.org.uk/status/logo_open.png", "closed" => "https://lspace.nottinghack.org.uk/status/logo_closed.png");
 $aStatus['url'] = "http://www.nottinghack.org.uk";
 
 $aStatus['location']['address'] =  "Unit F6, Roden House Business Centre, Alfred Street South, Nottingham, NG3 1JH";
@@ -32,8 +32,8 @@ $aStatus['issue_report_channels'] = array("issue_mail");
 
 $aStatus['open'] = $aStatus['state']['open'] = space_state();
 $aStatus['state']['lastchange'] = intval($last_change);
-$aStatus['state']['icon']['open'] =  "http://lspace.nottinghack.org.uk/status/logo_open.png";
-$aStatus['state']['icon']['closed'] =  "http://lspace.nottinghack.org.uk/status/logo_closed.png";
+$aStatus['state']['icon']['open'] =  "https://lspace.nottinghack.org.uk/status/logo_open.png";
+$aStatus['state']['icon']['closed'] =  "https://lspace.nottinghack.org.uk/status/logo_closed.png";
 $oInstDB->sp_space_net_activity($status_message);
 $aStatus['state']['message'] = $status_message;
 
