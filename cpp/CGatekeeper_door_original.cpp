@@ -43,6 +43,8 @@ CGatekeeper_door_original::CGatekeeper_door_original()
   door_short_name = "";
   _handle = "";
   _entry_announce = "";
+  _new_zone_id = -1;
+  _member_id = -1;
   memset(&_last_valid_read, 0, sizeof(_last_valid_read));
 }
 
@@ -51,7 +53,7 @@ CGatekeeper_door_original::~CGatekeeper_door_original()
   dbg("Deleted");
 }
 
-void CGatekeeper_door_original::set_opts(int id, string base_topic, CLogging *log, CNHDBAccess *db, InstCBI *cb, string entry_announce, int read_timeout, string door_state, string)
+void CGatekeeper_door_original::set_opts(int id, string base_topic, CLogging *log, CNHDBAccess *db, InstCBI *cb, string entry_announce, int read_timeout, string, string)
 {
   _id  = id;
   _base_topic = base_topic;
@@ -118,13 +120,24 @@ void CGatekeeper_door_original::process_door_event(string type, string payload)
         dbg("No last seen time set");
         _cb->cbiSendMessage(_entry_announce + "/known", "Door opened by: " + _handle);
       }
+
+      if (_new_zone_id != -1)
+      {
+        dbg("Updating current zone for member [" + CNHmqtt::itos(_member_id) + "] to be [" + CNHmqtt::itos(_new_zone_id) + "]");
+        _db->sp_gatekeeper_set_zone(_member_id, _new_zone_id);
+      }
+
       _handle = "";
       _last_seen = "";
+      _member_id = -1;
+      _new_zone_id = -1;
     }
     else if (payload=="LOCKED")
     {
       _handle = "";
       _last_seen = "";
+      _member_id = -1;
+      _new_zone_id = -1;
     }
     else if (payload=="OPEN")
     {
@@ -147,7 +160,6 @@ void CGatekeeper_door_original::process_door_event(string type, string payload)
 
   else if (type=="RFID")
   {
-    int new_zone_id = -1;
     int member_id = 0;
     time(&current_time);
     if (difftime(current_time, _last_valid_read) > _read_timeout) // If there's been an unlock message sent in the
@@ -159,7 +171,7 @@ void CGatekeeper_door_original::process_door_event(string type, string payload)
       _db->sp_rfid_update(payload, CNHmqtt::hex2legacy_rfid(payload), msg);
       dbg(msg);
 
-      if(_db->sp_gatekeeper_check_rfid(payload, _id, door_side, unlock_text, _handle, _last_seen, access_result, new_zone_id, member_id, err))
+      if(_db->sp_gatekeeper_check_rfid(payload, _id, door_side, unlock_text, _handle, _last_seen, access_result, _new_zone_id, member_id, err))
       {
         dbg("Call to sp_gatekeeper_check_rfid failed");
         _cb->cbiSendMessage(unlock_topic, "Access Denied: Internal error");
@@ -175,9 +187,11 @@ void CGatekeeper_door_original::process_door_event(string type, string payload)
           // access denied (usually card not found)
           _cb->cbiSendMessage(unlock_topic, unlock_text);
 
-          // If the card was found (e.g. ex-member), hanndle/last seen might have been set... clear this so it's not used when the door is next opened
+          // If the card was found (e.g. ex-member), handle/last seen might have been set... clear this so it's not used when the door is next opened
           _handle = "";
           _last_seen = "";
+          _new_zone_id = -1;
+          _member_id = -1;
         }
       }
     } else
@@ -188,9 +202,9 @@ void CGatekeeper_door_original::process_door_event(string type, string payload)
 
   else if (type=="Keypad")
   {
-    _db->sp_check_pin(payload, _id, unlock_text, _handle, err);
+    string door_side = "A";
+    _db->sp_gatekeeper_check_pin(payload, _id, door_side, _member_id, _new_zone_id, unlock_text, _handle, err);
     dbg("err = [" + err + "]");
     _cb->cbiSendMessage(unlock_topic, unlock_text);
   }
-
 }

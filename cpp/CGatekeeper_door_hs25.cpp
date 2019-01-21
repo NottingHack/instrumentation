@@ -242,7 +242,7 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
       }
     }
   }
-
+/*
   else if (type=="Keypad")
   {
     // todo
@@ -251,7 +251,7 @@ void CGatekeeper_door_hs25::process_door_event(string type, string payload)
     dbg("err = [" + err + "]");
     _cb->cbiSendMessage(unlock_topic, display_message);
   }
-
+*/
 }
 
 int CGatekeeper_door_hs25::set_member_zone(int member_id, int new_zone_id, string handle, string last_seen)
