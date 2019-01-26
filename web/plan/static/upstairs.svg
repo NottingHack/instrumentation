@@ -40,12 +40,12 @@
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:window-width="1600"
-     inkscape:window-height="814"
+     inkscape:window-height="808"
      id="namedview1400"
      showgrid="false"
      inkscape:zoom="0.8"
-     inkscape:cx="1375.6711"
-     inkscape:cy="1087.6225"
+     inkscape:cx="2435.896"
+     inkscape:cy="436.56977"
      inkscape:window-x="0"
      inkscape:window-y="26"
      inkscape:window-maximized="1"
@@ -3508,7 +3508,7 @@
      style="font-style:normal;font-weight:normal;font-size:92.52953339px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
      x="2324.2268"
      y="1193.5121"
-     id="TEMP_BlueRoom"
+     id="TEMP_CraftRoom"
      transform="scale(1.0259275,0.97472775)"
      inkscape:label="#text4574"><tspan
        sodipodi:role="line"
@@ -3520,19 +3520,20 @@
          id="tspan4578">xx.xxc</tspan></tspan></text>
   <text
      xml:space="preserve"
-     style="font-style:normal;font-weight:normal;font-size:27.10565376px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
-     x="2107.8037"
-     y="1159.3256"
-     id="TEMP_Fridge"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:93.33333588px;line-height:125%;font-family:Sans;-inkscape-font-specification:'Sans, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none"
+     x="1894.582"
+     y="1108.0292"
+     id="TEMP_Kitchen"
      transform="scale(1.0259275,0.97472775)"
      inkscape:label="#text4580"><tspan
        sodipodi:role="line"
-       x="2107.8037"
-       y="1159.3256"
+       x="1894.582"
+       y="1108.0292"
        id="tspan4582"><tspan
-         x="2107.8037"
-         y="1159.3256"
-         id="tspan4584">xx.xxc</tspan></tspan></text>
+         x="1894.582"
+         y="1108.0292"
+         id="tspan4584"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:93.33333588px;font-family:Sans;-inkscape-font-specification:'Sans, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start">xx.xxc</tspan></tspan></text>
   <text
      xml:space="preserve"
      style="font-style:normal;font-weight:normal;font-size:86.77111053px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
