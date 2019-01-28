@@ -183,7 +183,7 @@ int nh_mail::mosq_connect()
   return 0;       
 }
 
-void nh_mail::connect_callback(struct mosquitto *mosq, void *obj, int result)
+void nh_mail::connect_callback(struct mosquitto*, void *obj, int result)
 {
   nh_mail *m = (nh_mail*)obj;
 

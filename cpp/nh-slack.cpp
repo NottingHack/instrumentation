@@ -36,6 +36,7 @@
 
 bool CNHmqtt::debug_mode = false;
 bool CNHmqtt::daemonized = false; 
+std::string CNHmqtt::_pid_file = "";
 
 using namespace std;
 
@@ -143,7 +144,7 @@ class nh_slack : public CNHmqtt, public SlackRTMCallbackInterface
     return 0;
   }
   
-  void cbi_debug_message(int level, string msg)
+  void cbi_debug_message(int, string msg)
   {
     log->dbg("[" + msg + "]");
   }

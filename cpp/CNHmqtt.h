@@ -27,6 +27,7 @@ class CNHmqtt
     bool _mosq_connected;
     static bool debug_mode;
     static bool daemonized;
+    static std::string _pid_file;
     static std::string itos(int n);
     static std::string hex2legacy_rfid(std::string rfid_serial);
     
@@ -59,5 +60,3 @@ class CNHmqtt
     pthread_mutex_t _mosq_mutex;
     std::list<std::string> _topic_list;
 };
-
-

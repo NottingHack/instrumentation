@@ -1,5 +1,6 @@
 bool CNHmqtt::debug_mode = false;
 bool CNHmqtt::daemonized = false;
+std::string CNHmqtt::_pid_file = "";
 
 #include "CNHDBAccess.h"
 #include <arpa/inet.h>

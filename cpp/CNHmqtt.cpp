@@ -41,6 +41,7 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
 {
   log = NULL;
   string config_file = "";
+  _pid_file = "";
   _config_file_parsed = false;
   _config_file_default_parsed = false;
   int c;
@@ -68,7 +69,7 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
   opterr = 0;
   optopt = 1;
   optind = 1;
-  while ((c = getopt (argc, argv, "c:dl:")) != -1)
+  while ((c = getopt (argc, argv, "c:p:dl:")) != -1)
     switch (c)
       {
         case 'c':
@@ -83,11 +84,17 @@ CNHmqtt::CNHmqtt(int argc, char *argv[])
         case 'l':
           log->dbg("Uncoded -l flag given");
           break;
-        
+
+        case 'p':
+          _pid_file = optarg;
+          break;
+
         case '?':
           if (optopt == 'c')
             log->dbg ("Option -c requires an argument.");
-          else  
+          else if (optopt == 'p')
+            log->dbg ("Option -p requires an argument.");
+          else
             log->dbg("Unknown option given");
           return;
         
@@ -191,14 +198,39 @@ int CNHmqtt::daemonize()
 {
   if (daemonized)
     return 0;
-  
+
   if (debug_mode)
     return 0;
+
+  int retval = 0;
+
+  if (_pid_file != "")
+  {
+    ofstream f (_pid_file);
+    if (f.is_open())
+    {
+      retval = daemon(1, 0); // don't change dir, but do redirect stdio to /dev/null
+
+      f << getpid();
+      f.close();
+
+      if (retval)
+        return -1;
+      else
+        daemonized = true;
+    }
+    else
+    {
+      cout << "Unable to open PID file";
+      exit (-1);
+    }
+  }
   else
   {
-    daemonized = true;
-    return  daemon(1, 0); // don't change dir, but do redirect stdio to /dev/null
+   retval = daemon(1, 0); // don't change dir, but do redirect stdio to /dev/null
   }
+
+  return retval;
 }
 
 string CNHmqtt::get_str_option(string section, string option, string def_value)
@@ -256,7 +288,7 @@ int CNHmqtt::mosq_connect()
   return 0;
 }
 
-void CNHmqtt::connect_callback(struct mosquitto *mosq, void *obj, int result)
+void CNHmqtt::connect_callback(struct mosquitto*, void *obj, int)
 {
   ((CNHmqtt*)obj)->connected();
 }
@@ -275,7 +307,7 @@ void CNHmqtt::connected()
   
 }
 
-void CNHmqtt::message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message)
+void CNHmqtt::message_callback(struct mosquitto*, void *obj, const struct mosquitto_message *message)
 {
   CNHmqtt *m = (CNHmqtt*)obj;
   string payload;

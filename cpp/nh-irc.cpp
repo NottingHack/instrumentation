@@ -34,7 +34,7 @@
 
 bool CNHmqtt::debug_mode = false;
 bool CNHmqtt::daemonized = false; 
-
+std::string CNHmqtt::_pid_file = "";
 
 class nh_irc : public CNHmqtt
 {
@@ -189,7 +189,7 @@ nh_irc *nh;
 bool _in_msg_loop;
 
 // On ctrl-c / terminate request, disconnect from mqtt, which will trigger an IRC disconnect followed by process exit
-void signal_callback_handler(int signum)
+void signal_callback_handler(int)
 {
   if (_in_msg_loop)
     nh->mqtt_disconnect(); // this will close the connection to mosquitto, and cause nh->message_loop() (in main) to return
