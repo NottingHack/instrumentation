@@ -39,10 +39,7 @@ using namespace std;
 nh_tools::nh_tools(int argc, char *argv[]) : CNHmqtt_irc(argc, argv)
 {
   _tool_topic     = get_str_option("tools", "tool_topic"   , "nh/tools/"); // tool name is appended to this, e.g. laser's topic is nh/tools/laser/
-  _client_id      = get_str_option("tools", "client_id"    , "<NOT SET>");
-  _client_secret  = get_str_option("tools", "client_secret", "<NOT SET>");
   _bookings_topic = get_str_option("tools", "bookings_topic","nh/bookings/");
-  _push_url       = get_str_option("tools", "push_url"     , "https://lspace.nottinghack.org.uk/temp/google.php");
   _status_topic   = get_str_option("tools", "status_topic" , "nh/status/tool/");
 
   _db_server   = get_str_option("mysql", "server"  , "localhost");
@@ -252,7 +249,7 @@ void nh_tools::setup()
   {
     dbrow row = *iterator;
     log->dbg("Creating booking object for tool [" + row["tool_name"].asStr() + "], id = [" +  row["tool_id"].asStr() + "]");
-    _bookings[row["tool_name"].asStr()] = new nh_tools_bookings((_bookings_log ? _bookings_log : log), _db_server, _db_username, _db_password, _db_name,_client_id, _client_secret, _bookings_topic, _push_url, this);
+    _bookings[row["tool_name"].asStr()] = new nh_tools_bookings((_bookings_log ? _bookings_log : log), _db_server, _db_username, _db_password, _db_name, _bookings_topic, this);
     _bookings[row["tool_name"].asStr()]->setup(row["tool_id"].asInt());
   }
 
@@ -276,8 +273,6 @@ void nh_tools::split(vector<string> &tokens, const string &text, char sep)
 
 int main(int argc, char *argv[])
 {
-  curl_global_init(CURL_GLOBAL_DEFAULT);
-
   nh_tools nh = nh_tools(argc, argv);
 
   nh.db_connect();
@@ -286,5 +281,5 @@ int main(int argc, char *argv[])
   nh.setup();
   nh.message_loop();
 
-  return 0;  
+  return 0;
 }

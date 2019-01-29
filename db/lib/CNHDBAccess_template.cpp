@@ -469,6 +469,12 @@ int CNHDBAccess::get_results(MYSQL_STMT *stmt, dbrows *rs, MYSQL_BIND *bind,
           bind[count].buffer_length = 2000;
           break;
 
+        case MYSQL_TYPE_DATETIME:
+          bind[count].buffer_type = MYSQL_TYPE_DATETIME;
+          bind[count].buffer = (char *)malloc(sizeof(MYSQL_TIME));
+          bind[count].buffer_length = sizeof(MYSQL_TIME);
+          break;
+
         default:
           log->dbg("DB", "Error - unsupported datatype in result set (field [" + (string)fields[i].name + "]). Attempting to treat as string.");
           bind[count].buffer_type = MYSQL_TYPE_STRING;

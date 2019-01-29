@@ -20,9 +20,10 @@ CDBValue::CDBValue()
 
 CDBValue::CDBValue(MYSQL_BIND *bind)
 {
-  char *buf =   (char* )bind->buffer;
-  int lng   = *((int*  )bind->buffer); /* MySQL long = C++ int */
-  int flt   = *((float*)bind->buffer);
+  char *buf      =   (char* )bind->buffer;
+  int lng        = *((int*  )bind->buffer); /* MySQL long = C++ int */
+  int flt        = *((float*)bind->buffer);
+  MYSQL_TIME tim = *((MYSQL_TIME*)bind->buffer);
 
   if (*bind->is_null)
   {
@@ -47,6 +48,11 @@ CDBValue::CDBValue(MYSQL_BIND *bind)
       case MYSQL_TYPE_FLOAT:
         _val_type = VAL_TYPE_FLOAT;
         _fltVal = flt;
+        break;
+
+      case MYSQL_TYPE_DATETIME:
+        _val_type = VAL_TYPE_DATETIME;
+        mysql_time2timet(&tim, &_timVal);
         break;
 
       default:
@@ -79,9 +85,21 @@ string CDBValue::asStr()
       break;
 
     case VAL_TYPE_FLOAT:
-
       ss << _fltVal;
       return ss.str();
+      break;
+
+    case VAL_TYPE_DATETIME:
+    {
+      char outstr[200];
+      struct tm *tmp = localtime(&_timVal);
+      if (tmp == NULL)
+        return "<TIME:ERR>";
+
+      if (strftime(outstr, sizeof(outstr), "%a, %d %b %y %T %z", tmp) == 0)
+        return "<TIME:ERR>";
+      return outstr;
+    }
       break;
 
     default:
@@ -111,6 +129,10 @@ int CDBValue::asInt()
       return _fltVal;
       break;
 
+    case VAL_TYPE_DATETIME:
+      return _timVal;
+      break;
+
     default:
       break;
   }
@@ -137,11 +159,47 @@ float CDBValue::asFloat()
       return _fltVal;
       break;
 
+    case VAL_TYPE_DATETIME:
+      return _timVal;
+      break;
+
     default:
       break;
   }
 
   return 0;
+}
+
+time_t CDBValue::asTime()
+{
+  if ((!_val_set) or (_null))
+    return 0;
+
+  switch (_val_type)
+  {
+    case VAL_TYPE_DATETIME:
+      return _timVal;
+      break;
+
+    default:
+      return 0;
+      break;
+  }
+}
+
+// Convert MYSQL_TIME to time_t
+void CDBValue::mysql_time2timet(MYSQL_TIME *my_time, time_t *c_time)
+{
+  struct tm t;
+
+  t.tm_sec  = my_time->second;
+  t.tm_min  = my_time->minute;
+  t.tm_hour = my_time->hour;
+  t.tm_mday = my_time->day;
+  t.tm_mon  = my_time->month - 1; // mysql is 1-12, c is 0-11
+  t.tm_year = my_time->year - 1900;
+
+  *c_time = mktime(&t);
 }
 
 bool CDBValue::isNull()
@@ -160,7 +218,6 @@ void CDBValue::print()
 
   } else
     cout << "NOVAL";
-
 }
 
 string CDBValue::itos(long n)

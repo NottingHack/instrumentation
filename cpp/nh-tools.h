@@ -64,8 +64,6 @@ class nh_tools : public CNHmqtt_irc, public InstCBI
 
   private:
     CNHDBAccess *_db;
-    std::string _client_id;
-    std::string _client_secret;
 
     std::string _tool_topic;
     std::string _bookings_topic;
@@ -73,11 +71,10 @@ class nh_tools : public CNHmqtt_irc, public InstCBI
     std::string _db_username;
     std::string _db_password;
     std::string _db_name;
-    std::string _push_url;
     std::string _status_topic;
     bool _setup_done;
     CLogging *_bookings_log;
-    
+
     std::map<std::string,nh_tools_bookings*> _bookings;
 
     // nh_tools_bookings *_bookings;
