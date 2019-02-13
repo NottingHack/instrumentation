@@ -1,1 +1,0 @@
-gg_word_count.php

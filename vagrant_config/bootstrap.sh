@@ -13,7 +13,6 @@ mysql -uroot -proot -e "grant select on instrumentation.* to 'inst_run'@'localho
 mysql -uroot -proot -e "GRANT ALL ON *.* TO 'hms'@'localhost' IDENTIFIED BY '' WITH GRANT OPTION"
 mysql -uroot -proot -e "FLUSH PRIVILEGES"
 
-# echo "deb http://ftp.debian.org/debian jessie-backports main" >> /etc/apt/sources.list
 apt-get update
 apt-get -y install libmariadb-dev libjson-c-dev libcurl4-gnutls-dev libical-dev uuid-dev cmake libwebsockets-dev libutfcpp-dev libboost1.62-dev libpcap0.8-dev golang
 
@@ -34,15 +33,6 @@ sed -i -e 's/\/PATH\/TO\/KEYTAB/\/config\/nhweb.keytab/g' web/db.php
 sed -i -e 's/hms_test\/web/inst\/web/g' web/db.php
 chmod a+rw /config/nhweb.keytab 
 
-if [ ! -f 'qooxdoo-5.0.2-sdk.zip' ]; then
-    echo "Getting qooxdoo-5.0.2-sdk.zip..."
-    wget -q https://github.com/qooxdoo/qooxdoo/releases/download/release_5_0_2/qooxdoo-5.0.2-sdk.zip
-    echo "Unzipping qooxdoo-5.0.2-sdk.zip..."
-    unzip -q qooxdoo-5.0.2-sdk.zip
-fi
-
-# make nh-web web2
-
 rm -rf /var/www/html/
 ln -s /vagrant/website/public/ /var/www/html
 ln -s /vagrant/website/www_secure/ /var/www/www_secure
@@ -59,9 +49,6 @@ echo "alias sql=\"mysql -proot -uroot instrumentation\"" > /home/vagrant/.bash_a
 
 echo ""
 echo "------------------------------------------------------------------------"
-echo " **** nh-web should now be running at http://localhost:8000/nhweb/ **** "
-echo " **** Login using username=Admin, password=admin                   **** "
-echo "      (all other accounts have the password \"password\")"
 echo ""
 echo "MySQL:  username = root,        password = root"
 echo "kadmin: username = admin/admin, password = admin"

@@ -36,7 +36,6 @@
 nh_mail::nh_mail(int argc, char *argv[]) 
 {
   log = NULL;
-  db = NULL;
   string config_file = "";
   config_file_parsed = false;
   int c;
@@ -102,10 +101,7 @@ nh_mail::nh_mail(int argc, char *argv[])
   
   log->dbg("mosq_server = " + mosq_server);
   out << "" << mosq_port;
-  log->dbg("mosq_port = "   + out.str());  
-  
-  db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
-
+  log->dbg("mosq_port = "   + out.str());
 }
 
 nh_mail::~nh_mail()
@@ -132,9 +128,6 @@ nh_mail::~nh_mail()
     delete log;
     log=NULL;
   }
-  
-  if (db != NULL)
-    delete db;
 }
 
 string nh_mail::get_str_option(string section, string option, string def_value)
@@ -167,10 +160,8 @@ int nh_mail::mosq_connect()
     return -1;
   }  
   
-  mosquitto_connect_callback_set(mosq, nh_mail::connect_callback);
-//  mosquitto_message_callback_set(mosq, nh_mail::message_callback);  
-  
-    // int mosquitto_connect(struct mosquitto *mosq, const char *host, int port, int keepalive, bool clean_session);
+  mosquitto_connect_callback_set(mosq, nh_mail::connect_callback);  
+
   if(mosquitto_connect(mosq, mosq_server.c_str(), mosq_port, 300)) 
   {
     log->dbg("mosq_connnect failed!");
@@ -179,8 +170,8 @@ int nh_mail::mosq_connect()
     return -1;
   }
   mosq_connected = true;
-    
-  return 0;       
+
+  return 0;
 }
 
 void nh_mail::connect_callback(struct mosquitto*, void *obj, int result)
@@ -237,10 +228,8 @@ int main(int argc, char *argv[])
   string reply_to;
   string body;
   string body_processed;
-  int ggemail_id;
   string err;
   string searchstr;
-  unsigned int word_count = 0;
   
   /* Read in email */
   while (cin)
@@ -285,23 +274,8 @@ int main(int argc, char *argv[])
     nh->message_send(nh->mqtt_topic + "/" + mail_from, mail_subject);
     nh->message_loop();
 
-    if (ep.get_list_id() == "<nottinghack.googlegroups.com>")
-    {
-      /* Add to database */
-      nh->db->dbConnect();
-      nh->db->sp_log_ggemail (ep.get_subject(), body, reply_to, message_id, ep.get_from(), err, ggemail_id);
-      
-      /* Get and save word count */
-      word_count = ep.get_msg_word_count(body, body_processed);
-      nh->db->sp_gg_set_auto_wc(ggemail_id, word_count, body_processed);           
-    }
-    
     delete nh; 
   }
 
   return 0;
 }
-
-
-
-

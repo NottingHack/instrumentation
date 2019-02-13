@@ -66,7 +66,7 @@ SlackRtm/slackrtm/libslackrtm_static.a: $(wildcard SlackRtm/cpp/*)
 $(BIN_OUT)nh-slack: $(BUILD_DIR)nh-slack.o $(BUILD_DIR)irc.o $(OBJS_BASE) SlackRtm/slackrtm/libslackrtm_static.a
 	g++ -lmosquitto -lrt -lpthread -lssl -lcrypto -lz -ljson-c -lcurl -lwebsockets -o $(BIN_OUT)nh-slack $(BUILD_DIR)nh-slack.o $(BUILD_DIR)irc.o SlackRtm/slackrtm/libslackrtm_static.a $(OBJS_BASE)
 
-$(BIN_OUT)nh-mail: $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o $(OBJS_DBLIB)
+$(BIN_OUT)nh-mail: $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o
 	g++ -lmysqlclient -lmosquitto -o $(BIN_OUT)nh-mail $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o $(OBJS_DBLIB)
 
 $(BIN_OUT)nh-macmon: $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
@@ -81,20 +81,10 @@ $(BIN_OUT)plan: $(GOPLAN_BASE)plan.go
 	export GOPATH=$(shell pwd)/$(GOPLAN_BASE)vendor ; \
 	go build -o $(BIN_OUT)plan $(GOPLAN_BASE)plan.go 
 	
-web/nhweb/build/script/custom.js: $(wildcard web/nhweb/source/class/custom/*)
-	sh nhweb.sh
-
-nh-web: web/nhweb/build/script/custom.js
-
-web2: nh-web db/lib/CNHDBAccess.php web/vend.php web/db.php web/wiki/wikiauth.php
-	mkdir -p website/public/nhweb/
+web2: db/lib/CNHDBAccess.php web/vend.php web/db.php web/wiki/wikiauth.php
 	mkdir -p website/public/wiki/
 	mkdir -p website/www_secure/
 	cp db/lib/CNHDBAccess.php website/www_secure/
-	rsync -r --exclude=. web/nhweb/build/script website/public/nhweb/
-	rsync -r --exclude=. web/nhweb/build/resource website/public/nhweb/
-	cp web/nhweb/build/index.html website/public/nhweb/index.html
-	rsync -r --exclude=. -r web/rpcservice website/public/
 	rsync -r --exclude=. -r web/status website/public/
 	rsync -r --exclude=. -r web/stats website/public/
 	cp web/vend.php website/public/
@@ -106,7 +96,7 @@ web2: nh-web db/lib/CNHDBAccess.php web/vend.php web/db.php web/wiki/wikiauth.ph
 $(BUILD_DIR)CNHmqtt.o: $(SRC_DIR)CNHmqtt.cpp $(SRC_DIR)CNHmqtt.h
 	$(CC) $(CFLAGS) -c $(SRC_DIR)CNHmqtt.cpp $(CC_OUT)
 
-$(BUILD_DIR)nh-mail.o: $(SRC_DIR)nh-mail.cpp $(SRC_DIR)nh-mail.h db/lib/CNHDBAccess.h
+$(BUILD_DIR)nh-mail.o: $(SRC_DIR)nh-mail.cpp $(SRC_DIR)nh-mail.h
 	$(CC) $(CFLAGS) -c $(SRC_DIR)nh-mail.cpp $(CC_OUT)
 
 $(BUILD_DIR)CNHmqtt_irc.o: $(SRC_DIR)CNHmqtt_irc.cpp $(SRC_DIR)CNHmqtt_irc.h
@@ -214,7 +204,6 @@ $(BUILD_DIR)CDBValue.o: db/lib/CDBValue.cpp db/lib/CDBValue.cpp db/lib/CDBValue.
 clean:
 	rm -fv build/*
 	rm -fv bin/*
-	rm -fv web/nhweb/build/script/custom.js
 	rm -rfv website/
 	cd SlackRtm ; make clean
 	

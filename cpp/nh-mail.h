@@ -4,7 +4,6 @@
 #include "mosquitto.h"
 #include "CLogging.h"
 #include "inireader/INIReader.h"
-#include "CNHDBAccess.h"
 
 #define EXIT_TERMINATE 1 
 #define EXIT_RESET 2
@@ -22,15 +21,14 @@ class nh_mail
     void dbg(string msg);
     int message_send(string topic, string message);
     int message_send(string topic, string message, bool no_debug);    
-         
+
     int  mosq_connect();
-   
+
     bool mosq_connected;
     static string itos(int n);
     int message_loop(void);
     string mqtt_topic;
-    CNHDBAccess *db;
-    
+
   protected:
     string mosq_server;
     int mosq_port;
