@@ -20,6 +20,7 @@ BEGIN
   declare inductor_id int;
   declare inductee_id int;
   declare tool_id int;
+  declare tool_pph int;
 
   set p_msg = '';
   set ret = -1;
@@ -39,13 +40,13 @@ BEGIN
       set p_msg = 'Tool config error';
       leave main;
     end if;
-    
-    -- Get tool id 
-    select t.tool_id
-    into tool_id
+
+    -- Get tool id & tool cost
+    select t.tool_id, t.tool_pph
+    into tool_id, tool_pph
     from tl_tools t
     where t.tool_name = tool_name;
-    
+
     -- Check <card_inductor> is actaully listed as being able to give inductions, and get details if so
     select count(*)
     into cnt
@@ -110,7 +111,14 @@ BEGIN
 
     -- Add induction record
     insert into tl_members_tools (member_id  , tool_id, member_id_induct, mt_date_inducted, mt_access_level)
-                          values (inductee_id, tool_id, inductor_id     , sysdate()       , 'USER'); 
+                          values (inductee_id, tool_id, inductor_id     , sysdate()       , 'USER');
+
+    -- If this is a tool that changes, give 60minutes of time after induction
+    if (tool_pph > 0) then
+      insert into tl_tool_usages (member_id  , tool_id, usage_start, usage_status, usage_duration, usage_active_time)
+                          values (inductee_id, tool_id, sysdate()  , 'COMPLETE'  , -(60*60)      , 0); -- 60s * 60m = 1 hour credit
+    end if;
+
     set ret = 0;
 
 
