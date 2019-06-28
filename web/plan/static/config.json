@@ -1,6 +1,6 @@
 {
   "DoorCount":9,
-  "LightCount":19,
+  "LightCount":37,
   "LightingWebSocket":"ws://queen:8181/lighting",
   "Plans":[
     {"Name": "plan-up"},

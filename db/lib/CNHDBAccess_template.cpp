@@ -374,6 +374,7 @@ void CNHDBAccess::time_t2mysql(MYSQL_TIME *myTime, const time_t *cTime)
 
   localtime_r(cTime, &ti);
 
+  memset(myTime, 0, sizeof(MYSQL_TIME));
   myTime->year = 1900 + ti.tm_year;
   myTime->month = ti.tm_mon+1; // mysql expects 1-12, tm is 0-11
   myTime->day = ti.tm_mday;
