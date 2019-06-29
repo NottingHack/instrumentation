@@ -160,18 +160,17 @@ void CGatekeeper_door_original::process_door_event(string type, string payload)
 
   else if (type=="RFID")
   {
-    int member_id = 0;
     time(&current_time);
     if (difftime(current_time, _last_valid_read) > _read_timeout) // If there's been an unlock message sent in the
     {                                                             // last few seconds, do nothing (door is already open)
       int access_result=0;
-      string door_side = "";
+      string door_side = "A";
       string msg;
 
       _db->sp_rfid_update(payload, CNHmqtt::hex2legacy_rfid(payload), msg);
       dbg(msg);
 
-      if(_db->sp_gatekeeper_check_rfid(payload, _id, door_side, unlock_text, _handle, _last_seen, access_result, _new_zone_id, member_id, err))
+      if(_db->sp_gatekeeper_check_rfid(payload, _id, door_side, unlock_text, _handle, _last_seen, access_result, _new_zone_id, _member_id, err))
       {
         dbg("Call to sp_gatekeeper_check_rfid failed");
         _cb->cbiSendMessage(unlock_topic, "Access Denied: Internal error");
