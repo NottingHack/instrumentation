@@ -199,7 +199,7 @@ void CDBValue::mysql_time2timet(MYSQL_TIME *my_time, time_t *c_time)
   t.tm_mon  = my_time->month - 1; // mysql is 1-12, c is 0-11
   t.tm_year = my_time->year - 1900;
 
-  *c_time = mktime(&t);
+  *c_time = timegm(&t);
 }
 
 bool CDBValue::isNull()

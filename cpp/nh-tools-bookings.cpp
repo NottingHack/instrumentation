@@ -251,10 +251,10 @@ int nh_tools_bookings::process_bookings_data(dbrows rows)
 
     // Add to buffer
     _bookings.push_back(current_event);
-
-    // Sort events in descening order by start datetime
-    sort (_bookings.begin(), _bookings.end(), event_by_start_time_sorter);
   }
+
+  // Sort events in descening order by start datetime
+  sort (_bookings.begin(), _bookings.end(), event_by_start_time_sorter);
 
   return 0;
 }
