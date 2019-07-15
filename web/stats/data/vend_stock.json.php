@@ -4,16 +4,15 @@ include "dbaccess_header.php";
 
 $sql = <<<SQL
   select
-    vd.vmc_description as VendingMachine,
-    vr.loc_name as Position,
-    p.shortdesc as Product,
-    p.longdesc as Description,
-    concat('£', cast((price/100) as decimal(20,2))) as Cost
-  from vmc_ref vr
-  inner join vmc_details vd on vd.vmc_id = vr.vmc_id
-  left outer join vmc_state vs on vr.vmc_ref_id = vs.vmc_ref_id
-  left outer join products p on vs.product_id = p.product_id
-  order by vr.vmc_id, vr.loc_name;
+    vm.description as VendingMachine,
+    lv.name as Position,
+    p.short_description as Product,
+    p.long_description as Description,
+    concat('£', cast((p.price/100) as decimal(20,2))) as Cost
+  from vending_locations lv
+  inner join vending_machines vm on vm.id = lv.vending_machine_id
+  left outer join products p on p.id = lv.product_id
+  order by vm.id, lv.encoding;
 SQL;
 
 print sql_to_tt_json(db_pdo_link(), $sql);
