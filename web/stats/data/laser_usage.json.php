@@ -3,10 +3,13 @@
 include "dbaccess_header.php";
 
 $sql = <<<SQL
-  select 
+  select
     year(tu.start) as Year,
     monthname(tu.start) as Month,
     sec_to_time(sum(tu.duration)) as "Time (hh:mm:ss)",
+    sec_to_time(SUM(CASE WHEN tu.status="CHARGED" THEN tu.duration ELSE 0 END)) as "Charged Time (hh:mm:ss)",
+    FORMAT(SUM(CASE WHEN tu.status="CHARGED" THEN tu.duration ELSE 0 END)*(3/60/60), 2) as "Charged Income (£)",
+    COUNT(DISTINCT(tu.user_id)) as "Distinct users",
     (
       select count(*)
       from role_updates ru
