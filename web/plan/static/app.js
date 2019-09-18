@@ -258,6 +258,8 @@ function setLightState(lightId, state)
 function hideElement(elementId, plan)
 {
   var a = document.getElementById(plan);
+  if (a == null)
+    return;
   var svgDoc = a.contentDocument;
   var ele = svgDoc.getElementById(elementId);
   if (ele != null)
@@ -267,6 +269,8 @@ function hideElement(elementId, plan)
 function showElement(elementId, plan)
 {
   var a = document.getElementById(plan);
+  if (a == null)
+    return;
   var svgDoc = a.contentDocument;
   var ele = svgDoc.getElementById(elementId);
   if (ele != null)
@@ -295,6 +299,9 @@ function setTemp(location, value)
 function initTemperatureLabels(plan)
 {
   var a = document.getElementById(plan);
+  if (a == null)
+    return;
+
   var svgDoc = a.contentDocument;
   var elements = svgDoc.getElementsByTagName("text");
 
@@ -317,6 +324,8 @@ function findDoors()
     for (j = 0; j < config.Plans.length; j++)
     {
       var a = document.getElementById(config.Plans[j].Name);
+      if (a == null)
+        continue;
       var svgDoc = a.contentDocument;
       var element = svgDoc.getElementById("DOOR_" + i + "_OPEN");
       if (element != null)
@@ -333,6 +342,8 @@ function findLights()
     for (j = 0; j < config.Plans.length; j++)
     {
       var a = document.getElementById(config.Plans[j].Name);
+      if (a == null)
+        continue;
       var svgDoc = a.contentDocument;
       var element = svgDoc.getElementById("LIGHT_" + i);
       if (element != null)
