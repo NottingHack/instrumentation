@@ -44,6 +44,7 @@ nh_vend::nh_vend(int argc, char *argv[]) : CNHmqtt(argc, argv)
   debug_level = get_int_option("vend", "debug", 2);
   twitter = get_str_option("vend", "twitter_out", "nh/twitter/tx/status");
   jammed_notification_topic = get_str_option("vend", "jammed_notification_topic", "nh/slack/tx/network");
+  opened_notification_topic = get_str_option("vend", "opened_notification_topic", "nh/slack/tx/network");
   db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
 }
  
@@ -417,6 +418,13 @@ void nh_vend::process_message(vm_msg* vmmsg)
   if (!strncmp(msgbuf, "JAMMED", 6))
   {
      message_send(jammed_notification_topic, "Note acceptor jammed");
+  }
+
+  // OPENED - device has been opened
+  if (!strncmp(msgbuf, "OPENED", 6))
+  {
+    message_send(opened_notification_topic, "[" + vmmsg->vm_desc + "] has been opened");
+    db->sp_log_event("VEND-OPENED", CNHmqtt::itos(vmmsg->vm_id));
   }
 
   // CASH - Cash sale
