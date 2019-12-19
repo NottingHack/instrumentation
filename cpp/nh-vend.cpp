@@ -1,10 +1,10 @@
 /*
  * Copyright (c) 2014, Daniel Swann <hs@dswann.co.uk>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
@@ -13,7 +13,7 @@
  * 3. Neither the name of the owner nor the names of its
  *    contributors may be used to endorse or promote products derived from
  *    this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -45,18 +45,19 @@ nh_vend::nh_vend(int argc, char *argv[]) : CNHmqtt(argc, argv)
   twitter = get_str_option("vend", "twitter_out", "nh/twitter/tx/status");
   jammed_notification_topic = get_str_option("vend", "jammed_notification_topic", "nh/slack/tx/network");
   opened_notification_topic = get_str_option("vend", "opened_notification_topic", "nh/slack/tx/network");
-  db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   
+  opened_trustee_notification_topic = get_str_option("vend", "opened_trustee_notification_topic", "nh/trustee/slack/tx/banking");
+  db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);
 }
- 
+
 nh_vend::~nh_vend()
 {
   delete db;
 }
- 
+
 void nh_vend::process_message(string topic, string message)
 {
   // Identify vending machine, and process message
-  for (dbrows::const_iterator iterator = vm_list.begin(), end = vm_list.end(); iterator != end; ++iterator) 
+  for (dbrows::const_iterator iterator = vm_list.begin(), end = vm_list.end(); iterator != end; ++iterator)
   {
     dbrow row = *iterator;
 
@@ -81,11 +82,11 @@ int nh_vend::setup()
   db->sp_vend_get_machines(-1, &vm_list);
 
   log->dbg("Known vending machines:");
-  for (dbrows::const_iterator iterator = vm_list.begin(), end = vm_list.end(); iterator != end; ++iterator) 
+  for (dbrows::const_iterator iterator = vm_list.begin(), end = vm_list.end(); iterator != end; ++iterator)
   {
     dbrow row = *iterator;
 
-    log->dbg(row["vmc_id"].asStr() + "\t" + 
+    log->dbg(row["vmc_id"].asStr() + "\t" +
              row["vmc_type"].asStr() + "\t" +
              row["vmc_connection"].asStr() + "\t" +
              row["vmc_address"].asStr() + "\t" +
@@ -117,7 +118,7 @@ int nh_vend::setup()
   // Start receive thread
   pthread_create(&rThread, NULL, &nh_vend::s_receive_thread, this);
 
-  return 0; 
+  return 0;
 }
 
 void *nh_vend::s_receive_thread(void *arg)
@@ -147,9 +148,9 @@ void nh_vend::receive_thread()
 
     sprintf(dbgbuf, "%s:%d < [%s]", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port), buf);
     log->dbg(dbgbuf);
-    
+
     // Identify vending machine, and process message
-    for (dbrows::const_iterator iterator = vm_list.begin(), end = vm_list.end(); iterator != end; ++iterator) 
+    for (dbrows::const_iterator iterator = vm_list.begin(), end = vm_list.end(); iterator != end; ++iterator)
     {
       dbrow row = *iterator;
 
@@ -193,14 +194,14 @@ void nh_vend::process_message(vm_msg* vmmsg)
   // PING
   if (!strncmp(msgbuf, "PING", 4))
   {
-    sprintf(msg_response, "PONG"); 
+    sprintf(msg_response, "PONG");
     vmmsg->send(msg_response);
   }
 
   // DeBUG -request from vending machine for debug level
   if (!strncmp(msgbuf, "DBUG", 4))
   {
-    sprintf(msg_response, "DBUG:%d", debug_level); 
+    sprintf(msg_response, "DBUG:%d", debug_level);
     vmmsg->send(msg_response);
   }
 
@@ -208,13 +209,13 @@ void nh_vend::process_message(vm_msg* vmmsg)
   // XXXX:YYYY...
   if (len < 6)
       return;
-  
+
   if (!strncmp(msgbuf, "INFO", 4))
   {
     // Info message only. Has already been written to the logfile on receiption, so do nothing
     return;
   }
-  
+
   if (!strncmp(msgbuf, "AUTH", 4))
   {
     memset(rfid_serial, 0, sizeof(rfid_serial));
@@ -258,7 +259,7 @@ void nh_vend::process_message(vm_msg* vmmsg)
       sprintf(msg_response, "GRNT:%s:%s", rfid_serial, ret.c_str());
       vmmsg->send(msg_response);
 
-      // Send status info for LCD 
+      // Send status info for LCD
       sprintf(disp_msg, "DISP:%s\nBal: %3.2f\n", handle.c_str(), ((float)balance / 100.00));
       vmmsg->send(disp_msg);
     }
@@ -305,7 +306,7 @@ void nh_vend::process_message(vm_msg* vmmsg)
       vmmsg->send(msg_response);
       log->dbg("Card rejected.");
 
-      // Send status info for LCD 
+      // Send status info for LCD
       sprintf(disp_msg, "DISP:Denied:\n%s", err.c_str());
       vmmsg->send(disp_msg);
 
@@ -323,7 +324,7 @@ void nh_vend::process_message(vm_msg* vmmsg)
     }
 
     return;
-  }  // end of VREQ message 
+  }  // end of VREQ message
 
   // Vend SUCcess
   if (!strncmp(msgbuf, "VSUC", 4))
@@ -370,7 +371,7 @@ void nh_vend::process_message(vm_msg* vmmsg)
 
     db->sp_vend_failure(rfid_serial, tran_id, err);
     if (err != "")
-      log->dbg((string)"err = [" + err + (string)"]");   
+      log->dbg((string)"err = [" + err + (string)"]");
   }
 
   // Vend CANcel
@@ -386,12 +387,12 @@ void nh_vend::process_message(vm_msg* vmmsg)
 
     sprintf(dbgbuf, "Vend cancel: Serial = [%s], transaction id = [%s]", rfid_serial, tran_id);
     log->dbg(dbgbuf);
-  
+
     db->sp_vend_cancel(rfid_serial, tran_id, err);
     if (err != "")
       log->dbg((string)"err = [" + err + (string)"]");
   }
-  
+
   // TEMPerature report
   if (!strncmp(msgbuf, "TEMP", 4))
   {
@@ -409,8 +410,8 @@ void nh_vend::process_message(vm_msg* vmmsg)
 
     sprintf(dbgbuf, "%s:%.2f", temp_addr, temp);
     if ((temp < -30) || (temp > 80))
-      log->dbg("Out of range temperature - not transmitting"); 
-    else  
+      log->dbg("Out of range temperature - not transmitting");
+    else
       message_send(temperature_topic, dbgbuf);
   }
 
@@ -424,6 +425,7 @@ void nh_vend::process_message(vm_msg* vmmsg)
   if (!strncmp(msgbuf, "OPENED", 6))
   {
     message_send(opened_notification_topic, "[" + vmmsg->vm_desc + "] has been opened");
+    message_send(opened_trustee_notification_topic, "<!channel> [" + vmmsg->vm_desc + "] has been opened");
     db->sp_log_event("VEND-OPENED", CNHmqtt::itos(vmmsg->vm_id));
   }
 
@@ -443,20 +445,20 @@ void nh_vend::test()
   int amount_scaled;
   string err;
   int vend_ok;
-  
+
   rfid_serial = "1234567";
   tran_id = "10";
   amount_scaled = 60;
-  
-  
+
+
   db->sp_vend_request (rfid_serial, tran_id, amount_scaled, err, vend_ok);
 }
-  
+
 
 vm_msg_mqtt::vm_msg_mqtt(nh_vend *nhv, dbrow row, std::string msg) : vm_msg(nhv, row, msg)
 {
   topic = row["vmc_address"].asStr();
-  
+
 }
 
 void vm_msg_mqtt::send(string msg)
@@ -468,7 +470,7 @@ vm_msg_udp::vm_msg_udp(nh_vend *nhv, dbrow row, std::string msg, int sck, struct
 {
   sock = sck;
   remote_addr = addr;
-  
+
 }
 
 void vm_msg_udp::send(std::string msg)
@@ -481,18 +483,18 @@ void vm_msg_udp::send(std::string msg)
 
 int main(int argc, char *argv[])
 {
- 
+
   nh_vend nh = nh_vend(argc, argv);
-  
+
   nh.mosq_connect();
-  
+
   // run with "-d" flag to avoid daemonizing
-  nh_vend::daemonize(); // will only work on first run  
-  
+  nh_vend::daemonize(); // will only work on first run
+
   if (nh.setup())
     return -1;
 
   nh.message_loop();
-  
+
   return 0;
 }

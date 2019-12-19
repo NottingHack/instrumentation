@@ -1,10 +1,10 @@
 /*
  * Copyright (c) 2018, Matt Lloyd <dps.lwk@gmail.com>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
@@ -13,7 +13,7 @@
  * 3. Neither the name of the owner nor the names of its
  *    contributors may be used to endorse or promote products derived from
  *    this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -36,7 +36,7 @@
 #include <curl/curl.h>       // libcurl4-gnutls-dev
 
 bool CNHmqtt::debug_mode = false;
-bool CNHmqtt::daemonized = false; 
+bool CNHmqtt::daemonized = false;
 std::string CNHmqtt::_pid_file = "";
 
 using namespace std;
@@ -51,6 +51,8 @@ class nh_trustee : public CNHmqtt
     string lastman_close;
     string api_url;
     string slack_channel;
+    string slack_door_channel;
+    string slack_mqtt_tx;
     char _errorBuffer[CURL_ERROR_SIZE];
 
     nh_trustee(int argc, char *argv[]) : CNHmqtt(argc, argv)
@@ -61,7 +63,9 @@ class nh_trustee : public CNHmqtt
       lastman_open = get_str_option("gatekeeper", "lastman_open", "Hackspace now Open!");
       lastman_close = get_str_option("gatekeeper", "lastman_close", "Hackspace is closed");
       api_url = get_str_option("slack", "webhook", "https://hooks.slack.com/services/");
-      slack_channel = get_str_option("slack", "trustee_channel", "door-log");
+      slack_channel = get_str_option("slack", "trustee_channel", "general");
+      slack_door_channel = get_str_option("slack", "trustee_door_channel", "door-log");
+      slack_mqtt_tx = get_str_option("slack", "mqtt_tx", "nh/trustee/slack/tx");
 
       log->dbg("api_url: " + api_url);
       log->dbg("slack_channel: " + slack_channel);
@@ -79,7 +83,7 @@ class nh_trustee : public CNHmqtt
       return size*nmemb;
     }
 
-    int slack_post(string message)
+    int slack_post(string channel, string message)
     {
       string body;
       string payload;
@@ -87,7 +91,7 @@ class nh_trustee : public CNHmqtt
       CURL *curl;
       struct curl_slist *headers = NULL;
 
-      body = json_encode_slack_message(slack_channel, message);
+      body = json_encode_slack_message(channel, message);
 
       // Init cURL
       curl = curl_easy_init();
@@ -106,7 +110,7 @@ class nh_trustee : public CNHmqtt
       curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, s_curl_write); // callback for response
       curl_easy_setopt(curl, CURLOPT_WRITEDATA    , &payload); // pointer for response storage
 
-      /* Perform the request, res will get the return code */ 
+      /* Perform the request, res will get the return code */
       res = curl_easy_perform(curl);
       if (res != CURLE_OK)
       {
@@ -150,16 +154,16 @@ class nh_trustee : public CNHmqtt
       // Entry annouce is Door opened / Door opened by: etc
       if ((topic.substr(0, entry_announce.length() ) == entry_announce))
       {
-        slack_post(message);
+        slack_post(slack_door_channel, message);
 
-      } else if (topic == lastman) 
+      } else if (topic == lastman)
       {
-        if (message=="Last Out") 
+        if (message=="Last Out")
         {
-          slack_post(lastman_close);
+          slack_post(slack_door_channel, lastman_close);
         } else if (message=="First In")
         {
-          slack_post(lastman_open);
+          slack_post(slack_door_channel, lastman_open);
         }
 
       } else if (topic == door_button)
@@ -168,9 +172,43 @@ class nh_trustee : public CNHmqtt
         tmp = message;
         for (int c = 0; message[c]; c++)
           tmp[c] = tolower(message[c]);
-        
+
         string msg_to_send = "Door Bell (" + tmp +")";
-        slack_post(msg_to_send);
+        slack_post(slack_door_channel, msg_to_send);
+      } else if ((slack_mqtt_tx.length() <= topic.length()) && (slack_mqtt_tx == topic.substr(0, slack_mqtt_tx.length())))
+      {
+        // Send to the channel
+        if (topic == slack_mqtt_tx)
+        {
+           slack_post(slack_channel, message);
+          return;
+        }
+
+        // remove leading nh/trustee/slack/tx/
+        chan = topic.substr(slack_mqtt_tx.length()+1);
+        if (chan.length() < 2)
+        {
+          log->dbg("Ignoring <2 char nick/chan");
+          return;
+        }
+
+        // PM
+        if (chan.substr(0, 2) == "pm")
+        {
+          // must be in the format nh/trustee/slack/tx/pm/<nick>
+          if (chan.length() <= 4)
+          {
+            log->dbg("Ignoring nick/chan <= 4 char");
+            return;
+          } else
+          {
+            slack_post_dm(chan.substr(3), message); // skip over "pm/"
+          }
+        } else
+        {
+          // Msg specific channel
+          slack_post(chan, message);
+        }
       }
 
       CNHmqtt::process_message(topic, message);
@@ -183,10 +221,12 @@ class nh_trustee : public CNHmqtt
 
     bool setup()
     {
-     subscribe(entry_announce + "/#");
-     subscribe(door_button);
-     subscribe(lastman);
-      
+      subscribe(entry_announce + "/#");
+      subscribe(door_button);
+      subscribe(lastman);
+      subscribe(slack_mqtt_tx);
+      subscribe(slack_mqtt_tx + "/#");
+
       return true;
     }
 };
@@ -197,12 +237,12 @@ int main(int argc, char *argv[])
 {
   nh = new nh_trustee(argc, argv);
 
- 
+
   nh_trustee::daemonize();
 
   while (nh->mosq_connect())
     sleep(10);
-  
+
   nh->setup();
 
   nh->message_loop();
