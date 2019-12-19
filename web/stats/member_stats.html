@@ -3,7 +3,7 @@
   <head>
     <title>Member Statistics</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-    
+
     <script>
       $(document).ready(function()
       {
@@ -11,23 +11,24 @@
         {
           var stats = res[0];
           var total = stats.total_current_members;
-          
+
           $("#container").append("<div><b>Last Day:</b> " + stats.last_day + " (" + (stats.last_day / total * 100).toFixed(0) + "% of total membership)</div>");
           $("#container").append("<div><b>Last Week:</b> " + stats.last_week  + " (" + (stats.last_week  / total * 100).toFixed(0) + "% of total membership)</div>");
           $("#container").append("<div><b>Last Month:</b> " + stats.last_month + " (" + (stats.last_month / total * 100).toFixed(0) + "% of total membership)</div>");
           $("#container").append("<div><b>Last Quarter:</b> " + stats.last_quarter + " (" + (stats.last_quarter / total * 100).toFixed(0) + "% of total membership)</div>");
+          $("#container").append("<div><b>Last Six Months:</b> " + stats.last_six_month + " (" + (stats.last_six_month /     total * 100).toFixed(0) + "% of total membership)</div>");
           $("#container").append("<div><b>Last Year:</b> " + stats.last_year + " (" + (stats.last_year / total * 100).toFixed(0) + "% of total membership)</div>");
           $("#container").append("<div><b>Anytime:</b> " + stats.anytime + " (" + (stats.anytime / total * 100).toFixed(0) + "% of total membership)</div>");
-          $("#container").append("<div><b>Total Current Members:</b> " + total + "</div>");          
+          $("#container").append("<div><b>Total Current Members:</b> " + total + "</div>");
         });
       });
     </script>
   </head>
   <body>
     This shows the number of current members using the space over various time periods.<br /><br />
-    
+
     Note 1: A member is classed as "using the space" if they have used their RFID card to open the front door, use an access controlled tool, use the vending machine or note acceptor.<br /><br />
-    
+
     <div id="container"></div>
 
   </body>

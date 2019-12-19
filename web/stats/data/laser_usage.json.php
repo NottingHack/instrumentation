@@ -19,7 +19,7 @@ $sql = <<<SQL
         and month(ru.created_at)=month(tu.start)
     ) as "Members inducted"
   from tool_usages tu
-  where tu.tool_id = 1
+  where tu.tool_id in (1, 14)
     and tu.duration > 0
   group by year(tu.start),  monthname(tu.start)
   order by year(tu.start) desc,  month(tu.start) desc

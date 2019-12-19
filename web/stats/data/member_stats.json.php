@@ -8,9 +8,10 @@ $sql = <<<SQL
     COUNT(DISTINCT stats.last_week) AS last_week,
     COUNT(DISTINCT stats.last_month) AS last_month,
     COUNT(DISTINCT stats.last_quarter) AS last_quarter,
+    COUNT(DISTINCT stats.last_six_month) AS last_six_month,
     COUNT(DISTINCT stats.last_year) AS last_year,
     COUNT(DISTINCT stats.anytime) AS anytime,
-    (SELECT COUNT(*) FROM user u LEFT JOIN role_user ru ON u.id = ru.user_id LEFT JOIN roles r ON ru.role_id = r.id WHERE r.name = 'member.current') AS total_current_members
+    (SELECT COUNT(*) FROM user u LEFT JOIN role_user ru ON u.id = ru.user_id LEFT JOIN roles r ON ru.role_id = r.id WHERE r.name = 'member.current' OR r.name = 'member.young' OR r.name = 'member.temporarybanned') AS total_current_members
 
   FROM (
 
@@ -20,6 +21,7 @@ $sql = <<<SQL
     IF(al.access_time >= DATE_SUB(NOW(), INTERVAL 1 WEEK), u.id, NULL) AS last_week,
     IF(al.access_time >= DATE_SUB(NOW(), INTERVAL 1 MONTH), u.id, NULL) AS last_month,
     IF(al.access_time >= DATE_SUB(NOW(), INTERVAL 1 QUARTER), u.id, NULL) AS last_quarter,
+    IF(al.access_time >= DATE_SUB(NOW(), INTERVAL 6 MONTH), u.id, NULL) AS last_six_month,
     IF(al.access_time >= DATE_SUB(NOW(), INTERVAL 1 YEAR), u.id, NULL) AS last_year,
     u.id AS anytime
 
@@ -42,7 +44,7 @@ $sql = <<<SQL
     al.access_time = max_al.max_access_time
 
   WHERE
-    r.name = 'member.current'
+    r.name = 'member.current' OR r.name = 'member.young' OR r.name = 'member.temporarybanned'
 
   UNION
 
@@ -52,6 +54,7 @@ $sql = <<<SQL
     IF(tool_usages.start >= DATE_SUB(NOW(), INTERVAL 1 WEEK), u.id, NULL) AS last_week,
     IF(tool_usages.start >= DATE_SUB(NOW(), INTERVAL 1 MONTH), u.id, NULL) AS last_month,
     IF(tool_usages.start >= DATE_SUB(NOW(), INTERVAL 1 QUARTER), u.id, NULL) AS last_quarter,
+    IF(tool_usages.start >= DATE_SUB(NOW(), INTERVAL 6 MONTH), u.id, NULL) AS last_six_month,
     IF(tool_usages.start >= DATE_SUB(NOW(), INTERVAL 1 YEAR), u.id, NULL) AS last_year,
     u.id AS anytime
 
@@ -74,7 +77,7 @@ $sql = <<<SQL
     tool_usages.start = max_tool_usages.max_start
 
   WHERE
-    r.name = 'member.current'
+    r.name = 'member.current' OR r.name = 'member.young' OR r.name = 'member.temporarybanned'
 
   UNION
 
@@ -84,6 +87,7 @@ $sql = <<<SQL
     IF(vend_logs.enqueued_time >= DATE_SUB(NOW(), INTERVAL 1 WEEK), u.id, NULL) AS last_week,
     IF(vend_logs.enqueued_time >= DATE_SUB(NOW(), INTERVAL 1 MONTH), u.id, NULL) AS last_month,
     IF(vend_logs.enqueued_time >= DATE_SUB(NOW(), INTERVAL 1 QUARTER), u.id, NULL) AS last_quarter,
+    IF(vend_logs.enqueued_time >= DATE_SUB(NOW(), INTERVAL 6 MONTH), u.id, NULL) AS last_six_month,
     IF(vend_logs.enqueued_time >= DATE_SUB(NOW(), INTERVAL 1 YEAR), u.id, NULL) AS last_year,
     u.id AS anytime
 
@@ -106,7 +110,7 @@ $sql = <<<SQL
     vend_logs.enqueued_time = max_vend_logs.max_enqueued_time
 
   WHERE
-    r.name = 'member.current'
+    r.name = 'member.current' OR r.name = 'member.young' OR r.name = 'member.temporarybanned'
 
   ) stats;
 SQL;
