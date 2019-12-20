@@ -65,7 +65,7 @@ class nh_trustee : public CNHmqtt
       api_url = get_str_option("slack", "webhook", "https://hooks.slack.com/services/");
       slack_channel = get_str_option("slack", "trustee_channel", "general");
       slack_door_channel = get_str_option("slack", "trustee_door_channel", "door-log");
-      slack_mqtt_tx = get_str_option("slack", "mqtt_tx", "nh/trustee/slack/tx");
+      slack_mqtt_tx = get_str_option("slack", "trustee_mqtt_tx", "nh/trustee/slack/tx");
 
       log->dbg("api_url: " + api_url);
       log->dbg("slack_channel: " + slack_channel);
@@ -151,6 +151,8 @@ class nh_trustee : public CNHmqtt
 
     void process_message(string topic, string message)
     {
+      string chan;
+
       // Entry annouce is Door opened / Door opened by: etc
       if ((topic.substr(0, entry_announce.length() ) == entry_announce))
       {
@@ -202,7 +204,10 @@ class nh_trustee : public CNHmqtt
             return;
           } else
           {
-            slack_post_dm(chan.substr(3), message); // skip over "pm/"
+
+            log->dbg("Ignoring PM, not yet supported");
+            return;
+            // slack_post_dm(chan.substr(3), message); // skip over "pm/"
           }
         } else
         {
