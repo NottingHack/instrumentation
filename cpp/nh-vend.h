@@ -44,7 +44,7 @@ class nh_vend;
       std::string topic;
     };
 
-    
+
     class vm_msg_udp : public vm_msg
     {
     public:
@@ -73,6 +73,7 @@ class nh_vend : public CNHmqtt
     std::string twitter;
     std::string jammed_notification_topic;
     std::string opened_notification_topic;
+    std::string opened_trustee_notification_topic;
     int debug_level;
 
     nh_vend(int argc, char *argv[]);
@@ -92,5 +93,5 @@ class nh_vend : public CNHmqtt
 };
 
 
-    
-        
+
+
