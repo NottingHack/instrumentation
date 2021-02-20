@@ -16,6 +16,7 @@ select
   monthname(dt.report_date) as Month,
   ifnull(new_mem.c, (select count(*) from profile p where p.join_date >= dt.report_date and p.join_date < date_add(dt.report_date, interval 1 month))) as "New members",
   ifnull(ex_mem.c, 0)   as "Ex members",
+  ifnull(new_mem.c, (select count(*) from profile p where p.join_date >= dt.report_date and p.join_date < date_add(dt.report_date, interval 1 month))) - ifnull(ex_mem.c, 0) as "Membership growth",
   ifnull(rfid.c, 0)     as "RFID entry",
   ifnull(in_door.c, 0)  as "Inner doorbell rang",
   ifnull(out_door.c, 0) as "Outer doorbell rang"
