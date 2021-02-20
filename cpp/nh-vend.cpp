@@ -43,8 +43,8 @@ nh_vend::nh_vend(int argc, char *argv[]) : CNHmqtt(argc, argv)
   temperature_topic = get_str_option("temperature", "temperature_topic", "nh/temp");
   debug_level = get_int_option("vend", "debug", 2);
   twitter = get_str_option("vend", "twitter_out", "nh/twitter/tx/status");
-  jammed_notification_topic = get_str_option("vend", "jammed_notification_topic", "nh/slack/tx/network");
-  opened_notification_topic = get_str_option("vend", "opened_notification_topic", "nh/slack/tx/network");
+  jammed_notification_topic = get_str_option("vend", "jammed_notification_topic", "nh/slack/tx/networking");
+  opened_notification_topic = get_str_option("vend", "opened_notification_topic", "nh/slack/tx/networking");
   opened_trustee_notification_topic = get_str_option("vend", "opened_trustee_notification_topic", "nh/trustee/slack/tx/banking");
   db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);
 }
