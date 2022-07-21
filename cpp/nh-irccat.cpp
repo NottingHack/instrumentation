@@ -1,6 +1,7 @@
 #include "CNHmqtt_irc.h"
 #include "nh-irccat.h"
 #include <string.h>
+#include <algorithm>
 
 using namespace std;
 
@@ -24,6 +25,7 @@ class nh_irccat: public CNHmqtt_irc
      string cmd;
      string irc_chan;
      string str_ret;
+     string irc_cmd;
 
      if (msg=="!help")
      {
@@ -34,7 +36,9 @@ class nh_irccat: public CNHmqtt_irc
      // (nb commands.sh needs tweaking to remove netcat call)
      if (msg=="?commands")
      {
-       cmd = commands + " \"" + msg.nick + "\"";
+       // should not be necessary to escape nick as nicks cannot
+       // contain a single quote while being valid.
+       cmd = commands + " '" + msg.nick + "'";
        log->dbg("cmd = [" + cmd + "]");
        fp = popen(cmd.c_str(), "r");
        memset(cmd_ret, 0, sizeof(cmd_ret));
@@ -53,7 +57,12 @@ class nh_irccat: public CNHmqtt_irc
        else 
          irc_chan = msg.channel;
 
-       cmd = command_runner + " \"" + msg.nick + " " + irc_chan + " " + msg.nick + " " + msg.message.substr(1, string::npos) + "\"";
+       // remove all instances of single quote to prevent breaking out of arg string.
+       // i'm not aware of any irccat commands which would need a single quote to be passed.
+       irc_cmd = msg.message.substr(1, string::npos);
+       irc_cmd.erase(remove(irc_cmd.begin(), irc_cmd.end(), '\''), irc_cmd.end());
+
+       cmd = command_runner + " '" + msg.nick + " " + irc_chan + " " + msg.nick + " " + irc_cmd + "'";
 
        log->dbg("cmd = [" + cmd + "]");
        fp = popen(cmd.c_str(), "r");
