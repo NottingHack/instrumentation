@@ -28,52 +28,52 @@ CC = g++
 all: $(ALL_BINS) db/lib/CNHDBAccess.php $(BIN_OUT)plan
 
 $(BIN_OUT)nh-test: $(BUILD_DIR)nh-test.o $(OBJS_BASE)
-	g++ -lmosquitto -o $(BIN_OUT)nh-test $(BUILD_DIR)nh-test.o $(OBJS_BASE)
+	g++ -o $(BIN_OUT)nh-test $(BUILD_DIR)nh-test.o $(OBJS_BASE) -lmosquitto
 
 $(BIN_OUT)nh-vend: $(BUILD_DIR)nh-vend.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-vend $(BUILD_DIR)nh-vend.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -o $(BIN_OUT)nh-vend $(BUILD_DIR)nh-vend.o $(OBJS_BASE) $(OBJS_DBLIB) -lmysqlclient -lmosquitto -lpthread 
 
 $(BIN_OUT)nh-test-irc: $(BUILD_DIR)nh-test-irc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
-	g++ -lmosquitto -o $(BIN_OUT)nh-test-irc $(BUILD_DIR)nh-test-irc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
+	g++ -o $(BIN_OUT)nh-test-irc $(BUILD_DIR)nh-test-irc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) -lmosquitto
 
 $(BIN_OUT)nh-matrix: $(BUILD_DIR)nh-matrix.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
-	g++ -lpthread -lmosquitto -o $(BIN_OUT)nh-matrix  $(BUILD_DIR)nh-matrix.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
+	g++ -o $(BIN_OUT)nh-matrix  $(BUILD_DIR)nh-matrix.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) -lpthread -lmosquitto
 
 $(BIN_OUT)nh-temperature: $(BUILD_DIR)nh-temperature.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lmosquitto -lmysqlclient -o $(BIN_OUT)nh-temperature $(BUILD_DIR)nh-temperature.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -o $(BIN_OUT)nh-temperature $(BUILD_DIR)nh-temperature.o $(OBJS_BASE) $(OBJS_DBLIB) -lmosquitto -lmysqlclient
 
 $(BIN_OUT)nh-irc-misc: $(BUILD_DIR)nh-irc-misc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lmosquitto -lmysqlclient -o $(BIN_OUT)nh-irc-misc $(BUILD_DIR)nh-irc-misc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -o $(BIN_OUT)nh-irc-misc $(BUILD_DIR)nh-irc-misc.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB) -lmosquitto -lmysqlclient
 
 $(BIN_OUT)nh-irccat: $(BUILD_DIR)nh-irccat.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
-	g++ -lpthread -lmosquitto -o $(BIN_OUT)nh-irccat $(BUILD_DIR)nh-irccat.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE)
+	g++ -o $(BIN_OUT)nh-irccat $(BUILD_DIR)nh-irccat.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) -lpthread -lmosquitto
 
 $(BIN_OUT)GateKeeper: $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CGatekeeper_door_original.o  $(BUILD_DIR)CGatekeeper_door_hs25.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lmysqlclient -lmosquitto -lrt -o $(BIN_OUT)GateKeeper $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CGatekeeper_door_original.o $(BUILD_DIR)CGatekeeper_door_hs25.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -o $(BIN_OUT)GateKeeper $(BUILD_DIR)GateKeeper.o $(BUILD_DIR)CGatekeeper_door_original.o $(BUILD_DIR)CGatekeeper_door_hs25.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB) -lmysqlclient -lmosquitto -lrt
 
 $(BIN_OUT)nh-tools: $(BUILD_DIR)nh-tools.o $(BUILD_DIR)nh-tools-bookings.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lmysqlclient -lmosquitto -lrt -lpthread -ljson-c -luuid -o $(BIN_OUT)nh-tools $(BUILD_DIR)nh-tools.o $(BUILD_DIR)nh-tools-bookings.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -o $(BIN_OUT)nh-tools $(BUILD_DIR)nh-tools.o $(BUILD_DIR)nh-tools-bookings.o $(BUILD_DIR)CNHmqtt_irc.o $(OBJS_BASE) $(OBJS_DBLIB) -lmysqlclient -lmosquitto -lrt -lpthread -ljson-c -luuid
 
 $(BIN_OUT)nh-monitor: $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-monitor $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -o $(BIN_OUT)nh-monitor $(BUILD_DIR)nh-monitor.o $(OBJS_BASE) $(OBJS_DBLIB) -lmysqlclient -lmosquitto -lpthread
 
 $(BIN_OUT)nh-irc: $(BUILD_DIR)nh-irc.o $(BUILD_DIR)irc.o $(OBJS_BASE)
-	g++ -lmosquitto -lrt -lpthread -o $(BIN_OUT)nh-irc $(BUILD_DIR)nh-irc.o $(BUILD_DIR)irc.o $(OBJS_BASE)
+	g++ -o $(BIN_OUT)nh-irc $(BUILD_DIR)nh-irc.o $(BUILD_DIR)irc.o $(OBJS_BASE) -lmosquitto -lrt -lpthread 
 
 SlackRtm/slackrtm/libslackrtm_static.a: $(wildcard SlackRtm/cpp/*)
 	cd SlackRtm ; cmake . ; make
 
 $(BIN_OUT)nh-slack: $(BUILD_DIR)nh-slack.o $(BUILD_DIR)irc.o $(OBJS_BASE) SlackRtm/slackrtm/libslackrtm_static.a
-	g++ -lmosquitto -lrt -lpthread -lssl -lcrypto -lz -ljson-c -lcurl -lwebsockets -o $(BIN_OUT)nh-slack $(BUILD_DIR)nh-slack.o $(BUILD_DIR)irc.o SlackRtm/slackrtm/libslackrtm_static.a $(OBJS_BASE)
+	g++ -o $(BIN_OUT)nh-slack $(BUILD_DIR)nh-slack.o $(BUILD_DIR)irc.o SlackRtm/slackrtm/libslackrtm_static.a $(OBJS_BASE) -lmosquitto -lrt -lpthread -lssl -lcrypto -lz -ljson-c -lcurl -lwebsockets
 
 $(BIN_OUT)nh-mail: $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o
-	g++ -lmysqlclient -lmosquitto -o $(BIN_OUT)nh-mail $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o $(OBJS_DBLIB)
+	g++ -o $(BIN_OUT)nh-mail $(BUILD_DIR)nh-mail.o $(BUILD_DIR)CEmailProcess.o $(BUILD_DIR)INIReader.o $(BUILD_DIR)ini.o $(BUILD_DIR)CLogging.o $(OBJS_DBLIB) -lmysqlclient -lmosquitto
 
 $(BIN_OUT)nh-macmon: $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lpcap -lmysqlclient -lmosquitto -lpthread -o $(BIN_OUT)nh-macmon $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -o $(BIN_OUT)nh-macmon $(BUILD_DIR)nh-macmon.o $(BUILD_DIR)CMacmon.o $(OBJS_BASE) $(OBJS_DBLIB) -lpcap -lmysqlclient -lmosquitto -lpthread
 
 $(BIN_OUT)nh-trustee: $(BUILD_DIR)nh-trustee.o $(OBJS_BASE) $(OBJS_DBLIB)
-	g++ -lmysqlclient -lmosquitto -lpthread -ljson-c -lcurl -o $(BIN_OUT)nh-trustee $(BUILD_DIR)nh-trustee.o $(OBJS_BASE) $(OBJS_DBLIB)
+	g++ -o $(BIN_OUT)nh-trustee $(BUILD_DIR)nh-trustee.o $(OBJS_BASE) $(OBJS_DBLIB) -lmysqlclient -lmosquitto -lpthread -ljson-c -lcurl
 
 
 # buid plan written in go
