@@ -1,54 +1,80 @@
 <?php
-require "../../www_secure/db.php";
+require '../../www_secure/db.php';
 
 header('Access-Control-Allow-Origin: *');
-header("Cache-Control: no-cache, must-revalidate");
-header("Content-type: application/json");
+header('Cache-Control: no-cache, must-revalidate');
+header('Content-type: application/json');
 
-//$oInstDB = new CNHDBAccess('localhost', 'nh-web', 'nh-web', 'instrumentation');
 $oInstDB = db_link();
 $oInstDB->sp_get_space_status($space_open, $last_change, $rs_temps);
 
-$aStatus = Array();
-$aStatus['api'] = "0.13";
-$aStatus['space'] = "Nottinghack";
-$aStatus['logo'] = "https://lspace.nottinghack.org.uk/status/logo.png";
-$aStatus['icon'] = array("open" => "https://lspace.nottinghack.org.uk/status/logo_open.png", "closed" => "https://lspace.nottinghack.org.uk/status/logo_closed.png");
-$aStatus['url'] = "http://www.nottinghack.org.uk";
+$aStatus = [];
+$aStatus['api'] = '0.13';
+$aStatus['api_compatibility'] = [
+  '14',
+];
+$aStatus['space'] = 'Nottinghack';
+$aStatus['logo'] = 'https://lspace.nottinghack.org.uk/status/logo.png';
+$aStatus['icon'] = [
+  'open' => 'https://lspace.nottinghack.org.uk/status/logo_open.png',
+  'closed' => 'https://lspace.nottinghack.org.uk/status/logo_closed.png',
+];
+$aStatus['url'] = 'http://www.nottinghack.org.uk';
 
-$aStatus['location']['address'] =  "Unit F6, Roden House Business Centre, Alfred Street South, Nottingham, NG3 1JH";
-$aStatus['location']['lat'] = 52.9557;
-$aStatus['location']['lon'] = -1.1350;
+$aStatus['location'] = [
+  'address' => 'Unit F6, Roden House Business Centre, Alfred Street South, Nottingham, NG3 1JH',
+  'lat' => 52.9557,
+  'lon' => -1.1350,
+  'timezone' => 'Europe/London',
+];
 
+$aStatus['contact'] = [
+  'irc' => 'ircs://irc.libera.chat:6697/#nottinghack',
+  'twitter' => '@hsnotts',
+  'ml' => 'nottinghack@googlegroups.com',
+  'facebook' => 'nottinghack',
+  'issue_mail' => base64_encode('realm-admin@nottinghack.org.uk'),
+];
 
-$aStatus['contact'] = array("irc" => "irc://freenode/#nottinghack", "twitter" => "@hsnotts", "ml" => "http://groups.google.com/group/nottinghack");
-$aStatus['contact']['irc'] = "irc://chat.freenode.net/#nottinghack";
-$aStatus['contact']['twitter'] = "@hsnotts";
-$aStatus['contact']['ml'] = "nottinghack@googlegroups.com";
-$aStatus['contact']['facebook'] = "nottinghack";
-$aStatus['contact']['issue_mail'] = "realm-admin@nottinghack.org.uk";
+// 13
+$aStatus['issue_report_channels'] = [
+  'issue_mail'
+];
 
-$aStatus['issue_report_channels'] = array("issue_mail");
-
-$aStatus['open'] = $aStatus['state']['open'] = space_state();
-$aStatus['state']['lastchange'] = intval($last_change);
-$aStatus['state']['icon']['open'] =  "https://lspace.nottinghack.org.uk/status/logo_open.png";
-$aStatus['state']['icon']['closed'] =  "https://lspace.nottinghack.org.uk/status/logo_closed.png";
 $oInstDB->sp_space_net_activity($status_message);
-$aStatus['state']['message'] = $status_message;
+$aStatus['state'] = [
+  'open' => space_state(),
+  'lastchange' => intval($last_change),
+  'icon' => [
+    'open' =>  'https://lspace.nottinghack.org.uk/status/logo_open.png',
+    'closed' =>  'https://lspace.nottinghack.org.uk/status/logo_closed.png',
+  ],
+  'message' => $status_message,
+];
 
-$aStatus['spacefed']['spacenet'] = true;
-$aStatus['spacefed']['spacesaml'] = false;
-$aStatus['spacefed']['spacephone'] = false;
+$aStatus['spacefed'] = [
+  'spacenet' => true,
+  'spacesaml' => false,
+  'spacephone' => false,
+];
 
-$aStatus['feeds']['blog']['type'] = 'rss';
-$aStatus['feeds']['blog']['url'] = 'http://planet.nottinghack.org.uk/rss20.xml';
+$aStatus['feeds'] = [
+  'blog' => [
+    'type' => 'rss',
+    'url' => 'http://planet.nottinghack.org.uk/rss20.xml',
+  ],
+  'calendar' => [
+    'type' => 'ical',
+    'url' => 'https://www.google.com/calendar/ical/info%40nottinghack.org.uk/public/basic.ics',
+  ],
+];
 
-$aStatus['feeds']['calendar']['type'] = 'ical';
-$aStatus['feeds']['calendar']['url'] = 'https://www.google.com/calendar/ical/info%40nottinghack.org.uk/public/basic.ics';
-
-
-$aStatus['sensors']['temperature'] = space_temps();
+$aStatus['sensors'] = [
+  'temperature' => space_temps(),
+  // 'total_member_count' => [
+  //   'value' => ??,
+  // ],
+];
 echo json_encode($aStatus);
 echo "\n";
 
@@ -58,10 +84,11 @@ function space_state()
   global $space_open;
   switch ($space_open)
   {
-    case "Yes":
+    case 'Yes':
       return true;
 
-    case "No":
+    case 'No':
+    default:
       return false;
   }
 }
@@ -70,7 +97,7 @@ function space_temps()
 {
   global $rs_temps;
 
-  $aTemps = array();
+  $aTemps = [];
 
   foreach ($rs_temps as $row) 
     $aTemps[] = space_temp($row);
@@ -80,11 +107,12 @@ function space_temps()
 
 function space_temp($row)
 {
-  $oTmp['value'] = floatval($row['temp']);
-  $oTmp['unit'] = "°C";
-  $oTmp['location'] = $row['sensor'];
-
-  return $oTmp;
+  return [
+    'value' => floatval($row['temp']),
+    'unit' => '°C',
+    'location' => $row['sensor'],
+  ];
 }
 
 ?>
+
