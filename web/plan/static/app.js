@@ -359,6 +359,9 @@ function svgElementClicked(theElement)
 {
   if (theElement.id.substring(0, 11) == "LIGHT_RECT_")
     toggleLight(theElement.id.substring(11));
+  
+  if (theElement.id.substring(0, 6) == "LIGHT_")
+    toggleLight(theElement.id.substring(6));
 }
 
 function toggleLight(lightId)
