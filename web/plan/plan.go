@@ -64,7 +64,7 @@ func main() {
     fmt.Printf("parse config file %v failed : %v\n", filename, err.Error())
     return
   }
-  
+
   // Sanity check webBase - print out a warning if index.html isn't there / can't be read
   if _, err := os.Stat(webBase + "/index.html"); os.IsNotExist(err) {
     fmt.Printf("Warning: unable to open [%v]; check web base directory is set correctly (pass -w <web base> flag)\n", webBase + "/index.html")
@@ -115,6 +115,8 @@ func main() {
     panic(token.Error())
   }
 
+  c.Publish(statusResponsetTopic, 0, false, "Restart: " + statusName)
+
   // Start web server
   listenAddr := ":" + listenPort
   fmt.Printf("Listen on: [%v], web base: [%v]\n", listenAddr, webBase)
@@ -137,7 +139,7 @@ func doorStateHandler(client mqtt.Client, msg mqtt.Message) {
   doorStatesLock.Lock()
   doorStates[event.DoorId] = msgPayload
   doorStatesLock.Unlock()
-  
+
   event.EventType = "DoorState"
   event.Value = msgPayload
   eventGroup.Send(event)
