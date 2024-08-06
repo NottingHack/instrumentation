@@ -45,12 +45,18 @@ public:
   string temperature_topic;
   string temperature_topic_out;
   string light_level_topic;
+  string humidity_topic;
+  string barometric_pressure_topic;
+  string sensor_battery_topic;
 
   nh_temperature(int argc, char *argv[]) : CNHmqtt(argc, argv)
   {
-    temperature_topic     = get_str_option("temperature", "temperature_topic", "nh/temp");
-    temperature_topic_out = get_str_option("temperature", "temperature_topic_out", "nh/temperature");
-    light_level_topic     = get_str_option("light_level", "light_level_topic", "nh/lightlevel");
+    temperature_topic         = get_str_option("temperature", "temperature_topic", "nh/temp");
+    temperature_topic_out     = get_str_option("temperature", "temperature_topic_out", "nh/temperature");
+    light_level_topic         = get_str_option("light_level", "light_level_topic", "nh/lightlevel");
+    humidity_topic            = get_str_option("humidity", "humidity_topic", "nh/humidity");
+    barometric_pressure_topic = get_str_option("barometric_pressure", "barometric_pressure_topic", "nh/barometric-pressure");
+    sensor_battery_topic      = get_str_option("sensor_battery", "sensor_battery_topic", "nh/sensor-battery");
 
     db = new CNHDBAccess(get_str_option("mysql", "server", "localhost"), get_str_option("mysql", "username", "gatekeeper"), get_str_option("mysql", "password", "gk"), get_str_option("mysql", "database", "gk"), log);   ;
   }
@@ -110,6 +116,24 @@ public:
       
       db->sp_light_level_update(room, atoi(message.c_str()));
     }
+    else if ((topic.length() > humidity_topic.length()+1) && topic.substr(0, humidity_topic.length()) == humidity_topic)
+    {
+      string room = topic.substr(humidity_topic.length()+1, string::npos);
+
+      db->sp_humidity_update(room, std::stof(message));
+    }
+    else if ((topic.length() > barometric_pressure_topic.length()+1) && topic.substr(0, barometric_pressure_topic.length()) == barometric_pressure_topic)
+    {
+      string room = topic.substr(barometric_pressure_topic.length()+1, string::npos);
+
+      db->sp_barometric_pressure_update(room, std::stof(message));
+    }
+    else if ((topic.length() > sensor_battery_topic.length()+1) && topic.substr(0, sensor_battery_topic.length()) == sensor_battery_topic)
+    {
+      string room = topic.substr(sensor_battery_topic.length()+1, string::npos);
+
+      db->sp_sensor_battery_update(room, std::stof(message));
+    }
     
 
     CNHmqtt::process_message(topic, message);
@@ -119,6 +143,9 @@ public:
   {
     subscribe(temperature_topic);
     subscribe(light_level_topic + "/#");
+    subscribe(humidity_topic + "/#");
+    subscribe(barometric_pressure_topic + "/#");
+    subscribe(sensor_battery_topic + "/#");
     
     if (db->dbConnect())
       return false;
