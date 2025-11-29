@@ -6,6 +6,7 @@ import (
   "net/http"
   "sync"
   "strconv"
+  "strings"
   "flag"
   "os"
   "time"
@@ -107,7 +108,7 @@ func main() {
     panic(token.Error())
   }
 
-  if token := c.Subscribe("nh/temperature/+", 0, temperatureHandler); token.Wait() && token.Error() != nil {
+  if token := c.Subscribe("nh/temperature/#", 0, temperatureHandler); token.Wait() && token.Error() != nil {
     panic(token.Error())
   }
 
@@ -172,6 +173,7 @@ func temperatureHandler(client mqtt.Client, msg mqtt.Message) {
   fmt.Printf("%s\n", msgPayload)
 
   fmt.Sscanf(msgTopic, "nh/temperature/%s", &event.Location)
+  event.Location = strings.Replace(event.Location, "/", "_", 1)
 
   temperaturesLock.Lock()
   temperatures[event.Location] = msgPayload
